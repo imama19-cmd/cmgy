@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adhésion - CMGYE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+        <link rel="stylesheet" href="CSS/inscription.css">
+</head>
+
+<body>
+    <!-- Arrière-plan -->
+    <div class="transparent-bg"></div>
+
+    <!-- En-tête -->
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-hands-praying"></i>
+                </div>
+                <div class="logo-text">
+                    CMGYE - Adhésion
+                </div>
+            </div>
+
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Retour à l'accueil
+            </a>
+        </div>
+    </header>
+
+    <!-- Section d'inscription -->
+    <section class="inscription-section">
+        <div class="container">
+            <div class="inscription-container">
+                <div class="inscription-header">
+                    <h1>Formulaire d'Adhésion</h1>
+                    <p>Rejoignez la Coordination Musulmane de Grand-Yoff et Environs</p>
+                </div>
+
+                <form id="inscriptionForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="prenom" class="required">Prénom</label>
+                            <input type="text" id="prenom" name="prenom" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nom" class="required">Nom</label>
+                            <input type="text" id="nom" name="nom" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="telephone" class="required">Numéro de téléphone</label>
+                            <input type="tel" id="telephone" name="telephone" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Adresse email</label>
+                            <input type="email" id="email" name="email">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="quartier" class="required">Quartier de résidence</label>
+                            <select id="quartier" name="quartier" required>
+                                <option value="">Sélectionnez votre quartier</option>
+                                <option value="grand-yoff-centre">Grand-Yoff Centre</option>
+                                <option value="hlm-grand-yoff">HLM Grand-Yoff</option>
+                                <option value="yoff-ngaparou">Yoff Ngaparou</option>
+                                <option value="sicap-grand-yoff">Sicap Grand-Yoff</option>
+                                <option value="cite-air-afrique">Cité Air Afrique</option>
+                                <option value="zone-de-captage">Zone de Captage</option>
+                                <option value="patte-d-oie">Patte d'Oie</option>
+                                <option value="ouakam">Ouakam</option>
+                                <option value="mermoz">Mermoz</option>
+                                <option value="autre">Autre quartier</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="profession">Profession</label>
+                            <input type="text" id="profession" name="profession">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date_naissance">Date de naissance</label>
+                            <input type="date" id="date_naissance" name="date_naissance">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sexe">Sexe</label>
+                            <select id="sexe" name="sexe">
+                                <option value="">Sélectionnez</option>
+                                <option value="homme">Homme</option>
+                                <option value="femme">Femme</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="adresse">Adresse complète</label>
+                            <textarea id="adresse" name="adresse" rows="3" placeholder="N°, Rue, Ville..."></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="motivation">Motivation pour rejoindre la CMGYE</label>
+                            <textarea id="motivation" name="motivation" rows="4"
+                                placeholder="Pourquoi souhaitez-vous rejoindre notre coordination ?"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <h4><i class="fas fa-info-circle"></i> Information importante</h4>
+                        <p>Votre demande d'adhésion sera examinée par l'administration. Vous recevrez une réponse par
+                            SMS dans un délai de 48 heures. Une fois accepté, l'administrateur définira votre type de
+                            compte (Membre, Responsable, etc.)</p>
+                    </div>
+
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i> Soumettre ma demande d'adhésion
+                        </button>
+
+                        <div class="login-link">
+                            Vous avez déjà un compte ? <a href="page de connexion.html">Connectez-vous ici</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pied de page -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CMGYE</h3>
+                    <p>Coordination Musulmane de Grand-Yoff et Environs</p>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p><i class="fas fa-phone"></i> +221 77 700 00 00</p>
+                    <p><i class="fas fa-envelope"></i> contact@cmgye.sn</p>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Liens utiles</h3>
+                    <a href="index.html">Accueil</a>
+                    <a href="connexion.html">Connexion</a>
+                    <a href="inscription.html">Adhésion</a>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 CMGYE - Coordination Musulmane de Grand-Yoff et Environs</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="JS/inscription.js"></script>
+</body>
+
+</html>
