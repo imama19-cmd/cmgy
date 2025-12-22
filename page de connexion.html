@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - CMGYE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+   <link rel="stylesheet" href="CSS/connexion.css">
+</head>
+
+<body>
+    <!-- Arrière-plan -->
+    <div class="transparent-bg"></div>
+
+    <!-- En-tête -->
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-hands-praying"></i>
+                </div>
+                <div class="logo-text">
+                    CMGYE - Connexion
+                </div>
+            </div>
+
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Retour à l'accueil
+            </a>
+        </div>
+    </header>
+
+    <!-- Section de connexion -->
+    <section class="connexion-section">
+        <div class="container">
+            <div class="connexion-container">
+                <div class="connexion-header">
+                    <div class="connexion-icon">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <h1>Connexion</h1>
+                    <p>Accédez à votre espace membre CMGYE</p>
+                </div>
+
+                <form id="connexionForm">
+                    <div class="form-group">
+                        <label for="identifiant">Identifiant (email ou téléphone)</label>
+                        <input type="text" id="identifiant" name="identifiant" required
+                            placeholder="ex: 77 123 45 67 ou email@exemple.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="motdepasse">Mot de passe</label>
+                        <input type="password" id="motdepasse" name="motdepasse" required
+                            placeholder="Votre mot de passe">
+                    </div>
+
+                    <div class="remember-forgot">
+                        <div class="remember">
+                            <input type="checkbox" id="remember" name="remember">
+                            <label for="remember">Se souvenir de moi</label>
+                        </div>
+                        <a href="#" class="forgot-link">Mot de passe oublié ?</a>
+                    </div>
+
+                    <div class="form-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> <a href="admin.html">Se connecter</a>
+                        </button>
+
+                        <div class="inscription-link">
+                            Vous n'avez pas de compte ? <a href="page d'inscription.html">Adhérez à la CMGYE</a>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="role-info">
+                    <h4><i class="fas fa-info-circle"></i> Information sur les rôles</h4>
+                    <p>Votre type de compte (Membre, Responsable, Administrateur) est défini par l'administrateur après
+                        validation de votre adhésion. Contactez l'administration si vous avez des questions sur vos
+                        droits d'accès.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pied de page -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CMGYE</h3>
+                    <p>Coordination Musulmane de Grand-Yoff et Environs</p>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p><i class="fas fa-phone"></i> +221 77 700 00 00</p>
+                    <p><i class="fas fa-envelope"></i> contact@cmgye.sn</p>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Liens utiles</h3>
+                    <a href="index.html">Accueil</a>
+                    <a href="page de connexion.html">Connexion</a>
+                    <a href="page d'inscription.html">Adhésion</a>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 CMGYE - Coordination Musulmane de Grand-Yoff et Environs</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="JS/connexion.js"></script>
+</body>
+
+</html>

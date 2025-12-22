@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMGYE - Coordination Musulmane de Grand-Yoff et Environs</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+    <link rel="stylesheet" href="CSS/index.css">
+</head>
+<body>
+    <!-- Arrière-plan -->
+    <div class="transparent-bg"></div>
+    <div class="gradient-overlay"></div>
+
+    <!-- En-tête -->
+    <header id="header">
+        <div class="container header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-hands-praying"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="main-title">CMGYE</span>
+                    <span class="arabic">تنسيق مسلمي جراند يوف والضواحي</span>
+                    <span style="font-size: 16px; color: var(--secondary); margin-top: 5px; display: block;">Coordination Musulmane de Grand-Yoff et Environs</span>
+                </div>
+            </div>
+            
+            <nav>
+                <ul>
+                    <li><a href="#home"><i class="fas fa-home"></i> Accueil</a></li>
+                    <li><a href="#actualites"><i class="fas fa-newspaper"></i> Actualités</a></li>
+                    <li><a href="#calendrier"><i class="fas fa-calendar-alt"></i> Calendrier</a></li>
+                    <li><a href="#quartiers"><i class="fas fa-map-marker-alt"></i> Quartiers</a></li>
+                    <li><a href="#organigramme"><i class="fas fa-sitemap"></i> Organigramme</a></li>
+                </ul>
+            </nav>
+            
+            <div class="auth-buttons">
+                <a href="page de connexion.html" class="btn btn-outline">
+                    <i class="fas fa-sign-in-alt"></i> Connexion
+                </a>
+                <a href="page d'inscription.html" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Adhérer
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Section Hero -->
+        <section class="hero" id="home">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>CMGYE</h1>
+                    <span class="arabic-title">تنسيق مسلمي جراند يوف والضواحي</span>
+                    <p>Coordination Musulmane de Grand-Yoff et Environs<br>
+                    <strong>Site institutionnel + Plateforme de gestion</strong></p>
+                    
+                    <p>Un espace numérique pour unir, gérer et dynamiser notre communauté musulmane locale.</p>
+                    
+                    <div class="hero-stats">
+                        <div class="stat-item">
+                            <div class="stat-number">10</div>
+                            <div class="stat-label">Quartiers</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">1500+</div>
+                            <div class="stat-label">Membres</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">25+</div>
+                            <div class="stat-label">Événements/an</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dashboard-preview">
+                    <div class="dashboard-header">
+                        <h2>Vue d'ensemble</h2>
+                        <div style="color: var(--secondary); font-weight: 500;">Données en temps réel</div>
+                    </div>
+                    
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-users"></i> Membres actifs</h3>
+                            <div class="dashboard-number">1,247</div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-calendar-check"></i> Événements à venir</h3>
+                            <div class="dashboard-number">12</div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-newspaper"></i> Actualités publiées</h3>
+                            <div class="dashboard-number">48</div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3><i class="fas fa-handshake"></i> Projets en cours</h3>
+                            <div class="dashboard-number">8</div>
+                        </div>
+                    </div>
+                    
+                    <a href="page d'inscription.html" class="btn btn-primary" style="width: 100%; text-decoration: none; display: block;">
+                        <i class="fas fa-user-plus"></i> Rejoindre la coordination
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Actualités avec recherche -->
+        <section id="actualites">
+            <div class="section-title">
+                <h2>Actualités & Blog</h2>
+                <p>Les dernières informations de la coordination</p>
+            </div>
+            
+            <div class="news-section">
+                <div class="news-header">
+                    <h2>Dernières publications</h2>
+                    <div class="search-container">
+                        <div class="search-box">
+                            <input type="text" id="newsSearch" placeholder="Rechercher un article...">
+                            <button id="searchButton"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" data-category="all">Tous</button>
+                            <button class="filter-btn" data-category="evenement">Événements</button>
+                            <button class="filter-btn" data-category="reunion">Réunions</button>
+                            <button class="filter-btn" data-category="formation">Formations</button>
+                            <button class="filter-btn" data-category="projet">Projets</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="news-grid" id="newsGrid">
+                    <!-- Articles seront générés par JavaScript -->
+                </div>
+                
+                <div style="text-align: center; margin-top: 40px;">
+                    <button class="btn btn-outline" id="loadMoreNews">
+                        <i class="fas fa-plus"></i> Charger plus d'articles
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Calendrier -->
+        <section id="calendrier">
+            <div class="section-title">
+                <h2>Calendrier des Événements</h2>
+                <p>Programme des activités et événements de la coordination</p>
+            </div>
+            
+            <div class="calendar-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="color: var(--primary); font-family: var(--title-font);">Calendrier interactif</h3>
+                    <div>
+                        <a href="page de connexion.html" class="btn btn-primary" style="padding: 10px 20px; text-decoration: none;">
+                            <i class="fas fa-plus"></i> Proposer un événement
+                        </a>
+                    </div>
+                </div>
+                
+                <div id="calendar"></div>
+                
+                <div style="margin-top: 30px; padding: 20px; background: rgba(212, 175, 55, 0.1); border-radius: 15px;">
+                    <h4 style="color: var(--primary); margin-bottom: 15px;"><i class="fas fa-info-circle"></i> Prochains événements majeurs</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                        <div style="background: white; padding: 15px; border-radius: 10px;">
+                            <strong>15 Déc 2025</strong> - Réunion des responsables
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 10px;">
+                            <strong>20 Déc 2025</strong> - Collecte Zakat
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 10px;">
+                            <strong>25 Déc 2025</strong> - Célébration Mawlid
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 10px;">
+                            <strong>10 Jan 2026</strong> - Assemblée générale
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Quartiers -->
+        <section id="quartiers">
+            <div class="section-title">
+                <h2>Les 10 Quartiers</h2>
+                <p>Structure territoriale de la coordination</p>
+            </div>
+            
+            <div class="neighborhoods-grid">
+                <!-- Quartiers seront générés par JavaScript -->
+            </div>
+        </section>
+
+        <!-- Section Organigramme -->
+        <section id="organigramme">
+            <div class="section-title">
+                <h2>Organigramme</h2>
+                <p>Structure organisationnelle de la CMGYE</p>
+            </div>
+            
+            <div class="org-chart-container">
+                <div class="org-chart">
+                    <div class="org-level">
+                        <div class="org-node leader">
+                            <h4>Président CMGYE</h4>
+                            <div class="position">Mame Mor Fall</div>
+                            <div style="font-size: 0.9rem; margin-top: 10px;">Président de la coordination</div>
+                        </div>
+                    </div>
+                    
+                    <div class="org-level">
+                        <div class="org-node">
+                            <h4>Secrétaire Général</h4>
+                            <div class="position">Omar Fall</div>
+                        </div>
+                        <div class="org-node">
+                            <h4>Trésorier Général</h4>
+                            <div class="position">Abdou Fall</div>
+                        </div>
+                        <div class="org-node">
+                            <h4>Commissaire aux Comptes</h4>
+                            <div class="position">Aminata Sow</div>
+                        </div>
+                    </div>
+                    
+                    <div class="org-level">
+                        <div class="org-node">
+                            <h4>Responsable Communication</h4>
+                            <div class="position">Fatou Diallo</div>
+                        </div>
+                        <div class="org-node">
+                            <h4>Responsable Social</h4>
+                            <div class="position">Abdoulaye Mbaye</div>
+                        </div>
+                        <div class="org-node">
+                            <h4>Responsable Événements</h4>
+                            <div class="position">Moussa Sarr</div>
+                        </div>
+                        <div class="org-node">
+                            <h4>Responsable Jeunesse</h4>
+                            <div class="position">Khady Diouf</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Pied de page -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>CMGYE</h3>
+                    <p>Coordination Musulmane de Grand-Yoff et Environs</p>
+                    <p>Site institutionnel et plateforme de gestion communautaire.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-whatsapp"></i></a>
+                        <a href="#"><i class="fab fa-telegram"></i></a>
+                        <a href="#"><i class="fas fa-envelope"></i></a>
+                    </div>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Navigation</h3>
+                    <ul>
+                        <li><a href="#home"><i class="fas fa-arrow-right"></i> Accueil</a></li>
+                        <li><a href="#actualites"><i class="fas fa-arrow-right"></i> Actualités</a></li>
+                        <li><a href="#calendrier"><i class="fas fa-arrow-right"></i> Calendrier</a></li>
+                        <li><a href="#quartiers"><i class="fas fa-arrow-right"></i> Quartiers</a></li>
+                        <li><a href="#organigramme"><i class="fas fa-arrow-right"></i> Organigramme</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> Grand-Yoff, Zone de Captage<br>En face Garage Bignona</p>
+                    <p><i class="fas fa-phone"></i> +221 77 700 00 00</p>
+                    <p><i class="fas fa-envelope"></i> contact@cmgye.sn</p>
+                    <p><i class="fas fa-clock"></i> Permanence: Lundi-Vendredi 9h-17h</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Services Membres</h3>
+                    <ul>
+                        <li><a href="page de connexion.html"><i class="fas fa-sign-in-alt"></i> Connexion membre</a></li>
+                        <li><a href="page d'inscription.html"><i class="fas fa-user-plus"></i> Adhérer à la CMGYE</a></li>
+                        <li><a href="#"><i class="fas fa-question-circle"></i> FAQ / Aide</a></li>
+                        <li><a href="#"><i class="fas fa-shield-alt"></i> Protection des données</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>&copy; 2025 CMGYE - Coordination Musulmane de Grand-Yoff et Environs. Tous droits réservés.</p>
+                <p style="font-size: 0.85rem; margin-top: 10px;">Version: 1.0 | Dernière mise à jour: 13 décembre 2025</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js"></script>
+    <script src="JS/index.js"></script>
+    
+</body>
+</html>
