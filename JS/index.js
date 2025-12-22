@@ -17,8 +17,8 @@
             const articles = [
                 {
                     id: 1,
-                    title: "Préparation du Grand Magal 2025",
-                    excerpt: "La coordination organise les préparatifs pour le Grand Magal de Touba. Inscriptions ouvertes pour le transport collectif.",
+                    title: "Préparation du Ramadan 2026",
+                    excerpt: "La coordination organise les préparatifs pour le Ramadan.",
                     category: "evenement",
                     date: "10 décembre 2025",
                     author: "Secrétariat Général",
