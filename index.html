@@ -550,6 +550,67 @@
     .field-err{font-size:11px;color:var(--red);margin-top:3px;display:none}
     .field-err.show{display:block}
     .fg input.err,.fg select.err,.fg textarea.err{border-color:var(--red) !important}
+
+    /* ===================================================
+       RESPONSIVE COMMANDE — tous appareils
+    =================================================== */
+    @media (max-width: 768px) {
+      .order-page{padding:1rem .8rem;max-width:100%}
+      .op-title{font-size:22px}
+      .op-sub{font-size:12px;margin-bottom:1.2rem}
+      .op-back{padding:8px 16px;font-size:12px;margin-bottom:1rem}
+      .os-card{padding:1rem;margin-bottom:1rem}
+      .form-sec{padding:1rem;margin-bottom:1rem}
+      .fs-title{font-size:11px}
+      .frow{grid-template-columns:1fr!important;gap:.7rem}
+      .frow.full{grid-template-columns:1fr}
+      .fg input,.fg select,.fg textarea{font-size:16px;padding:12px;border-radius:10px}
+      .fg label{font-size:12px}
+      .pay-methods{grid-template-columns:1fr 1fr!important;gap:.6rem}
+      .pay-btn{padding:10px 6px}
+      .pay-btn .pay-icon{font-size:20px}
+      .pay-btn .pay-name{font-size:11px}
+      .pay-btn .pay-sub{font-size:9px}
+      .submit-order{padding:16px;font-size:13px;border-radius:12px;margin-top:1rem}
+      .confirm-box{padding:1.5rem 1rem}
+      .confirm-box h3{font-size:18px}
+      .os-row{font-size:13px}
+      .delivery-fee-row{font-size:13px}
+    }
+    @media (max-width: 480px) {
+      .order-page{padding:.8rem .6rem}
+      .op-title{font-size:20px}
+      .pay-methods{grid-template-columns:1fr 1fr!important}
+      .fg input,.fg select,.fg textarea{font-size:16px}
+      .form-sec{padding:.8rem}
+      .os-card{padding:.8rem}
+    }
+    @media (max-width: 360px) {
+      .pay-methods{grid-template-columns:1fr!important}
+    }
+
+    /* ===================================================
+       RESPONSIVE ADMIN MESURES — tous appareils
+    =================================================== */
+    @media (max-width: 768px) {
+      #mesure-form-panel{padding:1rem!important;margin-top:1rem!important}
+      #mesure-form-panel .frow{grid-template-columns:1fr!important;gap:.7rem}
+      #mesure-form-panel [style*="grid-template-columns"]{grid-template-columns:1fr 1fr!important}
+      #mesure-form-panel input,#mesure-form-panel select,#mesure-form-panel textarea{
+        font-size:16px!important;padding:11px 12px!important;border-radius:9px!important
+      }
+      #mesure-form-panel .fld label{font-size:12px}
+      #mesure-form-panel [style*="display:flex"][style*="justify-content:space-between"]{
+        flex-direction:column;gap:.5rem
+      }
+      .apage-mesures-search{flex-direction:column!important;gap:.5rem!important}
+      #mesures-search{width:100%!important}
+      .mesure-card{flex-direction:column!important;align-items:flex-start!important;gap:.5rem!important}
+    }
+    @media (max-width: 480px) {
+      #mesure-form-panel [style*="grid-template-columns"]{grid-template-columns:1fr!important}
+      #mesure-form-panel{padding:.8rem!important}
+    }
     /* Confirmation commande */
     .confirm-box{display:none;background:#fff;border:1.5px solid var(--green);border-radius:14px;padding:2rem;text-align:center;margin-top:1.5rem;box-shadow:0 8px 30px rgba(46,125,50,.12)}
     .confirm-box.show{display:block}
@@ -1427,32 +1488,47 @@ const DB = {
         const now = new Date().toISOString();
         m.updated_at = now;
         if (!m.created_at) m.created_at = now;
-        let result;
+
+        // Nettoyer les champs — supprimer les null/undefined pour éviter les erreurs Supabase
+        const intFields = ['poitrine','taille','hanches','epaule_genou','epaule_cheville',
+          'dos','largeur_epaules','tour_bras','tour_cou','pointure',
+          'pantalon','longueur_veste','tour_poignet'];
+        const payload = { ...m };
+        intFields.forEach(f => { if (!payload[f]) delete payload[f]; });
+        // Supprimer l'id si null/undefined (INSERT génère l'id auto)
+        if (!payload.id) delete payload.id;
+
+        let sbResult;
         if (!m.id) {
-          // Nouvelle fiche : insert et récupérer l'id généré par Supabase
-          const { data, error } = await sb.from('mesures').insert(m).select().single();
-          if (!error && data) {
-            m.id = data.id;
-            result = { error: null };
+          // Nouvelle fiche : INSERT, récupérer l'id SERIAL généré
+          const { data, error } = await sb.from('mesures').insert(payload).select('id').single();
+          if (error) {
+            console.error('Supabase mesures INSERT error:', error);
+            sbResult = { error };
           } else {
-            result = { error };
+            m.id = data.id;
+            sbResult = { error: null };
           }
         } else {
-          // Fiche existante : upsert
-          const { error } = await sb.from('mesures').upsert(m);
-          result = { error };
+          // Fiche existante : UPDATE ciblé
+          const { error } = await sb.from('mesures').update(payload).eq('id', m.id);
+          if (error) console.error('Supabase mesures UPDATE error:', error);
+          sbResult = { error };
         }
-        if (!result.error) {
-          // Sync local aussi
+
+        if (!sbResult.error) {
+          // Cache localStorage en miroir
           let locals = JSON.parse(localStorage.getItem('stylea_mesures') || '[]');
           const idx = locals.findIndex(x => x.id === m.id);
           if (idx >= 0) locals[idx] = m; else locals.unshift(m);
           localStorage.setItem('stylea_mesures', JSON.stringify(locals));
           return true;
         }
-      } catch(e) {}
+      } catch(e) {
+        console.error('saveMesure exception:', e);
+      }
     }
-    // Fallback localStorage
+    // Fallback localStorage uniquement si Supabase indisponible
     try {
       let locals = JSON.parse(localStorage.getItem('stylea_mesures') || '[]');
       const now = new Date().toISOString();
