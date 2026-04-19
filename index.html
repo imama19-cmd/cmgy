@@ -91,7 +91,7 @@
     .hero-right{display:grid;grid-template-columns:1fr 1fr;gap:3px}
     .hero-img{width:100%;height:230px;object-fit:cover;display:block}
     .directrice-section{background:var(--navy);padding:3rem 2rem;display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap}
-    .dir-photo{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)}
+    .dir-photo{width:165px;height:165px;border-radius:50%;object-fit:cover;border:4px solid var(--gold);box-shadow:0 4px 20px rgba(255,179,0,.3)}
     .dir-text{max-width:600px}
     .dir-quote{font-family:'Playfair Display',serif;font-size:20px;color:#fff;font-style:italic;line-height:1.7;margin-bottom:1rem}
     .dir-quote::before{content:'\201C';color:var(--gold);font-size:36px;line-height:0;vertical-align:-.4em;margin-right:.2em}
@@ -484,7 +484,7 @@
       .btn-gold,.btn-out{width:100%;text-align:center}
       .hero-btns{flex-direction:column}
       .directrice-section{padding:1.5rem 1rem}
-      .dir-photo{width:90px;height:90px}
+      .dir-photo{width:115px;height:115px}
       .dir-quote{font-size:15px}
       .ann-grid{grid-template-columns:1fr}
     }
@@ -588,6 +588,21 @@
     @media (max-width: 360px) {
       .pay-methods{grid-template-columns:1fr!important}
     }
+
+    /* ===================================================
+       RESPONSIVE ADMIN — anti-débordement global
+    =================================================== */
+    .amain { overflow-x: hidden; min-width: 0; }
+    .apage { overflow-x: hidden; min-width: 0; }
+    .config-section { overflow-x: hidden; }
+    .cbox { overflow-x: auto; }
+    .frow, .frow2, .ftx-grid { min-width: 0; }
+    .fld input, .fld select, .fld textarea { max-width: 100%; box-sizing: border-box; }
+    .sinput { max-width: 100%; box-sizing: border-box; }
+    .kpi-val { font-size: clamp(18px, 3vw, 28px); word-break: break-all; }
+    .tbtn, .ab { flex-shrink: 0; }
+    .cbox-head { flex-wrap: wrap; gap: .5rem; }
+    .pgrid-a { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
 
     /* ===================================================
        RESPONSIVE ADMIN MESURES — tous appareils
@@ -1053,7 +1068,7 @@
     <div class="confirm-modal-msg" id="cm-msg">Êtes-vous sûr de vouloir continuer ?</div>
     <div class="confirm-modal-btns">
       <button class="cm-btn-cancel" onclick="closeConfirmModal()">Annuler</button>
-      <button class="cm-btn-confirm" id="cm-confirm-btn" onclick="closeConfirmModal();if(typeof _confirmCallback==='function')_confirmCallback();">Confirmer</button>
+      <button class="cm-btn-confirm" id="cm-confirm-btn" onclick="(function(){const cb=_confirmCallback;closeConfirmModal();if(typeof cb==='function')cb();})()">Confirmer</button>
     </div>
   </div>
 </div>
@@ -1674,7 +1689,7 @@ let S = {
     setTimeout(() => { if (toast.parentNode) toast.remove(); }, duration);
   };
   const style = document.createElement('style');
-  style.textContent = '@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}.btn-loading{opacity:0.7;pointer-events:none;}';
+  style.textContent = '@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}.btn-loading{opacity:0.7;pointer-events:none;}@keyframes pulseBadge{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.15)}}@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}';
   document.head.appendChild(style);
 })();
 
@@ -3070,6 +3085,73 @@ try {
     }
   };
 } catch(e){}
+// ==================== NOTIFICATION TEMPS RÉEL COMMANDES ====================
+function showRealtimeOrderAlert(order) {
+  // 1. Toast persistant avec style fort
+  const container = document.querySelector('[style*="bottom:24px;right:24px"]');
+  if (container) {
+    const toast = document.createElement('div');
+    toast.style.cssText = 'background:#1565C0;color:#fff;padding:16px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(21,101,192,.5);font-size:14px;font-weight:500;display:flex;align-items:center;gap:12px;animation:slideIn 0.3s ease;max-width:380px;border:2px solid #FFB300;';
+    toast.innerHTML = `
+      <span style="font-size:26px;animation:pulse 1s infinite">🛍️</span>
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:15px;color:#FFB300">Nouvelle commande !</div>
+        <div>${order.name} — ${order.id}</div>
+        <div style="font-size:12px;opacity:.85">${order.items ? order.items.substring(0,50)+'…' : ''} · ${order.total ? Math.round(order.total).toLocaleString('fr-FR')+' FCFA' : ''}</div>
+      </div>
+      <button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0">✕</button>`;
+    container.appendChild(toast);
+    // Auto-remove après 15 secondes
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 15000);
+  }
+
+  // 2. Badge rouge clignotant sur le menu Commandes dans la sidebar
+  const ordersItem = document.querySelector('.a-item[onclick*="orders"]');
+  if (ordersItem) {
+    let badge = ordersItem.querySelector('.realtime-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'realtime-badge';
+      badge.style.cssText = 'background:#C62828;color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:auto;animation:pulseBadge 1s infinite;';
+      ordersItem.style.position = 'relative';
+      ordersItem.appendChild(badge);
+    }
+    const count = parseInt(badge.dataset.count || '0') + 1;
+    badge.dataset.count = count;
+    badge.textContent = count > 9 ? '9+' : count;
+    // Effacer le badge quand on va sur la page commandes
+    const origANav = window._origANav;
+    ordersItem.addEventListener('click', () => { badge.remove(); }, { once: true });
+  }
+
+  // 3. Titre de page clignote si onglet en arrière-plan
+  if (document.hidden) {
+    let blink = true;
+    const origTitle = document.title;
+    const blinkInterval = setInterval(() => {
+      document.title = blink ? `🛍️ Nouvelle commande ! — STYLEA` : origTitle;
+      blink = !blink;
+    }, 1000);
+    document.addEventListener('visibilitychange', () => {
+      clearInterval(blinkInterval);
+      document.title = origTitle;
+    }, { once: true });
+  }
+
+  // 4. Son de notification (bip discret)
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.4);
+  } catch(e) {}
+}
+
 async function initApp() {
   await API.syncAll();
   renderSite();
@@ -3082,15 +3164,15 @@ async function initApp() {
       sb.channel('orders-realtime')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
           if (payload.new) {
-            // Vérifier que la commande n'est pas déjà dans S.orders
             if (!S.orders.find(o => o.id === payload.new.id)) {
               S.orders.unshift(payload.new);
               API.saveOrders(S.orders);
             }
+            // Notification visuelle forte même si admin fermé
+            showRealtimeOrderAlert(payload.new);
             if (S.adminOpen) {
               updateAdminDashboard();
               renderOrdersTable(S.orders);
-              showToast(`🔔 Nouvelle commande : ${payload.new.id} — ${payload.new.name}`, 'success', 8000);
             }
           }
         })
