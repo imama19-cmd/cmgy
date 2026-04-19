@@ -371,44 +371,144 @@
     .hamburger.active span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
     
     /* ===== RESPONSIVE GLOBAL ===== */
+    /* ===================================================
+       RESPONSIVE — Système complet multi-appareils
+       Mobile-first : 320px → 480px → 640px → 768px → 1024px
+    =================================================== */
+
+    /* --- Tablette & Mobile (≤768px) --- */
     @media (max-width: 768px) {
+      /* Navigation */
       .hamburger{display:flex}
-      .nav-links{position:fixed;top:66px;left:-100%;width:80%;height:calc(100vh - 66px);background:var(--navy);flex-direction:column;padding:2rem;transition:left .3s ease;z-index:300;gap:1.5rem}
-      .nav-links.open{left:0}
-      .hero { grid-template-columns: 1fr; }
-      .hero-right { display: none; }
-      .ft-grid { grid-template-columns: 1fr 1fr; }
-      .kpi-row { grid-template-columns: 1fr 1fr; }
-      .crow { grid-template-columns: 1fr; }
-      .frow2 { grid-template-columns: 1fr; }
-      .mrow2 { grid-template-columns: 1fr; }
-      .ftx-grid { grid-template-columns: 1fr 1fr; }
-      .pgrid { padding: 0 1rem 2rem; gap: 1rem; }
-      .filter-bar { padding: 0 1rem 1rem; }
-      .sec-head h2 { font-size: 28px; }
-      .hero-left { padding: 2rem; }
-      /* Admin responsive : sidebar cachée, hamburger admin visible */
-      .admin-shell { grid-template-columns: 1fr; }
-      .aside { position: fixed; left: -280px; top: 0; bottom: 0; width: 280px; z-index: 1000; transition: left 0.3s; background: var(--navy); display: block; }
-      .aside.open { left: 0; }
-      .admin-hamburger { display: block; }
-      .atopbar .admin-hamburger { margin-right: auto; }
-      /* Tables transformées en cartes */
-      .atable, .atable thead, .atable tbody, .atable tr, .atable th, .atable td { display: block; }
-      .atable thead { display: none; }
-      .atable tr { border: 1px solid var(--skymd); margin-bottom: 1rem; border-radius: 12px; overflow: hidden; background: white; }
-      .atable td { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--sky); padding: 12px; text-align: right; }
-      .atable td::before { content: attr(data-label); font-weight: 600; color: var(--navy); text-align: left; flex: 1; }
-      .atable td:last-child { border-bottom: none; }
-      /* Ajustements divers */
-      .cbox-head { flex-direction: column; align-items: stretch; }
-      .sinput, #sfilter { width: 100%; margin-bottom: 0.5rem; }
-      .ftx-grid { grid-template-columns: 1fr; gap: 0.5rem; }
-      .txadd { width: 100%; }
-      /* FONCTIONNALITÉ 4 — Panier 100% mobile */
-      .cart-sb{width:100%!important;border-radius:20px 20px 0 0}
+      .nav-links{position:fixed;top:66px;left:-100%;width:82%;height:calc(100vh - 66px);background:var(--navy);flex-direction:column;padding:2rem 1.5rem;transition:left .3s ease;z-index:300;gap:1.2rem;overflow-y:auto}
+      .nav-links.open{left:0;box-shadow:4px 0 20px rgba(0,0,0,.4)}
+      .nav-links a{font-size:14px;letter-spacing:1px;padding:.5rem 0;border-bottom:1px solid rgba(255,255,255,.08)}
+      .top-nav{padding:0 1rem}
+      .cart-btn{padding:8px 14px;font-size:11px}
+
+      /* Hero */
+      .hero{grid-template-columns:1fr;min-height:auto}
+      .hero-right{display:none}
+      .hero-left{padding:2.5rem 1.5rem}
+      .hero-left h1{font-size:32px}
+      .hero-left p{font-size:13px}
+      .hero-btns{gap:.8rem}
+      .btn-gold,.btn-out{padding:11px 22px;font-size:11px}
+
+      /* Stats */
+      .stats-bar{gap:1rem;padding:1rem}
+      .stat-num{font-size:22px}
+
+      /* Directrice */
+      .directrice-section{flex-direction:column;text-align:center;padding:2rem 1.5rem;gap:1.5rem}
+      .dir-quote{font-size:17px}
+
+      /* Shop */
+      .pgrid{padding:0 1rem 2rem;gap:.8rem;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+      .filter-bar{padding:0 1rem 1rem;gap:.5rem;overflow-x:auto;flex-wrap:nowrap;justify-content:flex-start}
+      .fbtn{white-space:nowrap;flex-shrink:0}
+      .sec-head{padding:1.5rem 1rem .5rem}
+      .sec-head h2{font-size:26px}
+      .pcard-name{font-size:13px}
+      .pcard-body{padding:.8rem}
+      .price{font-size:17px}
+      .atcbtn{padding:9px 12px;font-size:11px}
+
+      /* Footer */
+      .ft-grid{grid-template-columns:1fr 1fr;gap:1.5rem}
+      .ft-brand{grid-column:1/-1}
+
+      /* Panier */
+      .cart-sb{width:100%!important;border-radius:20px 20px 0 0;max-height:85vh}
       .cart-ov{background:rgba(10,22,40,.8)}
+
+      /* Admin sidebar */
+      .admin-shell{grid-template-columns:1fr}
+      .aside{position:fixed;left:-280px;top:0;bottom:0;width:280px;z-index:1000;transition:left .3s;background:var(--navy);display:block;overflow-y:auto}
+      .aside.open{left:0;box-shadow:4px 0 24px rgba(0,0,0,.5)}
+      .admin-hamburger{display:block}
+      .atopbar .admin-hamburger{margin-right:auto}
+      .amain{padding:1rem}
+      .atopbar{padding:.6rem 1rem;gap:.5rem}
+      .a-page-title{font-size:15px}
+
+      /* Tables → cartes */
+      .atable,.atable thead,.atable tbody,.atable tr,.atable th,.atable td{display:block}
+      .atable thead{display:none}
+      .atable tr{border:1px solid var(--skymd);margin-bottom:1rem;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+      .atable td{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--sky);padding:10px 14px;text-align:right;font-size:13px}
+      .atable td::before{content:attr(data-label);font-weight:600;color:var(--navy);text-align:left;flex:1;font-size:12px}
+      .atable td:last-child{border-bottom:none}
+
+      /* Admin grilles */
+      .kpi-row{grid-template-columns:1fr 1fr;gap:.8rem}
+      .crow{grid-template-columns:1fr;gap:1rem}
+      .frow2{grid-template-columns:1fr;gap:1rem}
+      .mrow2{grid-template-columns:1fr}
+      .ftx-grid{grid-template-columns:1fr;gap:.5rem}
+      .txadd{width:100%}
+      .cbox-head{flex-direction:column;align-items:stretch;gap:.5rem}
+      .sinput,#sfilter{width:100%;margin-bottom:.4rem}
+      .frow{flex-direction:column;gap:.8rem}
+      .config-section{padding:1rem}
+
+      /* Modals */
+      .mbox{margin:1rem;max-height:90vh;overflow-y:auto;padding:1.2rem}
+      .mbox.wide{width:calc(100vw - 2rem)}
+      .prod-modal{grid-template-columns:1fr}
+
+      /* Commande */
+      #sec-order{padding:1rem}
+      .order-grid{grid-template-columns:1fr}
+      .pay-methods{grid-template-columns:1fr 1fr}
     }
+
+    /* --- Petit mobile (≤480px) --- */
+    @media (max-width: 480px) {
+      .top-nav{height:58px;padding:0 .8rem}
+      .nav-links{top:58px;height:calc(100vh - 58px)}
+      .logo{font-size:32px;letter-spacing:6px}
+      .hero-left h1{font-size:26px}
+      .hero-left{padding:2rem 1rem}
+      .stats-bar{grid-template-columns:1fr 1fr;display:grid;gap:.8rem;padding:1rem}
+      .stat{padding:.5rem}
+      .pgrid{grid-template-columns:1fr 1fr;gap:.6rem}
+      .pcard-name{font-size:12px}
+      .price{font-size:15px}
+      .ft-grid{grid-template-columns:1fr}
+      .kpi-row{grid-template-columns:1fr;gap:.6rem}
+      .kpi{padding:.8rem}
+      .kpi-val{font-size:22px}
+      .admin-prod-grid{grid-template-columns:1fr 1fr!important}
+      .pay-methods{grid-template-columns:1fr}
+      .btn-gold,.btn-out{width:100%;text-align:center}
+      .hero-btns{flex-direction:column}
+      .directrice-section{padding:1.5rem 1rem}
+      .dir-photo{width:90px;height:90px}
+      .dir-quote{font-size:15px}
+      .ann-grid{grid-template-columns:1fr}
+    }
+
+    /* --- Très petit (≤360px) --- */
+    @media (max-width: 360px) {
+      .logo{font-size:26px;letter-spacing:4px}
+      .hero-left h1{font-size:22px}
+      .pgrid{grid-template-columns:1fr}
+      .admin-prod-grid{grid-template-columns:1fr!important}
+      .cart-btn span:not(.ccnt){display:none}
+    }
+
+    /* --- Tablette paysage (769px–1024px) --- */
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .hero-left h1{font-size:38px}
+      .pgrid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+      .kpi-row{grid-template-columns:repeat(3,1fr)}
+      .frow2{grid-template-columns:1fr 1fr}
+      .amain{padding:1.5rem}
+      .top-nav{padding:0 1.5rem}
+    }
+
+
 
     /* ===== NOUVELLES FONCTIONNALITÉS ===== */
     /* FAB WhatsApp */
@@ -892,7 +992,7 @@
     <div class="confirm-modal-msg" id="cm-msg">Êtes-vous sûr de vouloir continuer ?</div>
     <div class="confirm-modal-btns">
       <button class="cm-btn-cancel" onclick="closeConfirmModal()">Annuler</button>
-      <button class="cm-btn-confirm" id="cm-confirm-btn" onclick="">Confirmer</button>
+      <button class="cm-btn-confirm" id="cm-confirm-btn" onclick="closeConfirmModal();if(typeof _confirmCallback==='function')_confirmCallback();">Confirmer</button>
     </div>
   </div>
 </div>
@@ -1431,10 +1531,7 @@ const DB = {
   }
 };
 
-// Initialiser la sync Supabase après chargement
-window.addEventListener('load', function() {
-  setTimeout(() => DB.syncOnStartup(), 2000);
-});
+// Sync Supabase gérée uniquement par initApp() — pas de double déclenchement
 
 // ==================== DATA STORE ====================
 let S = {
@@ -2596,7 +2693,26 @@ function renderFinCharts() {
   if(finCh){finCh.destroy();finCh=null;}
   if($('finChart')) finCh=new Chart($('finChart'),{type:'bar',data:{labels:['Entrées','Dépenses','Bénéfice'],datasets:[{data:[inc,exp,Math.max(0,profit)],backgroundColor:['#2E7D32','#C62828','#1565C0'],borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v>=1000?Math.round(v/1000)+'k':v},grid:{color:'#F0F6FF'}},x:{grid:{display:false}}}}});
   if(expCh){expCh.destroy();expCh=null;}
-  if($('expChart')&&ck.length) expCh=new Chart($('expChart'),{type:'pie',data:{labels:ck,datasets:[{data:ck.map(k=>cats[k]),backgroundColor:['#1565C0','#2E7D32','#E65100','#00695C','#C62828','#7B1FA2'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10,padding:8}}}}});
+  const expEl = $('expChart');
+  if(expEl) {
+    if(ck.length) {
+      expEl.style.display='';
+      const expParent = expEl.parentElement;
+      const existMsg = expParent.querySelector('.exp-empty-msg');
+      if(existMsg) existMsg.remove();
+      expCh=new Chart(expEl,{type:'pie',data:{labels:ck,datasets:[{data:ck.map(k=>cats[k]),backgroundColor:['#1565C0','#2E7D32','#E65100','#00695C','#C62828','#7B1FA2'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:10,padding:8}}}}});
+    } else {
+      expEl.style.display='none';
+      const expParent = expEl.parentElement;
+      if(!expParent.querySelector('.exp-empty-msg')) {
+        const msg = document.createElement('div');
+        msg.className='exp-empty-msg';
+        msg.style.cssText='display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;';
+        msg.textContent='Aucune dépense enregistrée';
+        expParent.appendChild(msg);
+      }
+    }
+  }
 }
 
 // ==================== MODAL PRODUIT ====================
@@ -2668,7 +2784,7 @@ function showConfirmModal(title, msg, icon, cb) {
   $('confirm-modal-ov').classList.add('open');
 }
 function closeConfirmModal() { $('confirm-modal-ov').classList.remove('open'); _confirmCallback=null; }
-document.getElementById('cm-confirm-btn').onclick = function() { closeConfirmModal(); if(_confirmCallback) _confirmCallback(); };
+// cm-confirm-btn géré via onclick inline dans le HTML
 
 // ==================== MOT DE PASSE — FORCE ====================
 function checkPassStrength(val) {
@@ -2883,6 +2999,36 @@ async function initApp() {
   renderSite();
   renderShop('all');
   updateCartUI();
+  // Supabase Realtime — écouter les nouvelles commandes en temps réel
+  try {
+    const sb = getSupabase();
+    if (sb) {
+      sb.channel('orders-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
+          if (payload.new) {
+            // Vérifier que la commande n'est pas déjà dans S.orders
+            if (!S.orders.find(o => o.id === payload.new.id)) {
+              S.orders.unshift(payload.new);
+              API.saveOrders(S.orders);
+            }
+            if (S.adminOpen) {
+              updateAdminDashboard();
+              renderOrdersTable(S.orders);
+              showToast(`🔔 Nouvelle commande : ${payload.new.id} — ${payload.new.name}`, 'success', 8000);
+            }
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, async (payload) => {
+          if (payload.new) {
+            const idx = S.orders.findIndex(o => o.id === payload.new.id);
+            if (idx >= 0) S.orders[idx] = payload.new;
+            API.saveOrders(S.orders);
+            if (S.adminOpen) { updateAdminDashboard(); renderOrdersTable(S.orders); }
+          }
+        })
+        .subscribe();
+    }
+  } catch(e) {}
 }
 initApp();
 </script>
