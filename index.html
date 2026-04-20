@@ -46,7 +46,6 @@
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ===== STYLES EXISTANTS (inchangés) ===== */
     html{scroll-behavior:smooth}
@@ -121,7 +120,7 @@
     .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.8rem;padding:0 2rem 4rem;max-width:1300px;margin:0 auto}
     .pcard{background:#fff;border-radius:18px;overflow:hidden;border:1px solid var(--skymd);transition:transform .3s}
     .pcard:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(21,101,192,.15)}
-    .pcard-img{width:100%;height:300px;overflow:hidden;background:var(--sky);position:relative}
+    .pcard-img{width:100%;aspect-ratio:4/5;overflow:hidden;background:var(--sky);position:relative}
     .pcard-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s}
     .pcard:hover .pcard-img img{transform:scale(1.05)}
     .pbadge{position:absolute;top:12px;left:12px;font-size:10px;padding:4px 12px;border-radius:14px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700}
@@ -309,7 +308,7 @@
     .mupd{background:var(--blue2);color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
     .pgrid-a{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
     .pcarda{background:#fff;border-radius:12px;border:1px solid var(--skymd);overflow:hidden}
-    .pca-img{width:100%;height:150px;position:relative;overflow:hidden;background:var(--sky)}
+    .pca-img{width:100%;aspect-ratio:4/5;position:relative;overflow:hidden;background:var(--sky)}
     .pca-img img{width:100%;height:100%;object-fit:cover;display:block}
     .pca-ov{position:absolute;inset:0;background:rgba(10,22,40,.55);display:flex;align-items:center;justify-content:center;gap:.8rem;opacity:0;transition:opacity .2s}
     .pcarda:hover .pca-ov{opacity:1}
@@ -523,8 +522,8 @@
     .prod-modal-ov.open{display:flex}
     .prod-modal{background:#fff;border-radius:20px;width:860px;max-width:98vw;max-height:92vh;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;position:relative}
     @media(max-width:640px){.prod-modal{grid-template-columns:1fr}}
-    .pm-img{height:420px;overflow:hidden;border-radius:20px 0 0 20px;background:var(--sky)}
-    @media(max-width:640px){.pm-img{height:260px;border-radius:20px 20px 0 0}}
+    .pm-img{aspect-ratio:4/5;overflow:hidden;border-radius:20px 0 0 20px;background:var(--sky)}
+    @media(max-width:640px){.pm-img{aspect-ratio:4/3;border-radius:20px 20px 0 0}}
     .pm-img img{width:100%;height:100%;object-fit:cover;display:block}
     .pm-body{padding:2rem;display:flex;flex-direction:column;gap:.8rem;overflow-y:auto}
     .pm-close{position:absolute;top:1rem;right:1rem;background:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.15);color:var(--navy);z-index:10;transition:background .2s}
@@ -1353,45 +1352,50 @@ const API = {
     if (sb) {
       try {
         const { data, error } = await sb.from('products').select('*');
-        if (!error && data && data.length > 0) S.products = data;
+        if (error) { console.error('[Supabase] products:', error.message); const loc = API.getProducts(); if (loc) S.products = loc; }
+        else if (data && data.length > 0) S.products = data;
         else { const loc = API.getProducts(); if (loc) S.products = loc; }
-      } catch(e) { const loc = API.getProducts(); if (loc) S.products = loc; }
+      } catch(e) { console.error('[Supabase] products exception:', e); const loc = API.getProducts(); if (loc) S.products = loc; }
     } else { const loc = API.getProducts(); if (loc) S.products = loc; }
 
     // ORDERS
     if (sb) {
       try {
         const { data, error } = await sb.from('orders').select('*').order('date', { ascending: false });
-        if (!error && data) S.orders = data;
+        if (error) { console.error('[Supabase] orders:', error.message); const loc = API.getOrders(); if (loc) S.orders = loc; }
+        else if (data) S.orders = data;
         else { const loc = API.getOrders(); if (loc) S.orders = loc; }
-      } catch(e) { const loc = API.getOrders(); if (loc) S.orders = loc; }
+      } catch(e) { console.error('[Supabase] orders exception:', e); const loc = API.getOrders(); if (loc) S.orders = loc; }
     } else { const loc = API.getOrders(); if (loc) S.orders = loc; }
 
     // TRANSACTIONS
     if (sb) {
       try {
         const { data, error } = await sb.from('transactions').select('*');
-        if (!error && data) S.transactions = data;
+        if (error) { console.error('[Supabase] transactions:', error.message); const loc = API.getTransactions(); if (loc) S.transactions = loc; }
+        else if (data) S.transactions = data;
         else { const loc = API.getTransactions(); if (loc) S.transactions = loc; }
-      } catch(e) { const loc = API.getTransactions(); if (loc) S.transactions = loc; }
+      } catch(e) { console.error('[Supabase] transactions exception:', e); const loc = API.getTransactions(); if (loc) S.transactions = loc; }
     } else { const loc = API.getTransactions(); if (loc) S.transactions = loc; }
 
     // ANNOUNCEMENTS
     if (sb) {
       try {
         const { data, error } = await sb.from('announcements').select('*');
-        if (!error && data) S.announcements = data;
+        if (error) { console.error('[Supabase] announcements:', error.message); const loc = API.getAnnouncements(); if (loc) S.announcements = loc; }
+        else if (data) S.announcements = data;
         else { const loc = API.getAnnouncements(); if (loc) S.announcements = loc; }
-      } catch(e) { const loc = API.getAnnouncements(); if (loc) S.announcements = loc; }
+      } catch(e) { console.error('[Supabase] announcements exception:', e); const loc = API.getAnnouncements(); if (loc) S.announcements = loc; }
     } else { const loc = API.getAnnouncements(); if (loc) S.announcements = loc; }
 
     // SITE CONFIG
     if (sb) {
       try {
         const { data, error } = await sb.from('site_config').select('value').eq('key','site_config').single();
-        if (!error && data && data.value) S.site = { ...S.site, ...data.value };
+        if (error && error.code !== 'PGRST116') { console.error('[Supabase] site_config:', error.message); const loc = API.getSiteConfig(); if (loc) S.site = loc; }
+        else if (data && data.value) S.site = { ...S.site, ...data.value };
         else { const loc = API.getSiteConfig(); if (loc) S.site = loc; }
-      } catch(e) { const loc = API.getSiteConfig(); if (loc) S.site = loc; }
+      } catch(e) { console.error('[Supabase] site_config exception:', e); const loc = API.getSiteConfig(); if (loc) S.site = loc; }
     } else { const loc = API.getSiteConfig(); if (loc) S.site = loc; }
 
     // CART + CREDENTIALS (toujours localStorage)
@@ -1419,10 +1423,157 @@ const API = {
 const SUPABASE_URL = 'https://xepklmutlrvosfbspdci.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhlcGtsbXV0bHJ2b3NmYnNwZGNpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTA1MzIsImV4cCI6MjA5MTg2NjUzMn0.1NNfUb32B9gaM0Uv7f63vv4wo2M439nx30H7qEHYX3M';
 
-// Client Supabase initialisé immédiatement au chargement du script
-const SB = (typeof supabase !== 'undefined')
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+// ============================================================
+// CLIENT SUPABASE NATIF — fetch pur, zéro bibliothèque externe
+// Évite complètement le BroadcastChannel/postMessage de supabase-js
+// qui causait DataCloneError: Headers object could not be cloned
+// ============================================================
+const SB = (function() {
+  const BASE = SUPABASE_URL + '/rest/v1';
+  const KEY  = SUPABASE_ANON_KEY;
+  // Headers de base — objets simples, jamais de Headers() pour éviter les erreurs de clone
+  function baseHeaders(extra) {
+    return Object.assign({
+      'apikey': KEY,
+      'Authorization': 'Bearer ' + KEY,
+      'Content-Type': 'application/json'
+    }, extra || {});
+  }
+
+  // Construit une URL PostgREST avec filtres corrects
+  // PostgREST attend: /table?col=eq.val&col2=neq.val2
+  function buildUrl(table, select, filters, order) {
+    let url = BASE + '/' + table + '?select=' + encodeURIComponent(select || '*');
+    if (filters) filters.forEach(f => { url += '&' + f.col + '=' + encodeURIComponent(f.op + '.' + f.val); });
+    if (order) url += '&order=' + encodeURIComponent(order);
+    return url;
+  }
+
+  // Exécute un fetch et retourne {data, error}
+  async function run(url, options) {
+    try {
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        let msg = 'HTTP ' + res.status;
+        try { const j = await res.json(); msg = j.message || j.hint || j.error || msg; } catch(e){}
+        return { data: null, error: { message: msg, status: res.status } };
+      }
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      return { data, error: null };
+    } catch(e) {
+      return { data: null, error: { message: e.message } };
+    }
+  }
+
+  // Builder chainable pour SELECT
+  function queryBuilder(table) {
+    const state = { select: '*', filters: [], order: null, isSingle: false };
+    const q = {
+      select(cols)       { state.select = cols || '*'; return q; },
+      order(col, opts)   { state.order = col + (opts && opts.ascending === false ? '.desc' : '.asc'); return q; },
+      eq(col, val)       { state.filters.push({ col, op: 'eq',  val: String(val) }); return q; },
+      neq(col, val)      { state.filters.push({ col, op: 'neq', val: String(val) }); return q; },
+      single()           { state.isSingle = true; return q; },
+      then(res, rej)     { return q._run().then(res, rej); },
+      async _run() {
+        const url = buildUrl(table, state.select, state.filters, state.order);
+        const headers = baseHeaders(state.isSingle ? { 'Accept': 'application/vnd.pgrst.object+json' } : {});
+        const result = await run(url, { headers });
+        return result;
+      }
+    };
+    return q;
+  }
+
+  // Builder pour INSERT
+  function insertBuilder(table, data) {
+    const state = { isSingle: false };
+    const rows = Array.isArray(data) ? data : [data];
+    const b = {
+      select()   { return b; },
+      single()   { state.isSingle = true; return b; },
+      then(r, j) { return b._run().then(r, j); },
+      async _run() {
+        const url = BASE + '/' + table;
+        const headers = baseHeaders({
+          'Prefer': 'return=representation',
+          ...(state.isSingle ? { 'Accept': 'application/vnd.pgrst.object+json' } : {})
+        });
+        const result = await run(url, { method: 'POST', headers, body: JSON.stringify(rows) });
+        // Si single demandé, extraire le premier élément
+        if (!result.error && state.isSingle && Array.isArray(result.data)) {
+          result.data = result.data[0] || null;
+        }
+        return result;
+      }
+    };
+    return b;
+  }
+
+  // Builder pour UPSERT
+  function upsertBuilder(table, data, opts) {
+    const rows = Array.isArray(data) ? data : [data];
+    const conflict = (opts && opts.onConflict) ? opts.onConflict : 'id';
+    const b = {
+      then(r, j) { return b._run().then(r, j); },
+      async _run() {
+        const url = BASE + '/' + table + '?on_conflict=' + encodeURIComponent(conflict);
+        const headers = baseHeaders({ 'Prefer': 'return=minimal,resolution=merge-duplicates' });
+        const result = await run(url, { method: 'POST', headers, body: JSON.stringify(rows) });
+        return { error: result.error };
+      }
+    };
+    return b;
+  }
+
+  // Builder pour UPDATE
+  function updateBuilder(table, data) {
+    const filters = [];
+    const u = {
+      eq(col, val)   { filters.push({ col, op: 'eq',  val: String(val) }); return u; },
+      neq(col, val)  { filters.push({ col, op: 'neq', val: String(val) }); return u; },
+      then(r, j)     { return u._run().then(r, j); },
+      async _run() {
+        const url = buildUrl(table, '*', filters, null);
+        const headers = baseHeaders({ 'Prefer': 'return=minimal' });
+        const result = await run(url, { method: 'PATCH', headers, body: JSON.stringify(data) });
+        return { error: result.error };
+      }
+    };
+    return u;
+  }
+
+  // Builder pour DELETE
+  function deleteBuilder(table) {
+    const filters = [];
+    const d = {
+      eq(col, val)   { filters.push({ col, op: 'eq',  val: String(val) }); return d; },
+      neq(col, val)  { filters.push({ col, op: 'neq', val: String(val) }); return d; },
+      then(r, j)     { return d._run().then(r, j); },
+      async _run() {
+        const url = buildUrl(table, '*', filters, null);
+        const headers = baseHeaders({ 'Prefer': 'return=minimal' });
+        const result = await run(url, { method: 'DELETE', headers });
+        return { error: result.error };
+      }
+    };
+    return d;
+  }
+
+  return {
+    from(table) {
+      return {
+        select: (cols)        => queryBuilder(table).select(cols),
+        insert: (data, opts)  => insertBuilder(table, data, opts),
+        upsert: (data, opts)  => upsertBuilder(table, data, opts),
+        update: (data)        => updateBuilder(table, data),
+        delete: ()            => deleteBuilder(table)
+      };
+    },
+    channel() { return { on() { return this; }, subscribe() {} }; }
+  };
+})();
 
 function getSupabase() { return SB; }
 
@@ -1805,20 +1956,10 @@ function renderShop(filter) {
   if (_csCnt) _csCnt.textContent = '';
   const _csClr = document.getElementById('collection-search-clear');
   if (_csClr) _csClr.style.display = 'none';
-  // FONCTIONNALITÉ 5 — Skeleton loader
   const grid = document.getElementById('shop-grid');
   if(!grid) return;
-  grid.innerHTML = Array(6).fill(0).map(()=>`
-    <div class="skeleton">
-      <div class="skel-img"></div>
-      <div class="skel-body">
-        <div class="skel-line"></div>
-        <div class="skel-line short"></div>
-        <div class="skel-line xshort"></div>
-      </div>
-    </div>`).join('');
-  var renderDelay = grid.children.length > 0 ? 400 : 0;
-  setTimeout(function() {
+  // Pas de skeleton : rendu direct sans flash visible
+  (function() {
   const list = !filter||filter==='all' ? S.products :
     filter==='promo' ? S.products.filter(p=>p.promo) :
     S.products.filter(p=>p.cat.includes(filter));
@@ -1857,7 +1998,7 @@ function renderShop(filter) {
         ${p.stock ? `<button class="atcbtn" id="atc-${p.id}" onclick="event.stopPropagation();addToCart(${p.id})"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.95-1.57l1.65-7.43H6"/></svg>Ajouter au panier</button>` : `<button class="atcbtn" disabled style="background:#CBD5E1;cursor:not-allowed">Rupture de stock</button>`}
       </div>
     </div>`).join('');
-  }, renderDelay);
+  })();
 }
 
 function filterShop(f, lbl, el) {
@@ -2467,76 +2608,141 @@ function editProd(id) {
   $('mprod').classList.add('open');
 }
 // FEAT-4 — Redimensionnement automatique des images uploadées
-function resizeImage(dataUrl, maxW, maxH, quality) {
+// ==================== TRAITEMENT INTELLIGENT DES IMAGES ====================
+
+/**
+ * smartCrop : redimensionne ET recadre une image pour qu'elle remplisse
+ * exactement targetW × targetH en centrant le sujet (cover).
+ * Préserve toujours la totalité visible : pas de déformation, pas de bandes.
+ *
+ * mode 'cover'   → remplit le cadre, recadre les bords (produits, héro)
+ * mode 'contain' → tout visible, fond blanc si ratio différent (logo)
+ * mode 'face'    → cover mais avec focus légèrement vers le haut (portrait directrice)
+ */
+function smartCrop(dataUrl, targetW, targetH, quality, mode) {
+  mode = mode || 'cover';
+  quality = quality || 0.88;
   return new Promise(resolve => {
     const img = new Image();
     img.onload = function() {
       const canvas = document.createElement('canvas');
-      let w = img.width, h = img.height;
-      if(w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-      if(h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
-      canvas.width = w; canvas.height = h;
+      canvas.width  = targetW;
+      canvas.height = targetH;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', quality || 0.82));
+
+      if (mode === 'contain') {
+        // Fond blanc + image centrée sans recadrage
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetW, targetH);
+        const ratio = Math.min(targetW / img.width, targetH / img.height);
+        const nw = img.width  * ratio;
+        const nh = img.height * ratio;
+        ctx.drawImage(img, (targetW - nw) / 2, (targetH - nh) / 2, nw, nh);
+
+      } else {
+        // Cover : remplir, recadrer — centrage ajusté selon mode
+        const scaleW = targetW / img.width;
+        const scaleH = targetH / img.height;
+        const scale  = Math.max(scaleW, scaleH);
+        const scaledW = img.width  * scale;
+        const scaledH = img.height * scale;
+        let ox = (targetW - scaledW) / 2;
+        // mode 'face' : décale vers le haut pour centrer un visage
+        let oy = mode === 'face'
+          ? Math.min(0, (targetH - scaledH) / 2) * 0.3  // légèrement vers le haut
+          : (targetH - scaledH) / 2;
+        ctx.drawImage(img, ox, oy, scaledW, scaledH);
+      }
+
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
+    img.onerror = () => resolve(dataUrl); // fallback sans transformation
     img.src = dataUrl;
   });
 }
-function previewProdImg(fileInput, previewId, hiddenId) {
+
+// Alias pour la compatibilité avec l'ancien code
+function resizeImage(dataUrl, maxW, maxH, quality) {
+  return smartCrop(dataUrl, maxW, maxH, quality, 'cover');
+}
+
+// ---- Handler générique avec feedback visuel ----
+function handleImageUpload(fileInput, opts) {
+  // opts: { targetW, targetH, quality, mode, previewEl, hiddenEl, previewSize, circle }
   const file = fileInput.files[0];
   if (!file) return;
+
+  // Feedback immédiat : spinner dans la prévisualisation
+  if (opts.previewEl) {
+    opts.previewEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:${opts.previewSize||100}px;color:var(--muted);font-size:12px">⏳ Traitement…</div>`;
+  }
+
   const reader = new FileReader();
   reader.onload = e => {
-    resizeImage(e.target.result, 800, 800, 0.82).then(resized => {
-      $(previewId).innerHTML = `<div class="img-preview"><img src="${resized}" style="max-height:120px;max-width:100%"></div>`;
-      $(hiddenId).value = resized;
-    });
+    smartCrop(e.target.result, opts.targetW, opts.targetH, opts.quality || 0.88, opts.mode || 'cover')
+      .then(result => {
+        if (opts.hiddenEl) opts.hiddenEl.value = result;
+        if (opts.previewEl) {
+          const borderRadius = opts.circle ? '50%' : '8px';
+          const h = opts.previewSize || 120;
+          opts.previewEl.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;margin-top:6px">
+              <img src="${result}"
+                style="max-height:${h}px;max-width:100%;border-radius:${borderRadius};
+                       object-fit:cover;border:2px solid var(--skymd);
+                       box-shadow:0 2px 10px rgba(0,0,0,.1)"
+                alt="Aperçu">
+            </div>
+            <div style="font-size:11px;color:var(--green);margin-top:4px;text-align:center">
+              ✓ Optimisée ${opts.targetW}×${opts.targetH}px
+            </div>`;
+        }
+      });
   };
   reader.readAsDataURL(file);
 }
+
+// ---- Produit (nouveau & édition) : 800×1000 portrait cover ----
+function previewProdImg(fileInput, previewId, hiddenId) {
+  handleImageUpload(fileInput, {
+    targetW: 800, targetH: 1000, quality: 0.88, mode: 'cover',
+    previewEl: $(previewId), hiddenEl: $(hiddenId), previewSize: 140,
+  });
+}
 document.getElementById('ep-img-file')?.addEventListener('change', function(){ previewProdImg(this, 'ep-prev-box', 'ep-img'); });
 document.getElementById('np-img-file')?.addEventListener('change', function(){ previewProdImg(this, 'np-prev-box', 'np-img'); });
-// FEAT-2 — Logo file listener resize 400x120
+
+// ---- Logo : 400×120 contain (fond blanc, pas de recadrage) ----
 document.getElementById('logo-file')?.addEventListener('change', function(){
-  const f=this.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    resizeImage(e.target.result, 400, 120, 0.9).then(resized => {
-      $('logo-preview').innerHTML=`<div class="img-preview"><img src="${resized}" style="max-height:60px;max-width:100%"></div>`;
-      $('logo-img-inp').value=resized;
-    });
-  };
-  r.readAsDataURL(f);
+  handleImageUpload(this, {
+    targetW: 400, targetH: 120, quality: 0.92, mode: 'contain',
+    previewEl: $('logo-preview'), hiddenEl: $('logo-img-inp'), previewSize: 60,
+  });
 });
+
+// ---- Directrice : 500×500 face (cover + léger focus haut) ----
 document.getElementById('dir-photo-file')?.addEventListener('change', function(){
-  const f=this.files[0]; if(!f)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    resizeImage(e.target.result, 300, 300, 0.85).then(resized => {
-      $('dir-prev-box').innerHTML=`<div class="img-preview"><img src="${resized}" style="max-height:140px;max-width:100%"></div>`;
-      $('dir-photo-inp').value=resized;
-    });
-  };
-  r.readAsDataURL(f);
+  handleImageUpload(this, {
+    targetW: 500, targetH: 500, quality: 0.90, mode: 'face',
+    previewEl: $('dir-prev-box'), hiddenEl: $('dir-photo-inp'),
+    previewSize: 150, circle: true,
+  });
 });
-// Upload pour les images du héros — FEAT-4 resize 1200x600
+
+// ---- Héro : 1200×600 paysage cover ----
 for(let i=1;i<=4;i++) {
   const fileInput = $(`hero-img${i}-file`);
   if(fileInput) {
     fileInput.addEventListener('change', (function(idx) {
       return function(e) {
         const file = e.target.files[0];
-        if(file) {
-          const reader = new FileReader();
-          reader.onload = ev => {
-            resizeImage(ev.target.result, 1200, 600, 0.85).then(resized => {
-              $(`hero-img${idx}-preview`).innerHTML = `<img src="${resized}" style="max-height:80px">`;
-              $(`hero-img${idx}`).value = resized;
-            });
-          };
-          reader.readAsDataURL(file);
-        }
+        if (!file) return;
+        handleImageUpload(e.target, {
+          targetW: 1200, targetH: 600, quality: 0.85, mode: 'cover',
+          previewEl: $(`hero-img${idx}-preview`),
+          hiddenEl: $(`hero-img${idx}`),
+          previewSize: 80,
+        });
       };
     })(i));
   }
@@ -3071,16 +3277,20 @@ if (aboutWaBtn) aboutWaBtn.addEventListener('click', () => openWhatsApp('Bonjour
     }, 1500);
   }
 })();
-// FEAT-5 — Écouter nouvelles commandes depuis autres onglets (BroadcastChannel)
+// BroadcastChannel — notification inter-onglets légère (sans syncAll complet)
 try {
   const bcListener = new BroadcastChannel('stylea_orders');
-  bcListener.onmessage = async function(e) {
+  bcListener.onmessage = function(e) {
     if(e.data && e.data.type==='new_order') {
-      await API.syncAll();
+      const order = e.data.order;
+      // Ajouter la commande localement sans refetch complet
+      if (order && !S.orders.find(o => o.id === order.id)) {
+        S.orders.unshift(order);
+        API.saveOrders(S.orders);
+      }
       if(S.adminOpen) {
         updateAdminDashboard();
         renderOrdersTable(S.orders);
-        showToast(`🔔 Nouvelle commande : ${e.data.order.id} — ${e.data.order.name}`, 'success', 8000);
       }
     }
   };
@@ -3157,36 +3367,46 @@ async function initApp() {
   renderSite();
   renderShop('all');
   updateCartUI();
-  // Supabase Realtime — écouter les nouvelles commandes en temps réel
-  try {
-    const sb = getSupabase();
-    if (sb) {
-      sb.channel('orders-realtime')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, async (payload) => {
-          if (payload.new) {
-            if (!S.orders.find(o => o.id === payload.new.id)) {
-              S.orders.unshift(payload.new);
-              API.saveOrders(S.orders);
-            }
-            // Notification visuelle forte même si admin fermé
-            showRealtimeOrderAlert(payload.new);
-            if (S.adminOpen) {
-              updateAdminDashboard();
-              renderOrdersTable(S.orders);
+  // Polling léger pour les nouvelles commandes — remplace Supabase Realtime WebSocket
+  // Se déclenche uniquement quand l'admin est ouvert, toutes les 30 secondes
+  let _lastOrderCount = S.orders.length;
+  let _pollingInterval = null;
+
+  function startOrderPolling() {
+    if (_pollingInterval) return;
+    _pollingInterval = setInterval(async () => {
+      if (!S.adminOpen) return;
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/orders?select=id,name,items,total,status,date&order=date.desc&limit=50`,
+          {
+            headers: {
+              'apikey': SUPABASE_ANON_KEY,
+              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+              'Accept': 'application/json'
             }
           }
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, async (payload) => {
-          if (payload.new) {
-            const idx = S.orders.findIndex(o => o.id === payload.new.id);
-            if (idx >= 0) S.orders[idx] = payload.new;
+        );
+        if (!res.ok) return;
+        const fresh = await res.json();
+        if (!Array.isArray(fresh)) return;
+        // Détecter nouvelles commandes
+        const newOrders = fresh.filter(o => !S.orders.find(x => x.id === o.id));
+        if (newOrders.length > 0) {
+          // Recharger toutes les commandes complètes
+          const { data } = await SB.from('orders').select('*').order('date', { ascending: false });
+          if (data) {
+            S.orders = data;
             API.saveOrders(S.orders);
-            if (S.adminOpen) { updateAdminDashboard(); renderOrdersTable(S.orders); }
           }
-        })
-        .subscribe();
-    }
-  } catch(e) {}
+          newOrders.forEach(o => showRealtimeOrderAlert(o));
+          if (S.adminOpen) { updateAdminDashboard(); renderOrdersTable(S.orders); }
+        }
+      } catch(e) {}
+    }, 30000); // toutes les 30 secondes
+  }
+
+  startOrderPolling();
 }
 initApp();
 </script>
