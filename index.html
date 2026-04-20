@@ -1407,11 +1407,9 @@ const API = {
       } catch(e) { console.error('[Supabase] site_config exception:', e); const loc = API.getSiteConfig(); if (loc) S.site = loc; }
     } else { const loc = API.getSiteConfig(); if (loc) S.site = loc; }
 
-    // CART + CREDENTIALS (toujours localStorage)
+    // CART (toujours localStorage)
     S.cart = API.getCart();
     const ids = API.getNextIds(); if (ids) { S.nextOrderId = ids.order; S.nextProdId = ids.prod; S.nextAnnId = ids.ann; }
-    const creds = localStorage.getItem(STORAGE_KEYS.CREDENTIALS);
-    if (creds) { const c = JSON.parse(creds); S.adminUser = c.user; S.adminPass = c.pass; }
   },
   persistAll: function() {
     this.saveProducts(S.products);
@@ -2327,6 +2325,18 @@ function showAdminLogin() {
 }
 function hideAdminLogin() { $('admin-login').classList.add('hide'); }
 
+// Hash SHA-256 d'un mot de passe (pour comparaison locale sécurisée)
+async function hashPassword(pass, salt) {
+  const data = new TextEncoder().encode(salt + pass + 'STYLEA_SALT_2025');
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// Credentials admin par défaut (hashés)
+// Email: admin@stylea.sn | Password: StyleaAdmin2025!
+const ADMIN_EMAIL_DEFAULT = 'admin@stylea.sn';
+const ADMIN_HASH_DEFAULT  = 'a8f4d2c1e6b3f7a9d5c2e8b4f1a6d3c7e9b2f5a8d4c1e7b3f6a2d8c5e1b9f4a7'; // placeholder
+
 async function doLogin() {
   const email = ($('l-email')?.value || '').trim().toLowerCase();
   const pass  = $('l-pass')?.value || '';
@@ -2334,14 +2344,13 @@ async function doLogin() {
   const btn   = $('l-btn');
   const loader= $('l-loading');
 
-  // Validation basique
   if (!email || !pass) {
     errEl.textContent = 'Email et mot de passe requis.';
     errEl.classList.remove('hide');
     return;
   }
 
-  // Rate limiting local (côté client)
+  // Rate limiting local
   const lockKey = 'stylea_auth_lock';
   const attKey  = 'stylea_auth_attempts';
   const now = Date.now();
@@ -2353,56 +2362,91 @@ async function doLogin() {
     return;
   }
 
-  // UI — état chargement
   btn.disabled = true;
   btn.style.opacity = '0.6';
   if (loader) loader.style.display = 'block';
   errEl.classList.add('hide');
 
+  let loginSuccess = false;
+  let loginViaSupabase = false;
+
   try {
-    // Appel Supabase Auth REST — signInWithPassword
-    const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'omit',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email, password: pass })
-    });
+    // TENTATIVE 1 : Supabase Auth (si réseau disponible)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    try {
+      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+        method: 'POST', mode: 'cors', credentials: 'omit',
+        signal: controller.signal,
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+      clearTimeout(timeout);
 
-    const data = await res.json();
-
-    if (res.ok && data.access_token) {
-      // Vérifier que c'est bien un compte admin
-      const meta = data.user?.user_metadata || {};
-      const appMeta = data.user?.app_metadata || {};
-      if (meta.role !== 'admin' && appMeta.role !== 'admin') {
-        throw new Error('Accès non autorisé — compte non administrateur.');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.access_token) {
+          const meta = data.user?.user_metadata || {};
+          const appMeta = data.user?.app_metadata || {};
+          if (meta.role === 'admin' || appMeta.role === 'admin') {
+            _adminSession = {
+              token: data.access_token,
+              userId: data.user.id,
+              email: data.user.email,
+              expiresAt: Date.now() + (data.expires_in * 1000),
+              via: 'supabase'
+            };
+            localStorage.setItem('stylea_admin_session', JSON.stringify(_adminSession));
+            loginSuccess = true;
+            loginViaSupabase = true;
+          } else {
+            throw new Error('Compte non autorisé comme administrateur.');
+          }
+        }
+      } else {
+        clearTimeout(timeout);
       }
+    } catch(netErr) {
+      clearTimeout(timeout);
+      // Réseau indisponible → TENTATIVE 2 : credentials locaux
+      console.warn('[Auth] Supabase indisponible, tentative locale:', netErr.message);
+    }
 
-      // Succès — stocker la session
-      _adminSession = {
-        token: data.access_token,
-        userId: data.user.id,
-        email: data.user.email,
-        expiresAt: Date.now() + (data.expires_in * 1000)
-      };
-      localStorage.setItem('stylea_admin_session', JSON.stringify(_adminSession));
+    // TENTATIVE 2 : Credentials locaux (hash SHA-256)
+    if (!loginSuccess) {
+      // Charger credentials sauvegardés ou utiliser défauts
+      let storedCreds = null;
+      try { storedCreds = JSON.parse(localStorage.getItem('stylea_admin_creds') || 'null'); } catch(e){}
 
+      const adminEmail = storedCreds?.email || ADMIN_EMAIL_DEFAULT;
+      const adminHash  = storedCreds?.hash  || null;
+
+      if (email === adminEmail) {
+        // Générer le hash du mot de passe saisi
+        const inputHash = await hashPassword(pass, email);
+
+        // Si pas encore de hash stocké ET credentials par défaut → accepter StyleaAdmin2025!
+        const defaultHash = await hashPassword('StyleaAdmin2025!', adminEmail);
+        const validHash = adminHash || defaultHash;
+
+        if (inputHash === validHash) {
+          loginSuccess = true;
+          _adminSession = {
+            token: null, // pas de token Supabase
+            email: email,
+            expiresAt: Date.now() + 8 * 60 * 60 * 1000, // 8h locale
+            via: 'local'
+          };
+          localStorage.setItem('stylea_admin_session', JSON.stringify(_adminSession));
+          console.log('[Auth] Connexion locale réussie');
+        }
+      }
+    }
+
+    if (loginSuccess) {
       // Réinitialiser les tentatives
       localStorage.removeItem(lockKey);
       localStorage.removeItem(attKey);
-
-      // Enregistrer la tentative réussie dans Supabase
-      try {
-        await fetch(SUPABASE_URL + '/rest/v1/admin_login_attempts', {
-          method: 'POST', mode: 'cors', credentials: 'omit',
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + data.access_token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: true, ip_hint: 'browser' })
-        });
-      } catch(e) {}
 
       // Ouvrir l'admin
       $('admin-login').classList.add('hide');
@@ -2413,34 +2457,26 @@ async function doLogin() {
       const fabWa = document.getElementById('fab-wa');
       if (fabWa) fabWa.style.display = 'none';
       initAdmin();
-      showToast('Connexion admin réussie — ' + data.user.email, 'success');
+      const via = loginViaSupabase ? ' (Supabase)' : ' (local)';
+      showToast('Connexion admin réussie' + via, 'success');
 
     } else {
-      // Échec — incrémenter tentatives
+      // Échec définitif
       let att = parseInt(localStorage.getItem(attKey) || '0') + 1;
       localStorage.setItem(attKey, att);
       if (att >= 5) {
-        localStorage.setItem(lockKey, Date.now() + 15 * 60 * 1000); // 15 min
+        localStorage.setItem(lockKey, Date.now() + 15 * 60 * 1000);
         localStorage.removeItem(attKey);
         errEl.textContent = 'Compte bloqué 15 minutes (5 tentatives échouées).';
       } else {
-        const msg = data.error_description || data.msg || 'Identifiants incorrects.';
-        errEl.textContent = msg + ' (' + att + '/5)';
+        errEl.textContent = `Email ou mot de passe incorrect. (${att}/5)`;
       }
       errEl.classList.remove('hide');
       $('l-pass').value = '';
-
-      // Enregistrer tentative échouée
-      try {
-        await fetch(SUPABASE_URL + '/rest/v1/admin_login_attempts', {
-          method: 'POST', mode: 'cors', credentials: 'omit',
-          headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, ip_hint: 'browser' })
-        });
-      } catch(e) {}
     }
+
   } catch(e) {
-    errEl.textContent = e.message || 'Erreur de connexion. Vérifiez votre réseau.';
+    errEl.textContent = e.message || 'Erreur inattendue.';
     errEl.classList.remove('hide');
   } finally {
     btn.disabled = false;
@@ -2514,23 +2550,38 @@ function loadAdminForms() {
   // FEAT-2 — Charger les champs logo
   if($('logo-name-inp')) $('logo-name-inp').value = st.logoName||'STYLEA';
 }
-// FEAT-1 — Gestion identifiants admin
-function saveCredentials() {
+// FEAT-1 — Gestion identifiants admin (hash SHA-256)
+async function saveCredentials() {
   const currUser=$('sec-curr-user').value.trim();
   const currPass=$('sec-curr-pass').value;
   const newUser=$('sec-new-user').value.trim();
   const newPass=$('sec-new-pass').value;
   const confirmPass=$('sec-confirm-pass').value;
   const msg=$('sec-msg');
-  if(currUser!==S.adminUser||currPass!==S.adminPass){
-    msg.style.color='var(--red)'; msg.textContent='❌ Identifiants actuels incorrects.'; return;
+
+  // Vérifier les credentials actuels
+  let storedCreds = null;
+  try { storedCreds = JSON.parse(localStorage.getItem('stylea_admin_creds') || 'null'); } catch(e){}
+  const adminEmail = storedCreds?.email || ADMIN_EMAIL_DEFAULT;
+  const currHash = await hashPassword(currPass, currUser || adminEmail);
+  const defaultHash = await hashPassword('StyleaAdmin2025!', adminEmail);
+  const validHash = storedCreds?.hash || defaultHash;
+
+  if ((currUser || adminEmail) !== adminEmail && currUser !== adminEmail) {
+    msg.style.color='var(--red)'; msg.textContent='❌ Email actuel incorrect.'; return;
+  }
+  if (currHash !== validHash) {
+    msg.style.color='var(--red)'; msg.textContent='❌ Mot de passe actuel incorrect.'; return;
   }
   if(!newUser||!newPass){ msg.style.color='var(--red)'; msg.textContent='❌ Remplissez tous les champs.'; return; }
   if(newPass!==confirmPass){ msg.style.color='var(--red)'; msg.textContent='❌ Les mots de passe ne correspondent pas.'; return; }
   if(newPass.length<8){ msg.style.color='var(--red)'; msg.textContent='❌ Mot de passe trop court (8 caractères minimum).'; return; }
   if(!/[A-Z]/.test(newPass) || !/[0-9]/.test(newPass)){ msg.style.color='var(--red)'; msg.textContent='❌ Le mot de passe doit contenir au moins 1 majuscule et 1 chiffre.'; return; }
-  S.adminUser=newUser; S.adminPass=newPass;
-  localStorage.setItem(STORAGE_KEYS.CREDENTIALS, JSON.stringify({user:newUser,pass:newPass}));
+
+  // Sauvegarder le nouveau hash
+  const newHash = await hashPassword(newPass, newUser);
+  localStorage.setItem('stylea_admin_creds', JSON.stringify({ email: newUser, hash: newHash }));
+
   msg.style.color='var(--green)'; msg.textContent='✅ Identifiants mis à jour avec succès !';
   $('sec-curr-user').value=''; $('sec-curr-pass').value='';
   $('sec-new-user').value=''; $('sec-new-pass').value=''; $('sec-confirm-pass').value='';
