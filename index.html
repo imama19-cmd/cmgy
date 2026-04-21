@@ -1435,139 +1435,101 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Évite complètement le BroadcastChannel/postMessage de supabase-js
 // qui causait DataCloneError: Headers object could not be cloned
 // ============================================================
+// ================================================================
+// CLIENT SUPABASE — via Edge Function proxy
+// Toutes les requêtes passent par /functions/v1/api
+// Zéro CORS, zéro blocage opérateur
+// ================================================================
+const EDGE_URL = 'https://xepklmutlrvosfbspdci.supabase.co/functions/v1/api';
+
 const SB = (function() {
-  const BASE = SUPABASE_URL + '/rest/v1';
-  const KEY  = SUPABASE_ANON_KEY;
-  // Headers de base — objets simples, jamais de Headers() pour éviter les erreurs de clone
-  function baseHeaders(extra) {
-    return Object.assign({
-      'apikey': KEY,
-      'Authorization': 'Bearer ' + KEY,
-      'Content-Type': 'application/json'
-    }, extra || {});
-  }
-
-  // Construit une URL PostgREST avec filtres corrects
-  // PostgREST attend: /table?col=eq.val&col2=neq.val2
-  function buildUrl(table, select, filters, order) {
-    let url = BASE + '/' + table + '?select=' + encodeURIComponent(select || '*');
-    if (filters) filters.forEach(f => { url += '&' + f.col + '=' + encodeURIComponent(f.op + '.' + f.val); });
-    if (order) url += '&order=' + encodeURIComponent(order);
-    return url;
-  }
-
-  // Exécute un fetch et retourne {data, error}
-  async function run(url, options) {
+  async function call(action, payload) {
     try {
-      const fetchOptions = Object.assign({
+      const res = await fetch(EDGE_URL, {
+        method: 'POST',
         mode: 'cors',
-        credentials: 'omit'
-      }, options);
-      const res = await fetch(url, fetchOptions);
+        credentials: 'omit',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'x-action': action
+        },
+        body: JSON.stringify(payload)
+      });
       if (!res.ok) {
         let msg = 'HTTP ' + res.status;
-        try { const j = await res.json(); msg = j.message || j.hint || j.error || msg; } catch(e){}
-        return { data: null, error: { message: msg, status: res.status } };
+        try { const j = await res.json(); msg = j.error || msg; } catch(e) {}
+        return { data: null, error: { message: msg } };
       }
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-      return { data, error: null };
+      return await res.json();
     } catch(e) {
       return { data: null, error: { message: e.message } };
     }
   }
 
-  // Builder chainable pour SELECT
   function queryBuilder(table) {
     const state = { select: '*', filters: [], order: null, isSingle: false };
     const q = {
-      select(cols)       { state.select = cols || '*'; return q; },
-      order(col, opts)   { state.order = col + (opts && opts.ascending === false ? '.desc' : '.asc'); return q; },
-      eq(col, val)       { state.filters.push({ col, op: 'eq',  val: String(val) }); return q; },
-      neq(col, val)      { state.filters.push({ col, op: 'neq', val: String(val) }); return q; },
-      single()           { state.isSingle = true; return q; },
-      then(res, rej)     { return q._run().then(res, rej); },
+      select(cols)     { state.select = cols || '*'; return q; },
+      order(col, opts) { state.order = col + (opts && opts.ascending === false ? '.desc' : '.asc'); return q; },
+      eq(col, val)     { state.filters.push({ col, op: 'eq',  val: String(val) }); return q; },
+      neq(col, val)    { state.filters.push({ col, op: 'neq', val: String(val) }); return q; },
+      single()         { state.isSingle = true; return q; },
+      then(r, j)       { return q._run().then(r, j); },
       async _run() {
-        const url = buildUrl(table, state.select, state.filters, state.order);
-        const headers = baseHeaders(state.isSingle ? { 'Accept': 'application/vnd.pgrst.object+json' } : {});
-        const result = await run(url, { headers });
-        return result;
+        const res = await call('select', {
+          table:   table,
+          select:  state.select,
+          filters: state.filters,
+          order:   state.order,
+          single:  state.isSingle
+        });
+        return res;
       }
     };
     return q;
   }
 
-  // Builder pour INSERT
   function insertBuilder(table, data) {
     const state = { isSingle: false };
-    const rows = Array.isArray(data) ? data : [data];
-    const b = {
-      select()   { return b; },
-      single()   { state.isSingle = true; return b; },
-      then(r, j) { return b._run().then(r, j); },
+    return {
+      select() { return this; },
+      single() { state.isSingle = true; return this; },
+      then(r,j) { return this._run().then(r,j); },
       async _run() {
-        const url = BASE + '/' + table;
-        const headers = baseHeaders({
-          'Prefer': 'return=representation',
-          ...(state.isSingle ? { 'Accept': 'application/vnd.pgrst.object+json' } : {})
-        });
-        const result = await run(url, { method: 'POST', headers, body: JSON.stringify(rows) });
-        // Si single demandé, extraire le premier élément
-        if (!result.error && state.isSingle && Array.isArray(result.data)) {
-          result.data = result.data[0] || null;
-        }
-        return result;
+        const res = await call('insert', { table, data });
+        return res;
       }
     };
-    return b;
   }
 
-  // Builder pour UPSERT
   function upsertBuilder(table, data, opts) {
-    const rows = Array.isArray(data) ? data : [data];
-    const conflict = (opts && opts.onConflict) ? opts.onConflict : 'id';
-    const b = {
-      then(r, j) { return b._run().then(r, j); },
+    return {
+      then(r,j) { return this._run().then(r,j); },
       async _run() {
-        const url = BASE + '/' + table + '?on_conflict=' + encodeURIComponent(conflict);
-        const headers = baseHeaders({ 'Prefer': 'return=minimal,resolution=merge-duplicates' });
-        const result = await run(url, { method: 'POST', headers, body: JSON.stringify(rows) });
-        return { error: result.error };
+        return await call('upsert', { table, data, onConflict: opts?.onConflict || 'id' });
       }
     };
-    return b;
   }
 
-  // Builder pour UPDATE
   function updateBuilder(table, data) {
     const filters = [];
     const u = {
-      eq(col, val)   { filters.push({ col, op: 'eq',  val: String(val) }); return u; },
-      neq(col, val)  { filters.push({ col, op: 'neq', val: String(val) }); return u; },
-      then(r, j)     { return u._run().then(r, j); },
-      async _run() {
-        const url = buildUrl(table, '*', filters, null);
-        const headers = baseHeaders({ 'Prefer': 'return=minimal' });
-        const result = await run(url, { method: 'PATCH', headers, body: JSON.stringify(data) });
-        return { error: result.error };
-      }
+      eq(col, val)  { filters.push({ col, op: 'eq', val: String(val) }); return u; },
+      neq(col, val) { filters.push({ col, op: 'neq', val: String(val) }); return u; },
+      then(r,j)     { return u._run().then(r,j); },
+      async _run()  { return await call('update', { table, data, filters }); }
     };
     return u;
   }
 
-  // Builder pour DELETE
   function deleteBuilder(table) {
     const filters = [];
     const d = {
-      eq(col, val)   { filters.push({ col, op: 'eq',  val: String(val) }); return d; },
-      neq(col, val)  { filters.push({ col, op: 'neq', val: String(val) }); return d; },
-      then(r, j)     { return d._run().then(r, j); },
-      async _run() {
-        const url = buildUrl(table, '*', filters, null);
-        const headers = baseHeaders({ 'Prefer': 'return=minimal' });
-        const result = await run(url, { method: 'DELETE', headers });
-        return { error: result.error };
-      }
+      eq(col, val)  { filters.push({ col, op: 'eq',  val: String(val) }); return d; },
+      neq(col, val) { filters.push({ col, op: 'neq', val: String(val) }); return d; },
+      then(r,j)     { return d._run().then(r,j); },
+      async _run()  { return await call('delete', { table, filters }); }
     };
     return d;
   }
@@ -2372,44 +2334,40 @@ async function doLogin() {
 
   try {
     // TENTATIVE 1 : Supabase Auth (si réseau disponible)
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    // Tentative via Edge Function (même domaine → pas de CORS)
     try {
-      const res = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(EDGE_URL, {
         method: 'POST', mode: 'cors', credentials: 'omit',
         signal: controller.signal,
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'x-action': 'login' },
         body: JSON.stringify({ email, password: pass })
       });
       clearTimeout(timeout);
 
       if (res.ok) {
         const data = await res.json();
-        if (data.access_token) {
-          const meta = data.user?.user_metadata || {};
-          const appMeta = data.user?.app_metadata || {};
-          if (meta.role === 'admin' || appMeta.role === 'admin') {
-            _adminSession = {
-              token: data.access_token,
-              userId: data.user.id,
-              email: data.user.email,
-              expiresAt: Date.now() + (data.expires_in * 1000),
-              via: 'supabase'
-            };
-            localStorage.setItem('stylea_admin_session', JSON.stringify(_adminSession));
-            loginSuccess = true;
-            loginViaSupabase = true;
-          } else {
-            throw new Error('Compte non autorisé comme administrateur.');
-          }
+        if (data.token) {
+          _adminSession = {
+            token:     data.token,
+            email:     data.email,
+            expiresAt: Date.now() + ((data.expires_in || 3600) * 1000),
+            via:       'supabase'
+          };
+          localStorage.setItem('stylea_admin_session', JSON.stringify(_adminSession));
+          loginSuccess = true;
+          loginViaSupabase = true;
+        } else if (data.error) {
+          throw new Error(data.error);
         }
       } else {
-        clearTimeout(timeout);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Erreur serveur ' + res.status);
       }
     } catch(netErr) {
-      clearTimeout(timeout);
       // Réseau indisponible → TENTATIVE 2 : credentials locaux
-      console.warn('[Auth] Supabase indisponible, tentative locale:', netErr.message);
+      console.warn('[Auth] Edge Function indisponible, tentative locale:', netErr.message);
     }
 
     // TENTATIVE 2 : Credentials locaux (hash SHA-256)
@@ -2488,13 +2446,15 @@ async function logoutAdmin() {
   // Révoquer le token Supabase
   if (_adminSession && _adminSession.token) {
     try {
-      await fetch(SUPABASE_URL + '/auth/v1/logout', {
+      await fetch(EDGE_URL, {
         method: 'POST', mode: 'cors', credentials: 'omit',
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': 'Bearer ' + _adminSession.token,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'x-action': 'logout'
+        },
+        body: JSON.stringify({})
       });
     } catch(e) {}
   }
@@ -3429,13 +3389,31 @@ if (adminHamburger) {
 const aboutWaBtn = document.getElementById('about-wa-btn');
 if (aboutWaBtn) aboutWaBtn.addEventListener('click', () => openWhatsApp('Bonjour STYLEA ! Je souhaite avoir des informations.'));
 
-// Raccourci clavier secret : Ctrl+Shift+A → ouvre le login admin
+// Raccourci clavier secret : Ctrl+Shift+A → ouvre le login admin (ordi)
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.shiftKey && e.key === 'A') {
     e.preventDefault();
     if (!S.adminOpen) showAdminLogin();
   }
 });
+
+// Triple-tap sur le logo → ouvre le login admin (mobile)
+(function() {
+  let tapCount = 0, tapTimer = null;
+  const logoEl = document.querySelector('.logo-wrap') || document.querySelector('.logo');
+  if (logoEl) {
+    logoEl.addEventListener('touchend', function(e) {
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer = setTimeout(function() {
+        if (tapCount >= 3 && !S.adminOpen) {
+          showAdminLogin();
+        }
+        tapCount = 0;
+      }, 600);
+    }, { passive: true });
+  }
+})();
 
 // Restaurer la session admin si token encore valide (moins de 1h)
 (function restoreAdminSession() {
@@ -3548,30 +3526,7 @@ function showRealtimeOrderAlert(order) {
 }
 
 async function initApp() {
-  // Test de connectivité Supabase
-  let _supabaseOk = false;
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const testRes = await fetch(SUPABASE_URL + '/rest/v1/products?select=id&limit=1', {
-        mode: 'cors',
-        credentials: 'omit',
-        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
-      });
-      if (testRes.ok || testRes.status === 401 || testRes.status === 403 || testRes.status === 200) {
-        console.log('[Supabase] ✅ Connexion OK — tentative', attempt, '— status', testRes.status);
-        _supabaseOk = true;
-        break;
-      }
-      console.warn('[Supabase] ⚠️ Status', testRes.status, '— tentative', attempt);
-    } catch(e) {
-      console.warn('[Supabase] ⚠️ Tentative', attempt, ':', e.message);
-      if (attempt < 3) await new Promise(r => setTimeout(r, 1500 * attempt));
-    }
-  }
-  if (!_supabaseOk) {
-    console.error('[Supabase] ❌ Inaccessible après 3 tentatives. Mode localStorage activé.');
-    showToast('Mode hors-ligne — données locales utilisées', 'info', 5000);
-  }
+  // Connexion via Edge Function — pas de test préalable nécessaire
 
   await API.syncAll();
   renderSite();
@@ -3587,18 +3542,14 @@ async function initApp() {
     _pollingInterval = setInterval(async () => {
       if (!S.adminOpen) return;
       try {
-        const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/orders?select=id,name,items,total,status,date&order=date.desc&limit=50`,
-          {
-            headers: {
-              'apikey': SUPABASE_ANON_KEY,
-              'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-              'Accept': 'application/json'
-            }
-          }
-        );
-        if (!res.ok) return;
-        const fresh = await res.json();
+        const pollRes = await fetch(EDGE_URL, {
+          method: 'POST', mode: 'cors', credentials: 'omit',
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'x-action': 'select' },
+          body: JSON.stringify({ table: 'orders', select: 'id,name,items,total,status,date', order: 'date.desc' })
+        });
+        if (!pollRes.ok) return;
+        const pollData = await pollRes.json();
+        const fresh = pollData.data || pollData;
         if (!Array.isArray(fresh)) return;
         // Détecter nouvelles commandes
         const newOrders = fresh.filter(o => !S.orders.find(x => x.id === o.id));
