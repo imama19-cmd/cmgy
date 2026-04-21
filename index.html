@@ -1244,24 +1244,45 @@
     <!-- Sécurité -->
     <div class="apage" id="apage-security">
       <div class="config-section">
-        <div class="config-title">🔐 Changer les identifiants de connexion</div>
-        <p style="font-size:12px;color:var(--soft);margin-bottom:1rem">Le mot de passe doit contenir au moins 8 caractères, 1 majuscule et 1 chiffre.</p>
-        <div class="frow">
-          <div class="fld"><label>Nom d'utilisateur actuel</label><input id="sec-curr-user" type="text" autocomplete="off"></div>
-          <div class="fld"><label>Mot de passe actuel</label><input id="sec-curr-pass" type="password" autocomplete="off"></div>
+        <div class="config-title">🔐 Changer le mot de passe</div>
+        <p style="font-size:12px;color:var(--soft);margin-bottom:1.2rem">
+          Le changement s'applique à la fois sur <strong>Supabase Auth</strong> (connexion sécurisée) 
+          et en <strong>local</strong> (fallback hors-ligne).<br>
+          Règles : 8 caractères minimum, 1 majuscule, 1 chiffre.
+        </p>
+
+        <!-- Email affiché (lecture seule) -->
+        <div class="fld" style="margin-bottom:1rem">
+          <label>Email administrateur</label>
+          <div style="padding:10px 12px;background:var(--sky);border-radius:8px;font-size:13px;color:var(--navy);font-weight:600" id="sec-email-display">
+            admin@stylea.sn
+          </div>
         </div>
+
+        <div class="fld" style="margin-bottom:1rem">
+          <label>Mot de passe actuel</label>
+          <input id="sec-curr-pass" type="password" autocomplete="current-password" placeholder="Votre mot de passe actuel">
+        </div>
+
         <div class="frow">
-          <div class="fld"><label>Nouveau nom d'utilisateur</label><input id="sec-new-user" type="text" autocomplete="new-password"></div>
           <div class="fld">
             <label>Nouveau mot de passe</label>
-            <input id="sec-new-pass" type="password" autocomplete="new-password" oninput="checkPassStrength(this.value)">
+            <input id="sec-new-pass" type="password" autocomplete="new-password"
+              placeholder="Min. 8 car., 1 maj., 1 chiffre"
+              oninput="checkPassStrength(this.value)">
             <div id="pass-strength-bar" style="height:4px;border-radius:2px;margin-top:5px;transition:all .3s;width:0%;background:var(--red)"></div>
             <div id="pass-strength-lbl" style="font-size:11px;margin-top:3px;color:var(--muted)"></div>
           </div>
+          <div class="fld">
+            <label>Confirmer le nouveau mot de passe</label>
+            <input id="sec-confirm-pass" type="password" autocomplete="new-password" placeholder="Répétez le nouveau mot de passe">
+          </div>
         </div>
-        <div class="fld"><label>Confirmer le nouveau mot de passe</label><input id="sec-confirm-pass" type="password" autocomplete="new-password"></div>
-        <button class="tbtn" onclick="saveCredentials()" style="margin-top:.5rem">🔒 Enregistrer les nouveaux identifiants</button>
-        <div id="sec-msg" style="margin-top:.8rem;font-size:13px"></div>
+
+        <button class="tbtn" id="sec-save-btn" onclick="saveCredentials()" style="margin-top:.8rem">
+          🔒 Enregistrer le nouveau mot de passe
+        </button>
+        <div id="sec-msg" style="margin-top:.8rem;font-size:13px;padding:.6rem 1rem;border-radius:8px;display:none"></div>
       </div>
       <div class="config-section">
         <div class="config-title">⚠️ Zone de danger</div>
@@ -2510,42 +2531,95 @@ function loadAdminForms() {
   // FEAT-2 — Charger les champs logo
   if($('logo-name-inp')) $('logo-name-inp').value = st.logoName||'STYLEA';
 }
-// FEAT-1 — Gestion identifiants admin (hash SHA-256)
+// ==================== CHANGEMENT MOT DE PASSE ====================
 async function saveCredentials() {
-  const currUser=$('sec-curr-user').value.trim();
-  const currPass=$('sec-curr-pass').value;
-  const newUser=$('sec-new-user').value.trim();
-  const newPass=$('sec-new-pass').value;
-  const confirmPass=$('sec-confirm-pass').value;
-  const msg=$('sec-msg');
+  const currPass    = $('sec-curr-pass')?.value || '';
+  const newPass     = $('sec-new-pass')?.value  || '';
+  const confirmPass = $('sec-confirm-pass')?.value || '';
+  const msgEl       = $('sec-msg');
+  const btn         = $('sec-save-btn');
 
-  // Vérifier les credentials actuels
-  let storedCreds = null;
-  try { storedCreds = JSON.parse(localStorage.getItem('stylea_admin_creds') || 'null'); } catch(e){}
-  const adminEmail = storedCreds?.email || ADMIN_EMAIL_DEFAULT;
-  const currHash = await hashPassword(currPass, currUser || adminEmail);
-  const defaultHash = await hashPassword('StyleaAdmin2025!', adminEmail);
-  const validHash = storedCreds?.hash || defaultHash;
-
-  if ((currUser || adminEmail) !== adminEmail && currUser !== adminEmail) {
-    msg.style.color='var(--red)'; msg.textContent='❌ Email actuel incorrect.'; return;
+  function showMsg(text, type) {
+    msgEl.style.display = 'block';
+    msgEl.textContent   = text;
+    msgEl.style.background = type === 'success' ? 'var(--gbg)' : 'var(--rbg)';
+    msgEl.style.color      = type === 'success' ? 'var(--green)' : 'var(--red)';
   }
-  if (currHash !== validHash) {
-    msg.style.color='var(--red)'; msg.textContent='❌ Mot de passe actuel incorrect.'; return;
+
+  // Validations
+  if (!currPass)    { showMsg('❌ Entrez votre mot de passe actuel.', 'error'); return; }
+  if (!newPass)     { showMsg('❌ Entrez un nouveau mot de passe.', 'error'); return; }
+  if (newPass !== confirmPass) { showMsg('❌ Les mots de passe ne correspondent pas.', 'error'); return; }
+  if (newPass.length < 8)     { showMsg('❌ Minimum 8 caractères requis.', 'error'); return; }
+  if (!/[A-Z]/.test(newPass)) { showMsg('❌ Au moins 1 majuscule requise.', 'error'); return; }
+  if (!/[0-9]/.test(newPass)) { showMsg('❌ Au moins 1 chiffre requis.', 'error'); return; }
+  if (newPass === currPass)    { showMsg('❌ Le nouveau mot de passe doit être différent.', 'error'); return; }
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ Changement en cours...';
+  msgEl.style.display = 'none';
+
+  // Récupérer l'email et user_id depuis la session active
+  const email  = _adminSession?.email  || ADMIN_EMAIL_DEFAULT;
+  const userId = _adminSession?.userId || '';
+
+  let supabaseOk = false;
+
+  // 1. Tenter via Edge Function (Supabase Auth)
+  try {
+    const res = await fetch(EDGE_URL, {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Content-Type': 'application/json', 'x-action': 'change-password' },
+      body: JSON.stringify({ email, current_password: currPass, new_password: newPass, user_id: userId })
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      supabaseOk = true;
+      console.log('[Auth] Mot de passe Supabase mis à jour');
+    } else {
+      // Si erreur serveur, afficher et stopper
+      if (data.error && data.error !== 'Network error') {
+        showMsg('❌ ' + data.error, 'error');
+        btn.disabled = false; btn.textContent = '🔒 Enregistrer le nouveau mot de passe';
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn('[Auth] Edge Function indisponible, changement local uniquement:', e.message);
   }
-  if(!newUser||!newPass){ msg.style.color='var(--red)'; msg.textContent='❌ Remplissez tous les champs.'; return; }
-  if(newPass!==confirmPass){ msg.style.color='var(--red)'; msg.textContent='❌ Les mots de passe ne correspondent pas.'; return; }
-  if(newPass.length<8){ msg.style.color='var(--red)'; msg.textContent='❌ Mot de passe trop court (8 caractères minimum).'; return; }
-  if(!/[A-Z]/.test(newPass) || !/[0-9]/.test(newPass)){ msg.style.color='var(--red)'; msg.textContent='❌ Le mot de passe doit contenir au moins 1 majuscule et 1 chiffre.'; return; }
 
-  // Sauvegarder le nouveau hash
-  const newHash = await hashPassword(newPass, newUser);
-  localStorage.setItem('stylea_admin_creds', JSON.stringify({ email: newUser, hash: newHash }));
+  // 2. Toujours mettre à jour le hash local (fallback)
+  try {
+    // Vérifier l'ancien mot de passe local
+    const storedCreds = JSON.parse(localStorage.getItem('stylea_admin_creds') || 'null');
+    const storedHash  = storedCreds?.hash || await hashPassword('StyleaAdmin2025!', email);
+    const currHash    = await hashPassword(currPass, email);
 
-  msg.style.color='var(--green)'; msg.textContent='✅ Identifiants mis à jour avec succès !';
-  $('sec-curr-user').value=''; $('sec-curr-pass').value='';
-  $('sec-new-user').value=''; $('sec-new-pass').value=''; $('sec-confirm-pass').value='';
-  showToast('Identifiants admin mis à jour', 'success');
+    if (!supabaseOk && currHash !== storedHash) {
+      showMsg('❌ Mot de passe actuel incorrect.', 'error');
+      btn.disabled = false; btn.textContent = '🔒 Enregistrer le nouveau mot de passe';
+      return;
+    }
+
+    // Sauvegarder le nouveau hash
+    const newHash = await hashPassword(newPass, email);
+    localStorage.setItem('stylea_admin_creds', JSON.stringify({ email, hash: newHash }));
+    console.log('[Auth] Hash local mis à jour');
+  } catch(e) {
+    console.warn('[Auth] Erreur hash local:', e.message);
+  }
+
+  // Succès
+  const via = supabaseOk ? ' (Supabase + local)' : ' (local uniquement)';
+  showMsg('✅ Mot de passe changé avec succès' + via, 'success');
+  $('sec-curr-pass').value = '';
+  $('sec-new-pass').value  = '';
+  $('sec-confirm-pass').value = '';
+  $('pass-strength-bar').style.width = '0%';
+  $('pass-strength-lbl').textContent = '';
+  btn.disabled    = false;
+  btn.textContent = '🔒 Enregistrer le nouveau mot de passe';
+  showToast('Mot de passe mis à jour' + via, 'success');
 }
 // FEAT-2 — Gestion logo boutique
 async function saveLogo() {
@@ -2570,6 +2644,11 @@ function aNav(page, el) {
   $('a-page-title').textContent = titles[page]||page;
   if(page==='mesures') setTimeout(()=>loadMesures(), 50);
   if(page==='backend') setTimeout(loadBackendConfig, 50);
+  if(page==='security') {
+    // Afficher l'email admin actuel
+    const emailEl = document.getElementById('sec-email-display');
+    if (emailEl) emailEl.textContent = _adminSession?.email || ADMIN_EMAIL_DEFAULT;
+  }
   if(page==='orders') {
     renderOrdersTable(S.orders);
     // Ajouter bouton export CSV commandes si absent
