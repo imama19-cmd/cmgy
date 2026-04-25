@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DoliPro Manager v6</title>
+<title>DoliPro Manager v7</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -789,11 +789,11 @@ body::before {
         </div>
         <div style="margin-bottom:20px">
           <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:10px;color:#374151">Votre métier *</label>
-          <input type="hidden" id="reg-metier" value="vendeur">
+          <input type="hidden" id="reg-metier" value="boutique">
           <div id="metier-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px">
             <!-- rempli par JS -->
           </div>
-          <div style="text-align:center;font-size:0.75rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 18 métiers</div>
+          <div style="text-align:center;font-size:0.75rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 20 métiers</div>
         </div>
         <button onclick="doRegister()" class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem">Créer mon compte gratuitement →</button>
         <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
@@ -813,7 +813,7 @@ body::before {
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v6.0</span></div>
+      <div class="sidebar-brand">DoliPro<span>Manager v7.0</span></div>
     </div>
     <div class="sidebar-nav">
       <p class="nav-section-label">Principal</p>
@@ -985,19 +985,142 @@ function getCurrentWorkspaceId() {
 }
 
 /* ══════════════════════════════════════════════════════
-   PROFILS MÉTIER (CAMÉLÉON)
+   PROFILS MÉTIER — v7 (BTP · INFORMATIQUE · OUVRIERS · COMMERCE · SERVICES)
 ══════════════════════════════════════════════════════ */
 const PROFILS = {
 
-  // ── COMMERCE & VENTE ──────────────────────────────
-  vendeur: {
-    label: 'Vendeur / Commerce', icon: '🛍️', couleur: '#1e6fd9',
+  // ══ SECTEUR BTP & CONSTRUCTION ═══════════════════
+  entrepreneur_btp: {
+    label: 'Entrepreneur BTP', icon: '🏗️', couleur: '#d97706',
     modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','factures_en_attente','stock_alerte','top_clients','taux_conversion'],
-    terminologie: { facture:'Facture', devis:'Devis', client:'Client', produit:'Produit', stock:'Stock & Catalogue' },
-    categoriesCompta: ['Achats marchandises','Loyer boutique','Salaires','Transport','Publicité','Taxes & impôts','Autres'],
-    fabAction: 'openNewClient',
-    description: 'Gestion des ventes, stocks et clients'
+    dashboardWidgets: ['ca','chantiers_actifs','factures_en_attente','depenses_mois','benefice_net'],
+    terminologie: { facture:'Situation de travaux', devis:'Devis chantier', client:"Maître d'ouvrage", produit:'Prestation / Fourniture', stock:'Matériaux & Matériel' },
+    categoriesCompta: ['Matériaux','Sous-traitance','Main d\'œuvre','Engins & matériel','Carburant','Assurances chantier','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Chantiers de construction, rénovation et génie civil'
+  },
+
+  electricien: {
+    label: 'Électricien', icon: '⚡', couleur: '#eab308',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie: { facture:'Bon de travaux', devis:'Devis technique', client:'Client', produit:'Matériel électrique', stock:'Matériel & Pièces' },
+    categoriesCompta: ['Câblage & fournitures','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Installations électriques, dépannages et maintenance'
+  },
+
+  plombier: {
+    label: 'Plombier / Sanitaire', icon: '🔧', couleur: '#0891b2',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie: { facture:'Bon d\'intervention', devis:'Devis plomberie', client:'Client', produit:'Pièce / Fourniture', stock:'Pièces & Fournitures' },
+    categoriesCompta: ['Fournitures sanitaires','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Plomberie, sanitaire et climatisation'
+  },
+
+  menuisier: {
+    label: 'Menuisier / Métallier', icon: '🪵', couleur: '#92400e',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['commandes_actives','ca','stock_alerte','factures_en_attente'],
+    terminologie: { facture:'Facture atelier', devis:'Devis fabrication', client:'Client', produit:'Ouvrage / Pièce', stock:'Matières premières' },
+    categoriesCompta: ['Bois & matières','Quincaillerie & visserie','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Fabrication bois, aluminium, fer forgé et métallerie'
+  },
+
+  peintre: {
+    label: 'Peintre / Revêtements', icon: '🎨', couleur: '#7c3aed',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
+    terminologie: { facture:'Facture de travaux', devis:'Devis peinture', client:'Client', produit:'Produit / Fourniture', stock:'Peintures & Fournitures' },
+    categoriesCompta: ['Peintures & enduits','Matériel application','Carburant','Loyer atelier','Salaires','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Peinture bâtiment, revêtements sols et murs'
+  },
+
+  // ══ SECTEUR INFORMATIQUE & NUMÉRIQUE ═════════════
+  developpeur: {
+    label: 'Développeur / Agence Web', icon: '💻', couleur: '#059669',
+    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets: ['ca','missions_actives','taux_recouvrement','taux_conversion','score_sante'],
+    terminologie: { facture:'Facture', devis:'Proposition technique', client:'Client', produit:'Développement / Module', stock:'Catalogue services' },
+    categoriesCompta: ['Hébergement & domaines','Licences logiciels','Matériel informatique','Déplacements','Salaires','Formation','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Développement web, applications et solutions numériques'
+  },
+
+  technicien_info: {
+    label: 'Technicien Informatique', icon: '🖥️', couleur: '#1e6fd9',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie: { facture:'Bon d\'intervention', devis:'Devis technique', client:'Client', produit:'Pièce / Service', stock:'Pièces & Matériel' },
+    categoriesCompta: ['Pièces détachées','Consommables','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
+    fabAction: 'openNewFacture',
+    description: 'Réparation, maintenance et réseau informatique'
+  },
+
+  freelance_digital: {
+    label: 'Freelance Digital', icon: '🎯', couleur: '#be185d',
+    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets: ['ca','missions_actives','taux_recouvrement','score_sante','taux_conversion'],
+    terminologie: { facture:'Facture', devis:'Proposition commerciale', client:'Client', produit:'Mission / Livrable', stock:'Catalogue' },
+    categoriesCompta: ['Logiciels & abonnements','Matériel','Déplacements','Formation','Marketing','Impôts & charges','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Graphisme, marketing digital, rédaction et conseil'
+  },
+
+  formateur_digital: {
+    label: 'Formation Informatique', icon: '🎓', couleur: '#6d28d9',
+    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','missions_actives'],
+    terminologie: { facture:'Reçu de formation', devis:'Programme de formation', client:'Apprenant / Entreprise', produit:'Formation / Module', stock:'Matériel pédagogique' },
+    categoriesCompta: ['Matériel pédagogique','Loyer salle','Salaires formateurs','Licences logiciels','Marketing','Taxes','Autres'],
+    fabAction: 'openNewFacture',
+    description: 'Formations bureautique, développement et numérique'
+  },
+
+  // ══ SECTEUR OUVRIERS SPÉCIALISÉS ═════════════════
+  carreleur: {
+    label: 'Carreleur / Maçon', icon: '🧱', couleur: '#b45309',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
+    terminologie: { facture:'Facture de travaux', devis:'Devis carrelage', client:'Client', produit:'Prestation / Matériaux', stock:'Carreaux & Matériaux' },
+    categoriesCompta: ['Carreaux & faïences','Colle & joints','Outillage','Carburant','Salaires','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Carrelage, maçonnerie, enduits et revêtements'
+  },
+
+  soudeur: {
+    label: 'Soudeur / Ferronnier', icon: '🔩', couleur: '#374151',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets: ['commandes_actives','ca','stock_alerte','factures_en_attente'],
+    terminologie: { facture:'Bon de commande', devis:'Devis fabrication', client:'Client', produit:'Ouvrage / Pièce', stock:'Métaux & Consommables' },
+    categoriesCompta: ['Métal & profilés','Consommables soudure','Gaz industriel','Outillage','Loyer atelier','Salaires','Autres'],
+    fabAction: 'openNewDevis',
+    description: 'Soudure, ferronnerie, portails et structures métalliques'
+  },
+
+  chauffeur: {
+    label: 'Transporteur / Chauffeur', icon: '🚛', couleur: '#1d4ed8',
+    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets: ['ca','missions_actives','depenses_mois','taux_recouvrement'],
+    terminologie: { facture:'Bon de transport', devis:'Devis de course', client:'Expéditeur / Client', produit:'Course / Trajet', stock:'Véhicules & Matériel' },
+    categoriesCompta: ['Carburant','Entretien véhicule','Assurance','Péages & taxes','Salaires chauffeurs','Location','Autres'],
+    fabAction: 'openNewFacture',
+    description: 'Transport de marchandises, déménagement et logistique'
+  },
+
+  // ══ SECTEUR COMMERCE ══════════════════════════════
+  boutique: {
+    label: 'Boutique / Détaillant', icon: '🛒', couleur: '#dc2626',
+    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets: ['ca','stock_alerte','factures_en_attente','top_clients','depenses_mois'],
+    terminologie: { facture:'Ticket / Facture', devis:'Devis', client:'Client', produit:'Article', stock:'Stock Boutique' },
+    categoriesCompta: ['Achats marchandises','Loyer boutique','Salaires','Emballages','Publicité','Taxes & impôts','Autres'],
+    fabAction: 'openNewFacture',
+    description: 'Vente au détail, boutique et commerce de proximité'
   },
 
   grossiste: {
@@ -1007,190 +1130,72 @@ const PROFILS = {
     terminologie: { facture:'Bon de livraison', devis:'Proforma', client:'Revendeur', produit:'Article', stock:'Entrepôt & Stock' },
     categoriesCompta: ['Importation & douane','Transport marchandises','Loyer entrepôt','Salaires','Emballage','Taxes & impôts','Autres'],
     fabAction: 'openNewFacture',
-    description: 'Import, gros volumes et distribution'
+    description: 'Import, gros volumes, distribution et revente'
   },
 
-  pharmacien: {
-    label: 'Pharmacien / Para-pharmacie', icon: '💊', couleur: '#0f766e',
+  pharmacie: {
+    label: 'Pharmacie / Para-pharmacie', icon: '💊', couleur: '#0f766e',
     modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
     dashboardWidgets: ['ca','stock_alerte','depenses_mois','benefice_net'],
-    terminologie: { facture:'Reçu / Ordonnance', devis:'Devis médicaments', client:'Patient', produit:'Médicament / Produit', stock:'Pharmacie & Stocks' },
-    categoriesCompta: ['Achats médicaments','Loyer officine','Salaires','Équipement médical','Licences','Taxes','Autres'],
+    terminologie: { facture:'Reçu client', devis:'Devis médicaments', client:'Patient / Client', produit:'Médicament / Produit', stock:'Pharmacie & Stocks' },
+    categoriesCompta: ['Achats médicaments','Loyer officine','Salaires','Équipement','Licences','Taxes','Autres'],
     fabAction: 'openNewFacture',
-    description: 'Gestion officine, stocks médicaments'
+    description: 'Officine, parapharmacie et produits de santé'
   },
 
-  // ── BÂTIMENT & ARTISANAT ──────────────────────────
-  ouvrier: {
-    label: 'Ouvrier / Artisan BTP', icon: '🏗️', couleur: '#d97706',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','parametres'],
-    dashboardWidgets: ['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
-    terminologie: { facture:'Facture de travaux', devis:'Devis chantier', client:"Maître d'ouvrage", produit:'Prestation', stock:'Matériaux' },
-    categoriesCompta: ["Matériaux","Main d'œuvre",'Outillage','Transport','Sous-traitance','Carburant','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Chantiers, devis et facturation travaux'
+  superette: {
+    label: 'Supérette / Épicerie', icon: '🏪', couleur: '#16a34a',
+    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets: ['ca','stock_alerte','depenses_mois','benefice_net'],
+    terminologie: { facture:'Ticket de caisse', devis:'Bon de commande', client:'Client', produit:'Produit alimentaire', stock:'Rayons & Stock' },
+    categoriesCompta: ['Achats alimentaires','Loyer local','Salaires','Emballages','Eau & électricité','Taxes','Autres'],
+    fabAction: 'openNewFacture',
+    description: 'Épicerie, supérette et commerce alimentaire'
   },
 
-  electricien: {
-    label: 'Électricien / Plombier', icon: '⚡', couleur: '#eab308',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
-    terminologie: { facture:'Bon de travaux', devis:'Devis technique', client:'Client', produit:'Matériel / Fourniture', stock:'Matériel & Pièces' },
-    categoriesCompta: ['Matériel électrique','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Installations, dépannages et maintenance'
-  },
-
-  menuisier: {
-    label: 'Menuisier / Ébéniste', icon: '🪵', couleur: '#92400e',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['commandes_actives','ca','stock_alerte','factures_en_attente'],
-    terminologie: { facture:'Facture atelier', devis:'Devis fabrication', client:'Client', produit:'Ouvrage / Pièce', stock:'Bois & Matières' },
-    categoriesCompta: ['Bois & matières premières','Quincaillerie','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Fabrication sur mesure, ateliers bois'
-  },
-
-  // ── SERVICES & PRESTATIONS ────────────────────────
+  // ══ SECTEUR SERVICES ══════════════════════════════
   prestataire: {
-    label: 'Prestataire de services', icon: '💼', couleur: '#7c3aed',
+    label: 'Prestataire de Services', icon: '💼', couleur: '#7c3aed',
     modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','score_sante','rapports_rapides'],
+    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','score_sante','taux_conversion'],
     terminologie: { facture:'Facture de prestation', devis:'Proposition commerciale', client:'Client', produit:'Service', stock:'Catalogue de services' },
     categoriesCompta: ['Logiciels & outils','Déplacements','Loyer bureau','Salaires','Marketing','Formation','Autres'],
     fabAction: 'openNewFacture',
-    description: 'Prestations, missions et consulting'
+    description: 'Consulting, audit, conseil et prestations intellectuelles'
   },
 
-  freelance: {
-    label: 'Freelance / Indépendant', icon: '💻', couleur: '#059669',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','missions_actives','taux_recouvrement','score_sante','taux_conversion'],
-    terminologie: { facture:'Facture', devis:'Proposition / Devis', client:'Client', produit:'Mission / Livrable', stock:'Catalogue' },
-    categoriesCompta: ['Matériel & équipement','Logiciels & abonnements','Déplacements','Formation','Marketing','Impôts & charges','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Missions, facturation et suivi revenus'
-  },
-
-  agence: {
-    label: 'Agence (Comm. / Events)', icon: '🎯', couleur: '#be185d',
+  agence_com: {
+    label: 'Agence Communication', icon: '📣', couleur: '#db2777',
     modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
     dashboardWidgets: ['ca','missions_actives','taux_conversion','taux_recouvrement','top_clients'],
-    terminologie: { facture:'Facture client', devis:'Brief & Devis', client:'Annonceur', produit:'Prestation / Pack', stock:'Ressources & Matériel' },
+    terminologie: { facture:'Facture client', devis:'Brief & Proposition', client:'Annonceur', produit:'Prestation / Pack', stock:'Ressources créatives' },
     categoriesCompta: ['Sous-traitance créative','Publicité & médias','Location matériel','Salaires','Logiciels','Déplacements','Autres'],
     fabAction: 'openNewDevis',
-    description: 'Agence comm., événementiel, digital'
+    description: 'Communication, publicité, évènementiel et marketing'
   },
 
-  // ── SANTÉ & BIEN-ÊTRE ─────────────────────────────
-  medecin: {
-    label: 'Médecin / Cabinet médical', icon: '🩺', couleur: '#0891b2',
-    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','depenses_mois','benefice_net'],
-    terminologie: { facture:'Reçu de consultation', devis:'Devis soins', client:'Patient', produit:'Acte médical', stock:'Matériel médical' },
-    categoriesCompta: ['Consommables médicaux','Loyer cabinet','Salaires','Équipement','Assurance','Formation médicale','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Consultations, soins et gestion cabinet'
-  },
-
-  coiffeur: {
-    label: 'Coiffeur / Esthéticien', icon: '✂️', couleur: '#db2777',
-    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','couverts_jour','stock_alerte','depenses_mois'],
-    terminologie: { facture:'Ticket / Reçu', devis:'Devis prestation', client:'Cliente / Client', produit:'Soin / Prestation', stock:'Produits coiffure' },
-    categoriesCompta: ['Produits coiffure','Loyer salon','Salaires','Équipement','Eau & électricité','Marketing','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Salon, soins et gestion clientèle'
-  },
-
-  // ── RESTAURATION & ALIMENTATION ───────────────────
-  restaurateur: {
-    label: 'Restaurateur / Traiteur', icon: '🍽️', couleur: '#dc2626',
-    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','couverts_jour','stock_alerte','depenses_mois','benefice_net'],
-    terminologie: { facture:'Note / Ticket', devis:'Menu sur devis', client:'Client', produit:'Plat / Ingrédient', stock:'Stocks cuisine' },
-    categoriesCompta: ['Matières premières','Boissons','Gaz & énergie','Emballages','Loyer','Salaires','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Caisse, stocks et gestion cuisine'
-  },
-
-  boulanger: {
-    label: 'Boulanger / Pâtissier', icon: '🍞', couleur: '#c2410c',
-    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','stock_alerte','depenses_mois','benefice_net'],
-    terminologie: { facture:'Bon de commande', devis:'Devis commande', client:'Client', produit:'Produit boulangerie', stock:'Farines & Ingrédients' },
-    categoriesCompta: ['Matières premières','Gaz & four','Emballages','Loyer','Salaires','Entretien matériel','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Boulangerie, commandes et gestion stocks'
-  },
-
-  // ── TRANSPORT & LOGISTIQUE ────────────────────────
-  transporteur: {
-    label: 'Transporteur / Livreur', icon: '🚛', couleur: '#1d4ed8',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','missions_actives','depenses_mois','taux_recouvrement'],
-    terminologie: { facture:'Bon de transport', devis:'Devis course', client:'Expéditeur', produit:'Course / Trajet', stock:'Véhicules & Matériel' },
-    categoriesCompta: ['Carburant','Entretien véhicule','Assurance','Péages & taxes','Salaires chauffeurs','Location','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Courses, livraisons et gestion flotte'
-  },
-
-  // ── ÉDUCATION & FORMATION ─────────────────────────
-  formateur: {
-    label: 'Formateur / École', icon: '🎓', couleur: '#6d28d9',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','missions_actives'],
-    terminologie: { facture:'Reçu de frais', devis:'Devis formation', client:'Apprenant / Élève', produit:'Formation / Cours', stock:'Matériel pédagogique' },
-    categoriesCompta: ['Matériel pédagogique','Loyer salle','Salaires formateurs','Logiciels','Marketing','Taxes','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Formations, cours et gestion apprenants'
-  },
-
-  // ── IMMOBILIER & LOCATION ─────────────────────────
-  agent_immo: {
-    label: 'Agent immobilier / Gérant', icon: '🏠', couleur: '#065f46',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','factures_en_attente'],
-    terminologie: { facture:'Quittance / Reçu', devis:'Proposition locative', client:'Locataire', produit:'Bien immobilier', stock:'Portefeuille biens' },
-    categoriesCompta: ['Charges locatives','Travaux entretien','Taxes foncières','Assurances','Frais agence','Salaires','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Location, gestion locative et syndic'
-  },
-
-  // ── AGRICULTURE ───────────────────────────────────
-  agriculteur: {
-    label: 'Agriculteur / Éleveur', icon: '🌾', couleur: '#16a34a',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','stock_alerte','depenses_mois','benefice_net'],
-    terminologie: { facture:'Bon de vente', devis:'Proforma récolte', client:'Acheteur', produit:'Récolte / Produit', stock:'Stocks & Intrants' },
-    categoriesCompta: ["Semences & intrants","Main d'oeuvre",'Carburant','Irrigation','Transport','Équipement agricole','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Récoltes, élevage et gestion agricole'
-  },
-
-  // ── AUTOMOBILE ────────────────────────────────────
-  garagiste: {
-    label: 'Garagiste / Mécanicien', icon: '🔩', couleur: '#334155',
+  nettoyage: {
+    label: 'Nettoyage / Entretien', icon: '🧹', couleur: '#0891b2',
     modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
-    terminologie: { facture:'Fiche de réparation', devis:'Devis réparation', client:'Propriétaire', produit:"Pièce / Main d'oeuvre", stock:'Pièces détachées' },
-    categoriesCompta: ['Pièces détachées','Consommables','Outillage','Carburant','Loyer garage','Salaires','Autres'],
+    dashboardWidgets: ['ca','clients_actifs','factures_en_attente','depenses_mois'],
+    terminologie: { facture:'Bon de prestation', devis:'Devis nettoyage', client:'Client / Site', produit:'Prestation / Produit', stock:'Produits & Matériel' },
+    categoriesCompta: ['Produits ménagers','Matériel nettoyage','Salaires agents','Carburant','Assurances','Loyer dépôt','Autres'],
     fabAction: 'openNewFacture',
-    description: 'Réparations, pièces et gestion atelier auto'
+    description: 'Nettoyage industriel, bureaux, chantiers et résidences'
   },
 
-  // ── TECHNIQUE & SAV ───────────────────────────────
-  technicien: {
-    label: 'Technicien / SAV', icon: '🔧', couleur: '#0891b2',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','taux_satisfaction'],
-    terminologie: { facture:"Bon d'intervention", devis:'Devis technique', client:'Client', produit:'Pièce / Fourniture', stock:'Pièces & Matériel' },
-    categoriesCompta: ['Pièces détachées','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
+  securite: {
+    label: 'Sécurité / Gardiennage', icon: '🛡️', couleur: '#1e3a5f',
+    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets: ['ca','clients_actifs','factures_en_attente','taux_recouvrement'],
+    terminologie: { facture:'Facture de garde', devis:'Offre de sécurité', client:'Site / Entreprise', produit:'Prestation de garde', stock:'Équipements sécurité' },
+    categoriesCompta: ['Salaires agents','Uniformes & équipements','Formation sécurité','Carburant','Assurances','Loyer bureau','Autres'],
     fabAction: 'openNewFacture',
-    description: 'Interventions, pièces et suivi SAV'
+    description: 'Gardiennage, sécurité privée et surveillance de sites'
   }
 
 };
+
 
 /* ══════════════════════════════════════════════════════
    LIMITES FREE
@@ -1318,7 +1323,7 @@ function doRegister() {
   const nom    = document.getElementById('reg-nom')?.value.trim() || document.getElementById('reg-name')?.value.trim();
   const email  = document.getElementById('reg-email').value.trim().toLowerCase();
   const pass   = document.getElementById('reg-password') ? document.getElementById('reg-password').value : document.getElementById('reg-pwd').value;
-  const metier = document.getElementById('reg-metier')?.value || 'vendeur';
+  const metier = document.getElementById('reg-metier')?.value || 'boutique';
   if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
   if (pass.length < 4) { toast('Mot de passe trop court (min 4 car.)','warning'); return; }
   const users = getAllUsers();
@@ -1412,16 +1417,16 @@ function renderAuth() {
           <input id="reg-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none" placeholder="Minimum 4 caractères"></div>
         <div style="margin-bottom:20px">
           <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:10px;color:#374151">Votre métier *</label>
-          <input type="hidden" id="reg-metier" value="vendeur">
+          <input type="hidden" id="reg-metier" value="boutique">
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px">
             ${Object.entries(PROFILS).map(([k,p]) => `
-              <div class="metier-card${k==='vendeur'?' selected':''}" data-metier="${k}" onclick="selectMetier(this)"
-                style="border:2px solid ${k==='vendeur'?p.couleur:'#e2e8f0'};border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:0.2s;background:${k==='vendeur'?p.couleur+'15':'#fff'}">
+              <div class="metier-card${k==='boutique'?' selected':''}" data-metier="${k}" onclick="selectMetier(this)"
+                style="border:2px solid ${k==='boutique'?p.couleur:'#e2e8f0'};border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:0.2s;background:${k==='boutique'?p.couleur+'15':'#fff'}">
                 <div style="font-size:1.5rem">${p.icon}</div>
                 <div style="font-size:0.72rem;font-weight:600;color:#374151;margin-top:4px;line-height:1.2">${p.label.split('/')[0].trim()}</div>
               </div>`).join('')}
           </div>
-          <div style="text-align:center;font-size:0.75rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 18 métiers</div>
+          <div style="text-align:center;font-size:0.75rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 20 métiers</div>
         </div>
         <button onclick="doRegister()" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:1rem;cursor:pointer">Créer mon compte gratuitement →</button>
         <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
@@ -1960,6 +1965,7 @@ function renderFactures() {
               ${f.statut==='brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('facture','${f.id}')">Modifier</button>` : ''}
               ${f.statut==='brouillon' ? `<button class="btn btn-sm btn-primary" onclick="changeDocStatut('facture','${f.id}','validee')">Valider</button>` : ''}
               ${f.statut==='validee' ? `<button class="btn btn-sm btn-success" onclick="changeDocStatut('facture','${f.id}','payee')">Payée</button>` : ''}
+              ${f.statut==='validee' ? `<button class="btn btn-sm btn-outline" onclick="openPaiementModal('${f.id}')">Acompte</button>` : ''}
               ${(f.statut==='brouillon'||f.statut==='validee') ? `<button class="btn btn-sm btn-outline" onclick="changeDocStatut('facture','${f.id}','annulee')">Annuler</button>` : ''}
               <button class="btn btn-sm btn-danger" onclick="deleteDoc('facture','${f.id}')">Suppr.</button>
             </div></td>
@@ -2841,85 +2847,87 @@ document.addEventListener('keydown', e => {
    DONNÉES DÉMO
 ══════════════════════════════════════════════════════ */
 function seedDemoData() {
-  // Clients
+  // Clients démo
   const clients = [
-    { id:'c1', nom:'Sécurité Plus SARL', email:'contact@securite-plus.sn', telephone:'+221 33 820 15 00', adresse:'Rue 12, Zone Industrielle', ville:'Dakar', pays:'Sénégal', ninea:'2019455847J', createdAt:now() },
-    { id:'c2', nom:'BTP Dakar SA', email:'dg@btpdakar.sn', telephone:'+221 77 540 33 21', adresse:'Corniche Ouest', ville:'Dakar', pays:'Sénégal', ninea:'2018322654K', createdAt:now() },
-    { id:'c3', nom:'Pharmacie Centrale', email:'pharmacie@centrale.sn', telephone:'+221 33 821 44 55', adresse:'Avenue Bourguiba', ville:'Thiès', pays:'Sénégal', ninea:'2020654321L', createdAt:now() },
-    { id:'c4', nom:'Resto Le Baobab', email:'info@lebaobab.sn', telephone:'+221 76 300 22 18', adresse:'Plateau, Rue de Thiong', ville:'Dakar', pays:'Sénégal', ninea:'', createdAt:now() },
-    { id:'c5', nom:'Transport OCEANE', email:'gestion@oceane-transport.sn', telephone:'+221 33 832 00 11', adresse:'Pikine Industrial', ville:'Pikine', pays:'Sénégal', ninea:'2021099876M', createdAt:now() }
+    { id:'c1', nom:'Construction Diallo SARL', email:'dg@constdiallo.sn', telephone:'+221 77 540 33 21', adresse:'Corniche Ouest, Immeuble A', ville:'Dakar', pays:'Sénégal', ninea:'2018322654K', createdAt:now() },
+    { id:'c2', nom:'Résidence Les Palmiers', email:'syndic@lespalmiers.sn', telephone:'+221 33 820 15 00', adresse:'Almadies, Lot 12', ville:'Dakar', pays:'Sénégal', ninea:'2019455847J', createdAt:now() },
+    { id:'c3', nom:'Société Tech Innov SN', email:'contact@techinnov.sn', telephone:'+221 76 300 22 18', adresse:'Point E, Rue 8', ville:'Dakar', pays:'Sénégal', ninea:'2020654321L', createdAt:now() },
+    { id:'c4', nom:'Boutique Mode Chic', email:'info@modechic.sn', telephone:'+221 70 441 55 89', adresse:'Sandaga, Stand 15', ville:'Dakar', pays:'Sénégal', ninea:'', createdAt:now() },
+    { id:'c5', nom:'Cabinet Conseil Alpha', email:'alpha@conseil.sn', telephone:'+221 33 832 00 11', adresse:'Plateau, Avenue Roume', ville:'Dakar', pays:'Sénégal', ninea:'2021099876M', createdAt:now() }
   ];
   Store.set('clients', clients);
 
-  // Produits
+  // Produits / Services démo
   const produits = [
-    { id:'p1', nom:'Prestation de conseil', reference:'SERV-001', prix:150000, unite:'heure', description:'Conseil en stratégie et management', createdAt:now() },
-    { id:'p2', nom:'Ordinateur portable HP', reference:'INFO-001', prix:450000, unite:'pièce', description:'HP ProBook 14", Core i5, 8Go RAM, 512Go SSD', quantite:15, seuil:3, createdAt:now() },
-    { id:'p3', nom:'Imprimante laser Brother', reference:'INFO-002', prix:185000, unite:'pièce', description:'Brother HL-L2370DN, réseau, recto-verso', quantite:4, seuil:2, createdAt:now() },
-    { id:'p4', nom:'Câble réseau Cat6 (100m)', reference:'NET-001', prix:35000, unite:'rouleau', description:'Câble Ethernet Cat6 UTP 100m', quantite:8, seuil:3, createdAt:now() },
-    { id:'p5', nom:'Climatiseur 12000 BTU', reference:'CLIM-001', prix:380000, unite:'pièce', description:'Split system, efficacité énergétique A+', quantite:2, seuil:3, createdAt:now() },
-    { id:'p6', nom:'Développement web', reference:'DEV-001', prix:200000, unite:'projet', description:'Site web vitrine ou application', createdAt:now() },
+    { id:'p1', nom:'Prestation conseil journalière', reference:'SERV-001', prix:75000, unite:'jour', description:'Conseil, audit et accompagnement', createdAt:now() },
+    { id:'p2', nom:'Câble électrique 2.5mm² (100m)', reference:'ELEC-001', prix:18000, unite:'rouleau', description:'Câble NYA 2.5mm² pour installation', quantite:20, seuil:5, createdAt:now() },
+    { id:'p3', nom:'Disjoncteur 32A', reference:'ELEC-002', prix:4500, unite:'pièce', description:'Disjoncteur modulaire 32A Phase+Neutre', quantite:15, seuil:5, createdAt:now() },
+    { id:'p4', nom:'Peinture acrylique 20L', reference:'PEIN-001', prix:28000, unite:'seau', description:'Peinture murale acrylique blanche', quantite:10, seuil:3, createdAt:now() },
+    { id:'p5', nom:'Site web vitrine', reference:'WEB-001', prix:350000, unite:'projet', description:'Site web responsive 5 pages + CMS', createdAt:now() },
+    { id:'p6', nom:'Maintenance mensuelle PC', reference:'INFO-001', prix:25000, unite:'forfait', description:'Maintenance préventive et assistance', createdAt:now() },
   ];
   Store.set('produits', produits);
 
-  // Factures
+  // Factures démo
   const makeDate = (daysAgo) => { const d = new Date(); d.setDate(d.getDate()-daysAgo); return d.toISOString().split('T')[0]; };
   const factures = [
-    { id:'f1', numero:'FAC-2025-001', clientId:'c1', clientNom:'Sécurité Plus SARL', date:makeDate(60), echeance:makeDate(30), statut:'payee', lignes:[{id:uid(),description:'Prestation de conseil',quantite:5,prixHT:150000,tva:18},{id:uid(),description:'Rapport d\'audit',quantite:1,prixHT:80000,tva:18}], totalHT:830000, totalTVA:149400, totalTTC:979400, createdAt:now(), updatedAt:now() },
-    { id:'f2', numero:'FAC-2025-002', clientId:'c2', clientNom:'BTP Dakar SA', date:makeDate(45), echeance:makeDate(15), statut:'payee', lignes:[{id:uid(),description:'Ordinateur portable HP',quantite:3,prixHT:450000,tva:18}], totalHT:1350000, totalTVA:243000, totalTTC:1593000, createdAt:now(), updatedAt:now() },
-    { id:'f3', numero:'FAC-2025-003', clientId:'c3', clientNom:'Pharmacie Centrale', date:makeDate(30), echeance:makeDate(0), statut:'validee', lignes:[{id:uid(),description:'Climatiseur 12000 BTU',quantite:2,prixHT:380000,tva:18},{id:uid(),description:'Installation et câblage',quantite:1,prixHT:50000,tva:18}], totalHT:810000, totalTVA:145800, totalTTC:955800, createdAt:now(), updatedAt:now() },
-    { id:'f4', numero:'FAC-2025-004', clientId:'c5', clientNom:'Transport OCEANE', date:makeDate(15), echeance:makeDate(15), statut:'validee', lignes:[{id:uid(),description:'Développement site web',quantite:1,prixHT:200000,tva:18}], totalHT:200000, totalTVA:36000, totalTTC:236000, createdAt:now(), updatedAt:now() },
-    { id:'f5', numero:'FAC-2025-005', clientId:'c1', clientNom:'Sécurité Plus SARL', date:makeDate(5), statut:'brouillon', lignes:[{id:uid(),description:'Prestation conseil mensuel',quantite:10,prixHT:150000,tva:18}], totalHT:1500000, totalTVA:270000, totalTTC:1770000, createdAt:now(), updatedAt:now() },
+    { id:'f1', numero:'FAC-2025-001', clientId:'c1', clientNom:'Construction Diallo SARL', date:makeDate(60), echeance:makeDate(30), statut:'payee', lignes:[{id:uid(),description:'Travaux électriques bâtiment R+3',quantite:1,prixHT:850000,tva:18},{id:uid(),description:'Fournitures câblage',quantite:1,prixHT:120000,tva:18}], totalHT:970000, totalTVA:174600, totalTTC:1144600, createdAt:now(), updatedAt:now() },
+    { id:'f2', numero:'FAC-2025-002', clientId:'c2', clientNom:'Résidence Les Palmiers', date:makeDate(45), echeance:makeDate(15), statut:'payee', lignes:[{id:uid(),description:'Maintenance plomberie mensuelle',quantite:2,prixHT:75000,tva:18},{id:uid(),description:'Remplacement robinets x4',quantite:4,prixHT:18000,tva:18}], totalHT:222000, totalTVA:39960, totalTTC:261960, createdAt:now(), updatedAt:now() },
+    { id:'f3', numero:'FAC-2025-003', clientId:'c3', clientNom:'Société Tech Innov SN', date:makeDate(30), echeance:makeDate(0), statut:'validee', lignes:[{id:uid(),description:'Développement site web + application',quantite:1,prixHT:650000,tva:18},{id:uid(),description:'Hébergement 1 an',quantite:1,prixHT:45000,tva:18}], totalHT:695000, totalTVA:125100, totalTTC:820100, createdAt:now(), updatedAt:now() },
+    { id:'f4', numero:'FAC-2025-004', clientId:'c5', clientNom:'Cabinet Conseil Alpha', date:makeDate(15), echeance:makeDate(15), statut:'validee', lignes:[{id:uid(),description:'Prestation conseil stratégique',quantite:5,prixHT:75000,tva:18}], totalHT:375000, totalTVA:67500, totalTTC:442500, createdAt:now(), updatedAt:now() },
+    { id:'f5', numero:'FAC-2025-005', clientId:'c1', clientNom:'Construction Diallo SARL', date:makeDate(5), statut:'brouillon', lignes:[{id:uid(),description:'Travaux peinture 3 appartements',quantite:3,prixHT:180000,tva:18}], totalHT:540000, totalTVA:97200, totalTTC:637200, createdAt:now(), updatedAt:now() },
   ];
   Store.set('factures', factures);
 
-  // Devis
+  // Devis démo
   const devis = [
-    { id:'d1', numero:'DEV-2025-001', clientId:'c4', clientNom:'Resto Le Baobab', date:makeDate(20), validite:makeDate(-10), statut:'envoye', lignes:[{id:uid(),description:'Site web vitrine + menu en ligne',quantite:1,prixHT:350000,tva:18},{id:uid(),description:'Formation CMS 2h',quantite:2,prixHT:75000,tva:18}], totalHT:500000, totalTVA:90000, totalTTC:590000, createdAt:now(), updatedAt:now() },
-    { id:'d2', numero:'DEV-2025-002', clientId:'c2', clientNom:'BTP Dakar SA', date:makeDate(10), validite:makeDate(-20), statut:'accepte', lignes:[{id:uid(),description:'Câble réseau Cat6',quantite:5,prixHT:35000,tva:18},{id:uid(),description:'Installation réseau',quantite:1,prixHT:120000,tva:18}], totalHT:295000, totalTVA:53100, totalTTC:348100, createdAt:now(), updatedAt:now() },
-    { id:'d3', numero:'DEV-2025-003', clientId:'c3', clientNom:'Pharmacie Centrale', date:makeDate(3), validite:makeDate(-27), statut:'brouillon', lignes:[{id:uid(),description:'Imprimante laser x2',quantite:2,prixHT:185000,tva:18}], totalHT:370000, totalTVA:66600, totalTTC:436600, createdAt:now(), updatedAt:now() },
+    { id:'d1', numero:'DEV-2025-001', clientId:'c4', clientNom:'Boutique Mode Chic', date:makeDate(20), validite:makeDate(-10), statut:'envoye', lignes:[{id:uid(),description:'Installation réseau informatique boutique',quantite:1,prixHT:280000,tva:18},{id:uid(),description:'Onduleur + switch 8 ports',quantite:1,prixHT:95000,tva:18}], totalHT:375000, totalTVA:67500, totalTTC:442500, createdAt:now(), updatedAt:now() },
+    { id:'d2', numero:'DEV-2025-002', clientId:'c2', clientNom:'Résidence Les Palmiers', date:makeDate(10), validite:makeDate(-20), statut:'accepte', lignes:[{id:uid(),description:'Rénovation salle de bain complète',quantite:1,prixHT:420000,tva:18},{id:uid(),description:'Carreaux murs et sols',quantite:30,prixHT:8500,tva:18}], totalHT:675000, totalTVA:121500, totalTTC:796500, createdAt:now(), updatedAt:now() },
+    { id:'d3', numero:'DEV-2025-003', clientId:'c3', clientNom:'Société Tech Innov SN', date:makeDate(3), validite:makeDate(-27), statut:'brouillon', lignes:[{id:uid(),description:'Maintenance parc informatique 10 postes',quantite:10,prixHT:25000,tva:18}], totalHT:250000, totalTVA:45000, totalTTC:295000, createdAt:now(), updatedAt:now() },
   ];
   Store.set('devis', devis);
 
-  // Mouvements
+  // Mouvements stock
   const mouvements = [
-    { id:uid(), produitId:'p2', type:'entree', quantite:10, motif:'Achat fournisseur', date:makeDate(30) },
-    { id:uid(), produitId:'p2', type:'sortie', quantite:3, motif:'Vente client BTP', date:makeDate(45) },
-    { id:uid(), produitId:'p3', type:'entree', quantite:4, motif:'Réception commande', date:makeDate(20) },
-    { id:uid(), produitId:'p5', type:'entree', quantite:2, motif:'Stock initial', date:makeDate(60) },
+    { id:uid(), produitId:'p2', type:'entree', quantite:20, motif:'Achat fournisseur', date:makeDate(30) },
+    { id:uid(), produitId:'p2', type:'sortie', quantite:5, motif:'Chantier Construction Diallo', date:makeDate(25) },
+    { id:uid(), produitId:'p3', type:'entree', quantite:15, motif:'Réception commande', date:makeDate(20) },
+    { id:uid(), produitId:'p3', type:'sortie', quantite:8, motif:'Travaux Résidence Palmiers', date:makeDate(15) },
+    { id:uid(), produitId:'p4', type:'entree', quantite:10, motif:'Stock initial', date:makeDate(60) },
+    { id:uid(), produitId:'p4', type:'sortie', quantite:4, motif:'Chantier peinture appt.', date:makeDate(10) },
   ];
   Store.set('mouvements', mouvements);
 
-  // Paramètres entreprise
+  // Paramètres entreprise démo
   Store.set('company', {
-    nom: 'DoliPro Technologies SARL',
+    nom: 'DoliPro Pro Services',
     ninea: '2024789012J',
     tvaNum: 'SN2024123456',
-    telephone: '+221 33 800 00 00',
+    telephone: '+221 77 000 00 00',
     email: 'contact@dolipro.sn',
     website: 'www.dolipro.sn',
     adresse: '15, Avenue Cheikh Anta Diop',
     ville: 'Dakar',
     pays: 'Sénégal',
-    conditions: 'Paiement à 30 jours à réception de facture. Tout retard sera soumis à des pénalités de 1,5% par mois.'
+    conditions: 'Paiement à 30 jours à réception de facture. Pénalités de retard : 1,5% par mois.'
   });
 
-  // Transactions démo (3 mois)
+  // Transactions démo
   const makeDate2 = (daysAgo) => { const d = new Date(); d.setDate(d.getDate()-daysAgo); return d.toISOString().split('T')[0]; };
   const makeT = (type, montant, cat, desc, daysAgo) => ({
     id: 'txn_'+uid(), type, montant, categorie: cat,
     date: makeDate2(daysAgo), description: desc, createdAt: now()
   });
   const txnDemos = [
-    makeT('recette', 979400,  'Divers recettes',       'Paiement Sécurité Plus SARL FAC-001',     55),
-    makeT('recette', 1593000, 'Divers recettes',       'Paiement BTP Dakar FAC-002',               40),
-    makeT('depense', 250000,  'Salaires',              'Salaires employés — Mars',                 30),
-    makeT('depense', 85000,   'Loyer boutique',        'Loyer bureau — Mars',                      30),
-    makeT('depense', 42000,   'Internet',              'Abonnement fibre — Mars',                  28),
-    makeT('recette', 350000,  'Divers recettes',       'Prestation conseil — client ponctuel',     20),
-    makeT('depense', 120000,  'Transport & livraison', 'Frais livraison matériel',                 15),
-    makeT('depense', 250000,  'Salaires',              'Salaires employés — Avril',                 2),
-    makeT('depense', 85000,   'Loyer boutique',        'Loyer bureau — Avril',                      2)
+    makeT('recette', 1144600, 'Recettes chantiers',    'Paiement Construction Diallo FAC-001',    55),
+    makeT('recette', 261960,  'Recettes chantiers',    'Paiement Résidence Palmiers FAC-002',      40),
+    makeT('depense', 280000,  'Salaires',              'Salaires ouvriers — Mars',                 30),
+    makeT('depense', 95000,   'Matériaux',             'Achat câbles et fournitures',              28),
+    makeT('depense', 65000,   'Loyer boutique',        'Loyer atelier — Mars',                     30),
+    makeT('depense', 35000,   'Carburant',             'Carburant véhicules chantier',             22),
+    makeT('recette', 442500,  'Prestations services',  'Paiement Cabinet Conseil FAC-004',         12),
+    makeT('depense', 280000,  'Salaires',              'Salaires ouvriers — Avril',                 2),
+    makeT('depense', 65000,   'Loyer boutique',        'Loyer atelier — Avril',                     2)
   ];
   Store.set('transactions', txnDemos);
 }
@@ -2930,27 +2938,28 @@ function seedDemoData() {
 function seedDemoDataForMetier(metier, wsId) {
   seedDemoData();
   const companyByMetier = {
-    vendeur:      { nom: 'Boutique Excellence SARL', adresse: 'Marché Sandaga, Stand 42', ville: 'Dakar' },
-    grossiste:    { nom: 'Diallo Import-Export SARL', adresse: 'Zone Portuaire, Entrepôt 7', ville: 'Dakar' },
-    pharmacien:   { nom: 'Pharmacie de la Paix', adresse: 'Avenue Cheikh Anta Diop, N°18', ville: 'Dakar' },
-    technicien:   { nom: 'TechRepair Services', adresse: 'Zone Industrielle, Rue 15', ville: 'Dakar' },
-    ouvrier:      { nom: 'BâtiPro Construction', adresse: 'Pikine, Route de Rufisque', ville: 'Pikine' },
-    electricien:  { nom: 'ÉlectroPro Installations', adresse: 'Parcelles Assainies, Unité 26', ville: 'Dakar' },
-    menuisier:    { nom: 'Atelier Bois & Création', adresse: 'Thiaroye, Voie de Dégagement Nord', ville: 'Thiaroye' },
-    prestataire:  { nom: 'Conseil & Stratégie SN', adresse: 'Plateau, Avenue Peytavin', ville: 'Dakar' },
-    freelance:    { nom: 'Dev & Design Studio', adresse: 'Mermoz, Villa 12', ville: 'Dakar' },
-    agence:       { nom: 'Agence Créative 360', adresse: 'Point E, Rue 8 × Rue 10', ville: 'Dakar' },
-    medecin:      { nom: 'Cabinet Médical Dr. Ndiaye', adresse: 'Fann Résidence, Villa 5', ville: 'Dakar' },
-    coiffeur:     { nom: 'Salon Beauté Prestige', adresse: 'Sacré-Cœur III, Rue 10', ville: 'Dakar' },
-    restaurateur: { nom: 'Restaurant Le Thiébou', adresse: 'Almadies, Route de Ngor', ville: 'Dakar' },
-    boulanger:    { nom: 'Boulangerie du Sahel', adresse: 'Grand-Yoff, Rue 12', ville: 'Dakar' },
-    transporteur: { nom: 'Express Transport SN', adresse: 'Colobane, Rue de Thiès', ville: 'Dakar' },
-    formateur:    { nom: 'Centre de Formation Pro', adresse: 'Liberté VI, Villa 4', ville: 'Dakar' },
-    agent_immo:   { nom: 'Immobilier Sénégal SARL', adresse: 'Plateau, Rue Carnot', ville: 'Dakar' },
-    agriculteur:  { nom: 'Ferme Diallo & Fils', adresse: 'Route de Thiès, KM 35', ville: 'Thiès' },
-    garagiste:    { nom: 'Garage Auto Mécanique Pro', adresse: 'Rufisque, Route Nationale', ville: 'Rufisque' },
+    entrepreneur_btp: { nom: 'BâtiPro Construction SARL', adresse: 'Zone Industrielle Mbao', ville: 'Dakar' },
+    electricien:      { nom: 'ÉlectroPro Installations', adresse: 'Parcelles Assainies, Unité 26', ville: 'Dakar' },
+    plombier:         { nom: 'Plomb & Sanitaire Services', adresse: 'Grand-Dakar, Rue 12', ville: 'Dakar' },
+    menuisier:        { nom: 'Atelier Bois & Métal', adresse: 'Thiaroye, VDN', ville: 'Thiaroye' },
+    peintre:          { nom: 'Peinture & Déco Pro', adresse: 'Yeumbeul, Route Nationale', ville: 'Yeumbeul' },
+    developpeur:      { nom: 'DevSénégal Agency', adresse: 'Point E, Rue 8', ville: 'Dakar' },
+    technicien_info:  { nom: 'TechRepair Services', adresse: 'Zone Industrielle, Rue 15', ville: 'Dakar' },
+    freelance_digital:{ nom: 'Creative Digital Studio', adresse: 'Mermoz, Villa 12', ville: 'Dakar' },
+    formateur_digital:{ nom: 'École Numérique Pro', adresse: 'Liberté VI, Villa 4', ville: 'Dakar' },
+    carreleur:        { nom: 'Carrelage & Maçonnerie Plus', adresse: 'Pikine, Route de Rufisque', ville: 'Pikine' },
+    soudeur:          { nom: 'Atelier Soudure & Ferronnerie', adresse: 'Zone Industrielle, Bd du Centenaire', ville: 'Dakar' },
+    chauffeur:        { nom: 'Express Transport SN', adresse: 'Colobane, Rue de Thiès', ville: 'Dakar' },
+    boutique:         { nom: 'Boutique Excellence', adresse: 'Marché Sandaga, Stand 42', ville: 'Dakar' },
+    grossiste:        { nom: 'Diallo Import-Export SARL', adresse: 'Zone Portuaire, Entrepôt 7', ville: 'Dakar' },
+    pharmacie:        { nom: 'Pharmacie de la Paix', adresse: 'Avenue Cheikh Anta Diop, N°18', ville: 'Dakar' },
+    superette:        { nom: 'Épicerie du Quartier', adresse: 'HLM Grand-Yoff, Lot 5', ville: 'Dakar' },
+    prestataire:      { nom: 'Conseil & Stratégie SN', adresse: 'Plateau, Avenue Peytavin', ville: 'Dakar' },
+    agence_com:       { nom: 'Agence Créative 360°', adresse: 'Point E, Rue 8 × Rue 10', ville: 'Dakar' },
+    nettoyage:        { nom: 'Clean Pro Services', adresse: 'Ouakam, Voie de Dégagement', ville: 'Dakar' },
+    securite:         { nom: 'Sécurité Sénégal SARL', adresse: 'Plateau, Avenue Roume', ville: 'Dakar' },
   };
-  const override = companyByMetier[metier] || companyByMetier.vendeur;
+  const override = companyByMetier[metier] || companyByMetier.boutique;
   const existing = Store.getObj('company', {});
   Store.set('company', { ...existing, ...override });
   Store.set('settings', { metier, devise: 'FCFA' });
@@ -2961,8 +2970,8 @@ function seedDemoDataForMetier(metier, wsId) {
 ══════════════════════════════════════════════════════ */
 function getCurrentProfil() {
   const user = getCurrentUser() || App.user;
-  const metier = user?.metier || 'vendeur';
-  return PROFILS[metier] || PROFILS.vendeur;
+  const metier = user?.metier || 'boutique';
+  return PROFILS[metier] || PROFILS['boutique'] || Object.values(PROFILS)[0];
 }
 
 function hexDarken(hex, pct) {
@@ -3415,8 +3424,11 @@ const CATEGORIES_PAR_METIER = {
 };
 
 function getCategories() {
-  const settings = Store.getObj('settings', {});
-  return CATEGORIES_PAR_METIER[settings.metier] || CATEGORIES_PAR_METIER.autre;
+  const profil = getCurrentProfil();
+  if (profil && profil.categoriesCompta && profil.categoriesCompta.length) {
+    return profil.categoriesCompta;
+  }
+  return ['Recettes','Achats','Charges fixes','Personnel','Transport','Taxes','Autres'];
 }
 
 function getSoldeActuel() {
@@ -3967,9 +3979,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('metier-grid');
   if (grid) {
     grid.innerHTML = Object.entries(PROFILS).map(([k,p]) => `
-      <div class="metier-card${k==='vendeur'?' selected':''}" data-metier="${k}" onclick="selectMetier(this)"
-        style="border:2px solid ${k==='vendeur'?p.couleur:'#e2e8f0'};border-radius:10px;padding:10px 8px;
-        text-align:center;cursor:pointer;transition:0.2s;background:${k==='vendeur'?p.couleur+'15':'#fff'}">
+      <div class="metier-card${k==='boutique'?' selected':''}" data-metier="${k}" onclick="selectMetier(this)"
+        style="border:2px solid ${k==='boutique'?p.couleur:'#e2e8f0'};border-radius:10px;padding:10px 8px;
+        text-align:center;cursor:pointer;transition:0.2s;background:${k==='boutique'?p.couleur+'15':'#fff'}">
         <div style="font-size:1.5rem">${p.icon}</div>
         <div style="font-size:0.72rem;font-weight:600;color:#374151;margin-top:4px;line-height:1.2">${p.label.split('/')[0].trim()}</div>
       </div>`).join('');
