@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DoliPro Manager v7</title>
+<title>DoliPro Manager v8</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -813,7 +813,7 @@ body::before {
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v7.0</span></div>
+      <div class="sidebar-brand">DoliPro<span>Manager v8.0</span></div>
     </div>
     <div class="sidebar-nav">
       <p class="nav-section-label">Principal</p>
@@ -1457,6 +1457,8 @@ function startApp() {
   const si = document.getElementById('save-indicator');
   if (si) si.style.display = '';
   startAutoSave();
+  // Afficher la pub 1.2s après le chargement
+  setTimeout(() => showPubModal(), 1200);
 }
 function updateUserNav() {
   const user = getCurrentUser() || App.user;
@@ -3051,7 +3053,7 @@ function renderDashboardAdapte() {
         <div style="opacity:0.85;font-size:0.9rem;margin-top:4px">${profil.description}</div>
       </div>
       ${user?.plan === 'free' ? `
-        <button onclick="openUpgradeModal()"
+        <button onclick="openPaymentModal()"
           style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);
           color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer">
           ✦ Passer Premium
@@ -3101,7 +3103,7 @@ function openUpgradeModal(ressource = null) {
       <div style="font-size:0.85rem;opacity:0.8;margin-top:4px">ou 45 000 FCFA / an (économisez 25%)</div>
     </div>`,
     `<button class="btn btn-outline" onclick="closeModal()">Plus tard</button>
-     <button class="btn btn-primary" onclick="activatePremiumDemo()">Activer Premium (démo)</button>`
+     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">💳 Choisir mon paiement</button>`
   );
 }
 
@@ -3135,7 +3137,7 @@ function renderEquipe() {
       <div style="font-size:2.5rem;margin-bottom:12px">🔒</div>
       <p style="font-weight:700;margin-bottom:8px">Fonctionnalité Premium</p>
       <p style="color:var(--text-muted);margin-bottom:20px">Invitez des collaborateurs avec des rôles définis.</p>
-      <button class="btn btn-primary" onclick="openUpgradeModal()">Passer Premium</button>
+      <button class="btn btn-primary" onclick="openPaymentModal()">✦ Passer Premium</button>
     </div>`;
   }
   const wsId    = getCurrentWorkspaceId();
@@ -4315,5 +4317,488 @@ function changeMetier(newMetier) {
 }
 
 </script>
+<!-- ══ MODAL PUB / SPLASH ══ -->
+<div id="pub-overlay" style="
+  display:none;position:fixed;inset:0;z-index:99999;
+  background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:16px">
+  <div id="pub-box" style="
+    background:var(--surface);border-radius:20px;
+    max-width:460px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.4);
+    overflow:hidden;position:relative;animation:pubIn 0.35s cubic-bezier(.34,1.56,.64,1)">
+
+    <!-- Header gradient -->
+    <div style="background:linear-gradient(135deg,#1e6fd9,#7c3aed);padding:28px 28px 20px;text-align:center;color:#fff">
+      <div style="font-size:3rem;margin-bottom:8px">🚀</div>
+      <div style="font-family:'Fraunces',serif;font-size:1.5rem;font-weight:700;margin-bottom:4px">
+        DoliPro Manager
+      </div>
+      <div style="font-size:0.88rem;opacity:0.85">
+        La gestion d'entreprise pensée pour l'Afrique de l'Ouest
+      </div>
+    </div>
+
+    <!-- Corps pub -->
+    <div style="padding:20px 24px">
+
+      <!-- Avantages -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:10px">
+          <span style="font-size:1.4rem">💼</span>
+          <div>
+            <div style="font-weight:700;font-size:0.9rem">Factures & Devis professionnels</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">PDF à votre image en 30 secondes</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:10px">
+          <span style="font-size:1.4rem">📊</span>
+          <div>
+            <div style="font-weight:700;font-size:0.9rem">Comptabilité simplifiée</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">Suivez vos recettes, dépenses et bénéfices</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--bg);border-radius:10px">
+          <span style="font-size:1.4rem">⚡</span>
+          <div>
+            <div style="font-weight:700;font-size:0.9rem">20 métiers couverts</div>
+            <div style="font-size:0.8rem;color:var(--text-muted)">BTP, Informatique, Commerce, Services…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA Premium -->
+      <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1.5px solid #f59e0b">
+        <div style="font-weight:700;color:#92400e;margin-bottom:4px">✦ Passez Premium pour tout débloquer</div>
+        <div style="font-size:0.82rem;color:#78350f">Clients illimités · Multi-utilisateurs · Support prioritaire</div>
+        <div style="font-size:1.2rem;font-weight:700;color:#92400e;margin-top:8px">
+          5 000 FCFA / mois <span style="font-size:0.8rem;font-weight:400">ou 45 000 / an</span>
+        </div>
+      </div>
+
+      <!-- Boutons -->
+      <div style="display:flex;gap:10px">
+        <button onclick="closePubModal()" style="
+          flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--border);
+          background:var(--surface);color:var(--text-muted);font-weight:600;
+          font-family:inherit;font-size:0.88rem;cursor:pointer;transition:0.15s"
+          onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--surface)'">
+          <span id="pub-skip-label">Ignorer (<span id="pub-timer">5</span>s)</span>
+        </button>
+        <button onclick="closePubModal();openPaymentModal()" style="
+          flex:2;padding:12px;border-radius:10px;border:none;
+          background:linear-gradient(135deg,#1e6fd9,#7c3aed);color:#fff;
+          font-weight:700;font-family:inherit;font-size:0.92rem;cursor:pointer;
+          box-shadow:0 4px 16px rgba(30,111,217,0.35);transition:0.15s"
+          onmouseover="this.style.opacity='0.92'" onmouseout="this.style.opacity='1'">
+          ✦ Passer Premium
+        </button>
+      </div>
+    </div>
+
+    <!-- Badge "Pub" discret -->
+    <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);
+      color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:500">
+      Annonce
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL PAIEMENT PREMIUM ══ -->
+<div id="payment-overlay" style="
+  display:none;position:fixed;inset:0;z-index:99998;
+  background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:16px">
+  <div id="payment-box" style="
+    background:var(--surface);border-radius:20px;max-width:500px;width:100%;
+    box-shadow:0 24px 64px rgba(0,0,0,0.4);overflow:hidden;
+    animation:pubIn 0.3s cubic-bezier(.34,1.56,.64,1)">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#1e6fd9,#7c3aed);padding:20px 24px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:1.2rem;font-weight:700;color:#fff">✦ Passer Premium</div>
+        <div style="font-size:0.82rem;color:rgba(255,255,255,0.8);margin-top:2px">Choisissez votre formule et mode de paiement</div>
+      </div>
+      <button onclick="closePaymentModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+
+    <div style="padding:20px 24px">
+
+      <!-- Choix de formule -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:700;font-size:0.88rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Formule</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div id="plan-mensuel" onclick="selectPlan('mensuel')" style="
+            padding:14px;border-radius:12px;border:2px solid var(--primary);
+            background:rgba(30,111,217,0.06);cursor:pointer;text-align:center;transition:0.15s">
+            <div style="font-weight:700;font-size:1rem;color:var(--primary)">5 000 FCFA</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">par mois</div>
+            <div style="font-size:0.75rem;margin-top:6px;background:var(--primary);color:#fff;border-radius:20px;padding:2px 10px">Sélectionné</div>
+          </div>
+          <div id="plan-annuel" onclick="selectPlan('annuel')" style="
+            padding:14px;border-radius:12px;border:2px solid var(--border);
+            background:var(--bg);cursor:pointer;text-align:center;transition:0.15s;position:relative">
+            <div style="position:absolute;top:-10px;right:8px;background:#f59e0b;color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:700">-25%</div>
+            <div style="font-weight:700;font-size:1rem">45 000 FCFA</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">par an</div>
+            <div style="font-size:0.75rem;margin-top:6px;color:var(--text-muted)">Économisez 15 000</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modes de paiement -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:700;font-size:0.88rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Mode de paiement</div>
+        <div style="display:flex;flex-direction:column;gap:8px" id="payment-methods">
+
+          <!-- Wave -->
+          <label id="pm-wave" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--primary);background:rgba(30,111,217,0.05);cursor:pointer;transition:0.15s" onclick="selectPayMethod('wave')">
+            <input type="radio" name="paymethod" value="wave" checked style="accent-color:var(--primary);width:16px;height:16px">
+            <div style="width:36px;height:36px;background:#0091FF;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.9rem;flex-shrink:0">W</div>
+            <div>
+              <div style="font-weight:700;font-size:0.92rem">Wave</div>
+              <div style="font-size:0.78rem;color:var(--text-muted)">Paiement mobile instantané</div>
+            </div>
+            <div style="margin-left:auto;font-size:0.78rem;color:var(--success);font-weight:600">Recommandé</div>
+          </label>
+
+          <!-- Orange Money -->
+          <label id="pm-orange" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;transition:0.15s" onclick="selectPayMethod('orange')">
+            <input type="radio" name="paymethod" value="orange" style="accent-color:#FF6600;width:16px;height:16px">
+            <div style="width:36px;height:36px;background:#FF6600;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.75rem;flex-shrink:0">OM</div>
+            <div>
+              <div style="font-weight:700;font-size:0.92rem">Orange Money</div>
+              <div style="font-size:0.78rem;color:var(--text-muted)">Paiement mobile Orange</div>
+            </div>
+          </label>
+
+          <!-- Carte bancaire -->
+          <label id="pm-card" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;transition:0.15s" onclick="selectPayMethod('card')">
+            <input type="radio" name="paymethod" value="card" style="accent-color:#1e6fd9;width:16px;height:16px">
+            <div style="width:36px;height:36px;background:linear-gradient(135deg,#1e6fd9,#7c3aed);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <svg width="20" height="14" viewBox="0 0 20 14" fill="none"><rect x="0.5" y="0.5" width="19" height="13" rx="2.5" fill="white" fill-opacity="0.15" stroke="white" stroke-opacity="0.4"/><rect y="3" width="20" height="3" fill="white" fill-opacity="0.5"/><rect x="2" y="8" width="6" height="2" rx="1" fill="white"/></svg>
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:0.92rem">Carte bancaire</div>
+              <div style="font-size:0.78rem;color:var(--text-muted)">Visa · Mastercard · AMEX</div>
+            </div>
+          </label>
+
+          <!-- Free Money / PayDunya -->
+          <label id="pm-paydunya" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;transition:0.15s" onclick="selectPayMethod('paydunya')">
+            <input type="radio" name="paymethod" value="paydunya" style="accent-color:#e11d48;width:16px;height:16px">
+            <div style="width:36px;height:36px;background:#e11d48;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.7rem;flex-shrink:0">PD</div>
+            <div>
+              <div style="font-weight:700;font-size:0.92rem">PayDunya / Free Money</div>
+              <div style="font-size:0.78rem;color:var(--text-muted)">Free Money, Wizall, autres</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Zone de saisie dynamique -->
+      <div id="payment-input-zone" style="margin-bottom:16px"></div>
+
+      <!-- Bouton payer -->
+      <button onclick="processPayment()" id="pay-btn" style="
+        width:100%;padding:14px;border-radius:12px;border:none;
+        background:linear-gradient(135deg,#1e6fd9,#7c3aed);color:#fff;
+        font-weight:700;font-family:inherit;font-size:1rem;cursor:pointer;
+        box-shadow:0 4px 20px rgba(30,111,217,0.35);transition:0.15s">
+        💳 Payer maintenant
+      </button>
+
+      <!-- Sécurité -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-size:0.78rem;color:var(--text-muted)">
+        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        Paiement 100% sécurisé · Données chiffrées
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pubIn {
+  from { opacity:0; transform:scale(0.85) translateY(20px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+</style>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   V8 — PUB MODAL
+══════════════════════════════════════════════════════ */
+let _pubTimerInterval = null;
+
+function showPubModal() {
+  const user = getCurrentUser() || App.user;
+  if (!user) return;
+  if (user.plan === 'premium') return; // Pas de pub pour les Premium
+
+  // Vérifier si déjà montré dans cette session
+  if (sessionStorage.getItem('dolipro_pub_shown')) return;
+  sessionStorage.setItem('dolipro_pub_shown', '1');
+
+  const overlay = document.getElementById('pub-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+
+  // Timer de 5 secondes avant pouvoir fermer
+  let seconds = 5;
+  const timerEl = document.getElementById('pub-timer');
+  const skipLabel = document.getElementById('pub-skip-label');
+  const skipBtn = overlay.querySelector('button');
+  skipBtn.disabled = true;
+  skipBtn.style.opacity = '0.5';
+  skipBtn.style.cursor = 'not-allowed';
+
+  _pubTimerInterval = setInterval(() => {
+    seconds--;
+    if (timerEl) timerEl.textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(_pubTimerInterval);
+      skipBtn.disabled = false;
+      skipBtn.style.opacity = '1';
+      skipBtn.style.cursor = 'pointer';
+      if (skipLabel) skipLabel.textContent = 'Ignorer';
+    }
+  }, 1000);
+}
+
+function closePubModal() {
+  clearInterval(_pubTimerInterval);
+  const overlay = document.getElementById('pub-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════════════
+   V8 — SYSTÈME DE PAIEMENT PREMIUM
+══════════════════════════════════════════════════════ */
+let _selectedPlan    = 'mensuel';
+let _selectedMethod  = 'wave';
+
+function openPaymentModal() {
+  const overlay = document.getElementById('payment-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    selectPlan('mensuel');
+    selectPayMethod('wave');
+  }
+}
+
+function closePaymentModal() {
+  const overlay = document.getElementById('payment-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function selectPlan(plan) {
+  _selectedPlan = plan;
+  const plans = { mensuel: 'plan-mensuel', annuel: 'plan-annuel' };
+  Object.entries(plans).forEach(([k, id]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isActive = k === plan;
+    el.style.borderColor = isActive ? 'var(--primary)' : 'var(--border)';
+    el.style.background   = isActive ? 'rgba(30,111,217,0.06)' : 'var(--bg)';
+    // Update badge
+    const badge = el.querySelector('div:last-child');
+    if (badge && badge.style.fontSize === '0.75rem') {
+      if (isActive) {
+        badge.style.background = 'var(--primary)';
+        badge.style.color = '#fff';
+        badge.textContent = 'Sélectionné';
+      } else {
+        badge.style.background = 'transparent';
+        badge.style.color = 'var(--text-muted)';
+        badge.textContent = k === 'annuel' ? 'Économisez 15 000' : '';
+      }
+    }
+  });
+  updatePayBtn();
+}
+
+function selectPayMethod(method) {
+  _selectedMethod = method;
+  const methods = ['wave','orange','card','paydunya'];
+  methods.forEach(m => {
+    const el = document.getElementById('pm-' + m);
+    if (!el) return;
+    const isActive = m === method;
+    el.style.borderColor = isActive ? 'var(--primary)' : 'var(--border)';
+    el.style.background   = isActive ? 'rgba(30,111,217,0.05)' : 'var(--bg)';
+    const radio = el.querySelector('input[type=radio]');
+    if (radio) radio.checked = isActive;
+  });
+  renderPaymentInputZone();
+  updatePayBtn();
+}
+
+function renderPaymentInputZone() {
+  const zone = document.getElementById('payment-input-zone');
+  if (!zone) return;
+  const templates = {
+    wave: `
+      <div style="background:var(--bg);border-radius:12px;padding:14px;border:1.5px solid var(--border)">
+        <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">📱 Votre numéro Wave</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-size:0.9rem;color:var(--text-muted)">+221</div>
+          <input id="pay-phone" type="tel" maxlength="9" placeholder="7X XXX XX XX"
+            style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+            background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
+          💡 Vous recevrez une notification Wave pour confirmer le paiement
+        </div>
+      </div>`,
+
+    orange: `
+      <div style="background:var(--bg);border-radius:12px;padding:14px;border:1.5px solid var(--border)">
+        <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">📱 Votre numéro Orange Money</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div style="padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-size:0.9rem;color:var(--text-muted)">+221</div>
+          <input id="pay-phone" type="tel" maxlength="9" placeholder="7X XXX XX XX"
+            style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+            background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
+          💡 Composez #144# pour vérifier votre solde Orange Money avant de payer
+        </div>
+      </div>`,
+
+    card: `
+      <div style="background:var(--bg);border-radius:12px;padding:14px;border:1.5px solid var(--border)">
+        <div style="font-weight:700;font-size:0.88rem;margin-bottom:12px">💳 Informations de carte</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;display:block">Numéro de carte</label>
+            <div style="position:relative">
+              <input id="card-number" type="text" maxlength="19" placeholder="1234 5678 9012 3456"
+                style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+                background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem"
+                oninput="formatCardNumber(this)">
+              <div style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;gap:4px">
+                <svg width="24" height="16" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="4" fill="#1A1F71"/><circle cx="15" cy="12" r="8" fill="#EB001B"/><circle cx="23" cy="12" r="8" fill="#F79E1B"/><path d="M19 6.8A8 8 0 0 1 23 12a8 8 0 0 1-4 5.2A8 8 0 0 1 15 12a8 8 0 0 1 4-5.2z" fill="#FF5F00"/></svg>
+                <svg width="24" height="16" viewBox="0 0 38 24" fill="none"><rect width="38" height="24" rx="4" fill="#EB0029"/><text x="4" y="16" font-size="9" fill="white" font-weight="bold">VISA</text></svg>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;display:block">Date d'expiration</label>
+              <input id="card-expiry" type="text" maxlength="5" placeholder="MM/AA"
+                style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+                background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem"
+                oninput="formatCardExpiry(this)">
+            </div>
+            <div>
+              <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;display:block">CVV</label>
+              <input id="card-cvv" type="text" maxlength="4" placeholder="123"
+                style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+                background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem"
+                oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;display:block">Nom sur la carte</label>
+            <input id="card-name" type="text" placeholder="DIALLO MAMADOU"
+              style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+              background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem;text-transform:uppercase">
+          </div>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;display:flex;align-items:center;gap:6px">
+          <svg width="11" height="11" fill="var(--success)" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+          Sécurisé SSL 256 bits · Conforme PCI DSS
+        </div>
+      </div>`,
+
+    paydunya: `
+      <div style="background:var(--bg);border-radius:12px;padding:14px;border:1.5px solid var(--border)">
+        <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">📱 Votre numéro Free Money / Wizall</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="pay-operator" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:0.85rem">
+            <option value="free">Free Money</option>
+            <option value="wizall">Wizall</option>
+            <option value="expresso">Expresso</option>
+          </select>
+          <input id="pay-phone" type="tel" maxlength="9" placeholder="7X XXX XX XX"
+            style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;
+            background:var(--surface);color:var(--text);font-family:inherit;font-size:0.9rem"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
+          💡 Un code de validation vous sera envoyé par SMS
+        </div>
+      </div>`
+  };
+  zone.innerHTML = templates[_selectedMethod] || '';
+}
+
+function formatCardNumber(input) {
+  let v = input.value.replace(/\D/g,'').substring(0,16);
+  input.value = v.replace(/(.{4})/g,'$1 ').trim();
+}
+function formatCardExpiry(input) {
+  let v = input.value.replace(/\D/g,'').substring(0,4);
+  if (v.length >= 2) v = v.slice(0,2) + '/' + v.slice(2);
+  input.value = v;
+}
+
+function updatePayBtn() {
+  const btn = document.getElementById('pay-btn');
+  if (!btn) return;
+  const montant = _selectedPlan === 'mensuel' ? '5 000 FCFA' : '45 000 FCFA';
+  const methods = { wave:'Wave', orange:'Orange Money', card:'Carte bancaire', paydunya:'PayDunya' };
+  btn.textContent = `💳 Payer ${montant} via ${methods[_selectedMethod]}`;
+}
+
+function processPayment() {
+  // Validation selon le mode de paiement
+  if (_selectedMethod === 'card') {
+    const num   = (document.getElementById('card-number')?.value || '').replace(/\s/g,'');
+    const exp   = document.getElementById('card-expiry')?.value || '';
+    const cvv   = document.getElementById('card-cvv')?.value || '';
+    const name  = document.getElementById('card-name')?.value || '';
+    if (num.length < 16)  { toast('Numéro de carte invalide (16 chiffres requis)', 'danger'); return; }
+    if (!/^\d{2}\/\d{2}$/.test(exp)) { toast('Date d\'expiration invalide (MM/AA)', 'danger'); return; }
+    if (cvv.length < 3)   { toast('CVV invalide (3 ou 4 chiffres)', 'danger'); return; }
+    if (!name.trim())     { toast('Nom sur la carte requis', 'danger'); return; }
+  } else {
+    const phone = document.getElementById('pay-phone')?.value || '';
+    if (phone.length < 9) { toast('Numéro de téléphone invalide (9 chiffres)', 'danger'); return; }
+  }
+
+  // Simulation paiement — remplacer par vraie API (Wave, Stripe, PayDunya)
+  const btn = document.getElementById('pay-btn');
+  if (btn) { btn.textContent = '⏳ Traitement en cours…'; btn.disabled = true; }
+
+  setTimeout(() => {
+    closePaymentModal();
+    activatePremiumFromPayment();
+  }, 2200);
+}
+
+function activatePremiumFromPayment() {
+  const users = getAllUsers();
+  const user  = getCurrentUser() || App.user;
+  if (!user) return;
+  const idx = users.findIndex(u => u.id === user.id);
+  if (idx >= 0) {
+    users[idx].plan = 'premium';
+    users[idx].premiumSince = fmt.dateISO();
+    users[idx].premiumPlan  = _selectedPlan;
+    saveAllUsers(users);
+    if (App.user) { App.user.plan = 'premium'; App.user.premiumSince = fmt.dateISO(); }
+  }
+  // Confettis + toast
+  if (typeof launchConfetti === 'function') launchConfetti();
+  toast('🎉 Premium activé ! Bienvenue dans DoliPro Premium ✦', 'success');
+  applyProfil();
+  updateUserNav();
+  render();
+}
+</script>
+
 </body>
 </html>
