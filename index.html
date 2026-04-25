@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>DoliPro Manager v8</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
@@ -58,7 +58,19 @@
 ══════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; }
-body { font-family: var(--font-ui); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+body { font-family: var(--font-ui); background: var(--bg); color: var(--text); min-height: 100vh; min-height: -webkit-fill-available; overflow-x: hidden; }
+html { height: -webkit-fill-available; }
+/* Safe area pour iPhone avec encoche / Dynamic Island */
+.topbar { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+/* Bottom safe area — pour le FAB et le contenu en bas */
+#fab-btn { bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px)); }
+.page-content { padding-bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px)); }
+/* Scrollbar globale fine */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+/* Smooth scroll partout */
+* { scroll-behavior: smooth; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
 input, select, textarea { font-family: inherit; }
 a { text-decoration: none; color: inherit; }
@@ -98,10 +110,17 @@ ul { list-style: none; }
 .form-label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
 .form-control {
   width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
-  border-radius: var(--radius); font-size: 0.95rem; transition: var(--transition);
-  outline: none; background: var(--surface);
+  border-radius: var(--radius); font-size: 16px; transition: var(--transition);
+  outline: none; background: var(--surface); color: var(--text);
+  /* iOS : empêche le zoom automatique sur focus */
+  -webkit-appearance: none; appearance: none;
 }
 .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(30,111,217,0.12); }
+/* FIX IOS GLOBAL */
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+input, select, textarea { font-size: 16px !important; } /* Empêche zoom iOS sur tous les inputs */
+button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer; }
+a { -webkit-tap-highlight-color: transparent; }
 .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius); font-size: 0.9rem; font-weight: 600; transition: var(--transition); cursor: pointer; border: none; }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
@@ -123,7 +142,7 @@ ul { list-style: none; }
 
 /* SIDEBAR */
 .sidebar {
-  width: var(--sidebar-width); min-height: 100vh;
+  width: var(--sidebar-width); min-height: 100vh; min-height: -webkit-fill-available;
   background: linear-gradient(180deg, var(--primary-dark) 0%, var(--primary-deeper) 55%, var(--primary-deepest) 100%);
   display: flex; flex-direction: column; position: fixed; left: 0; top: 0; bottom: 0;
   z-index: 200; transition: transform var(--transition);
@@ -163,7 +182,7 @@ ul { list-style: none; }
 .user-role { font-size: 0.72rem; color: rgba(255,255,255,0.55); }
 
 /* MAIN CONTENT */
-.main-wrap { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+.main-wrap { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; min-height: 100vh; min-height: -webkit-fill-available; }
 .topbar {
   height: var(--topbar-height); background: var(--surface); border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 16px; padding: 0 28px; position: sticky; top: 0; z-index: 100;
@@ -378,27 +397,6 @@ tbody tr:hover { background: rgba(30,111,217,0.03); }
 .page-btn { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface); color: var(--text-muted); transition: var(--transition); }
 .page-btn:hover { border-color: var(--primary); color: var(--primary); }
 .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-
-/* ══════════════════════════════════════════════════════
-   RESPONSIVE MOBILE
-══════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  :root { --sidebar-width: 0px; }
-  .sidebar { transform: translateX(-260px); --sidebar-width: 260px; }
-  .sidebar.open { transform: translateX(0); }
-  .main-wrap { margin-left: 0; }
-  .topbar-menu-btn { display: flex; }
-  .page-content { padding: 16px; }
-  .dashboard-grid { grid-template-columns: 1fr; }
-  .dashboard-grid-3 { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .col-span-2 { grid-column: span 1; }
-  .doc-line { grid-template-columns: 1fr; }
-  .doc-lines-header { display: none; }
-  .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .sidebar-overlay { display: block !important; }
-}
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 199; }
 
 /* ══════════════════════════════════════════════════════
    GRAPHIQUES SIMPLES (CANVAS SVG)
@@ -672,68 +670,95 @@ body::before {
 [data-theme="dark"] select          { background: #263348; color: #f1f5f9; }
 [data-theme="dark"] .metier-card    { background: #263348 !important; }
 
-/* ══ MOBILE RESPONSIVE ══════════════════════════════ */
+/* ══ MOBILE RESPONSIVE — BLOC UNIQUE CONSOLIDÉ ══════ */
 @media (max-width: 768px) {
+  /* Sidebar */
   .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
+    position: fixed !important;
+    top: 0; left: 0; height: 100% !important;
+    transform: translateX(-260px);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
     z-index: 200;
-    position: fixed;
+    width: 260px !important;
   }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar.open { transform: translateX(0) !important; }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 199; }
+  .sidebar-overlay.visible { display: block !important; }
+
+  /* Layout principal */
   .main-wrap { margin-left: 0 !important; width: 100% !important; }
   .topbar { padding: 0 12px; }
-  .topbar-search { display: none; }
+  .topbar-search { display: none !important; }
+  .topbar-menu-btn { display: flex !important; }
+
+  /* Grilles */
   .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-  .form-grid   { grid-template-columns: 1fr !important; }
-  .col-span-2  { grid-column: span 1 !important; }
-  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 500px; }
-  .card-body  { padding: 14px !important; }
+  .kpi-grid { grid-template-columns: 1fr 1fr !important; }
+  .form-grid { grid-template-columns: 1fr !important; }
+  .col-span-2 { grid-column: span 1 !important; }
+  .dashboard-grid, .dashboard-grid-3 { grid-template-columns: 1fr !important; }
+  .doc-line { grid-template-columns: 1fr !important; }
+  .doc-lines-header { display: none !important; }
+
+  /* Contenu */
+  .page-content { padding: 12px !important; }
+  .card-body { padding: 14px !important; }
   .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
   .page-actions { width: 100%; }
   .page-actions .btn { width: 100%; justify-content: center; }
-  .modal-overlay { align-items: flex-end !important; }
+
+  /* Tables scrollables */
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 480px; }
+
+  /* Modal bottom-sheet sur mobile */
+  .modal-overlay { align-items: flex-end !important; padding-bottom: 0 !important; }
   .modal {
     width: 100% !important;
     max-width: 100% !important;
     border-radius: 20px 20px 0 0 !important;
-    max-height: 90vh;
+    max-height: 92vh !important;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  #auth-screen > div > div { max-width: 100% !important; padding: 0 4px; }
+
+  /* Auth screen */
+  #auth-screen > div { padding: 12px !important; }
   #form-login, #form-register { padding: 20px !important; }
-  #metier-grid { grid-template-columns: 1fr 1fr !important; }
-}
-@media (max-width: 400px) {
-  .stats-grid { grid-template-columns: 1fr !important; }
-  #metier-grid { grid-template-columns: 1fr 1fr !important; }
+  #metier-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+
+  /* Pub & paiement modals */
+  #pub-box { margin: 8px !important; border-radius: 16px !important; }
+  #payment-box {
+    width: 100% !important; max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 92vh !important; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #payment-overlay { align-items: flex-end !important; padding: 0 !important; }
 }
 
-/* ══ FAB (Floating Action Button) ══ */
+@media (max-width: 400px) {
+  .stats-grid { grid-template-columns: 1fr !important; }
+  .kpi-grid { grid-template-columns: 1fr 1fr !important; }
+  #metier-grid { grid-template-columns: 1fr 1fr !important; }
+  .page-content { padding: 10px !important; }
+}
+
+/* ══ FAB ══ */
 #fab-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
-  font-size: 1.6rem;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  z-index: 100;
-  border: none;
-  cursor: pointer;
+  position: fixed; bottom: 24px; right: 20px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--primary); color: #fff;
+  font-size: 1.6rem; display: none;
+  align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+  z-index: 100; border: none; cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  touch-action: manipulation;
 }
-#fab-btn:active { transform: scale(0.93); }
-@media (max-width: 768px) {
-  #fab-btn { display: flex; }
-}
+#fab-btn:active { transform: scale(0.91); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+@media (max-width: 768px) { #fab-btn { display: flex; } }
 </style>
 </head>
 <body>
@@ -1395,9 +1420,9 @@ function renderAuth() {
       <div id="form-login" style="background:#fff;border-radius:16px;padding:28px">
         <h2 style="font-family:var(--font-title);margin-bottom:20px;font-size:1.4rem">Connexion</h2>
         <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Email</label>
-          <input id="login-email" type="email" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none" placeholder="vous@exemple.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+          <input id="login-email" type="email" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="vous@exemple.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
         <div style="margin-bottom:20px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Mot de passe</label>
-          <input id="login-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+          <input id="login-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
         <button onclick="doLogin()" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:1rem;cursor:pointer">Se connecter →</button>
         <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
           Pas encore de compte ? <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:600">Créer gratuitement</a>
@@ -1410,11 +1435,11 @@ function renderAuth() {
       <div id="form-register" style="display:none;background:#fff;border-radius:16px;padding:28px">
         <h2 style="font-family:var(--font-title);margin-bottom:20px;font-size:1.4rem">Créer mon compte</h2>
         <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Nom complet *</label>
-          <input id="reg-nom" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none" placeholder="Jean Diallo"></div>
+          <input id="reg-nom" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="Jean Diallo"></div>
         <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Email *</label>
-          <input id="reg-email" type="email" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none" placeholder="vous@exemple.com"></div>
+          <input id="reg-email" type="email" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="vous@exemple.com"></div>
         <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Mot de passe *</label>
-          <input id="reg-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.95rem;font-family:inherit;outline:none" placeholder="Minimum 4 caractères"></div>
+          <input id="reg-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="Minimum 4 caractères"></div>
         <div style="margin-bottom:20px">
           <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:10px;color:#374151">Votre métier *</label>
           <input type="hidden" id="reg-metier" value="boutique">
@@ -1490,12 +1515,16 @@ function navigate(page) {
   render();
 }
 function openSidebar() {
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sidebar-overlay').style.display = 'block';
+  document.getElementById('sidebar')?.classList.add('open');
+  const ov = document.getElementById('sidebar-overlay');
+  if (ov) { ov.style.display = 'block'; ov.classList.add('visible'); }
+  document.body.style.overflow = 'hidden';
 }
 function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').style.display = 'none';
+  document.getElementById('sidebar')?.classList.remove('open');
+  const ov = document.getElementById('sidebar-overlay');
+  if (ov) { ov.style.display = 'none'; ov.classList.remove('visible'); }
+  document.body.style.overflow = '';
 }
 
 /* ══════════════════════════════════════════════════════
@@ -3244,7 +3273,7 @@ function renderWorkspaceSwitcher() {
     <div style="padding:8px 12px;margin-top:8px">
       <select onchange="switchWorkspace(this.value)"
         style="width:100%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);
-        color:#fff;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer">
+        color:#fff;border-radius:8px;padding:6px 10px;font-size:16px;cursor:pointer">
         ${myWorkspaces.map(w => `
           <option value="${w.id}" ${w.id === wsId ? 'selected' : ''}
             style="background:#1e293b;color:#fff">${esc(w.nom)} (${w.role})</option>`).join('')}
@@ -4717,7 +4746,7 @@ function renderPaymentInputZone() {
       <div style="background:var(--bg);border-radius:12px;padding:14px;border:1.5px solid var(--border)">
         <div style="font-weight:700;font-size:0.88rem;margin-bottom:10px">📱 Votre numéro Free Money / Wizall</div>
         <div style="display:flex;gap:8px;align-items:center">
-          <select id="pay-operator" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:0.85rem">
+          <select id="pay-operator" style="padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-family:inherit;font-size:16px">
             <option value="free">Free Money</option>
             <option value="wizall">Wizall</option>
             <option value="expresso">Expresso</option>
