@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DoliPro Manager v8</title>
+<title>DoliPro Manager v9</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -670,95 +670,127 @@ body::before {
 [data-theme="dark"] select          { background: #263348; color: #f1f5f9; }
 [data-theme="dark"] .metier-card    { background: #263348 !important; }
 
-/* ══ MOBILE RESPONSIVE — BLOC UNIQUE CONSOLIDÉ ══════ */
-@media (max-width: 768px) {
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE v9 — xs<400 | sm<576 | md<768 | lg<1024 | xl+
+═══════════════════════════════════════════════════════ */
+
+/* Base touch */
+*,*::before,*::after{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button,[onclick]{touch-action:manipulation}
+input,select,textarea{font-size:16px!important;-webkit-appearance:none;appearance:none}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── Desktop large (1280px+) ── */
+@media(min-width:1280px){
+  .stats-grid{grid-template-columns:repeat(5,1fr)!important}
+  .dashboard-grid{grid-template-columns:2fr 1fr!important}
+  .dashboard-grid-3{grid-template-columns:repeat(3,1fr)!important}
+  .kpi-grid{grid-template-columns:repeat(4,1fr)!important}
+}
+
+/* ── Tablette (768px - 1279px) ── */
+@media(min-width:768px)and(max-width:1279px){
+  :root{--sidebar-width:220px}
+  .stats-grid{grid-template-columns:repeat(3,1fr)!important}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
+  .dashboard-grid{grid-template-columns:1fr!important}
+  .dashboard-grid-3{grid-template-columns:repeat(2,1fr)!important}
+}
+
+/* ── Mobile (< 768px) ── */
+@media(max-width:767px){
   /* Sidebar */
-  .sidebar {
-    position: fixed !important;
-    top: 0; left: 0; height: 100% !important;
-    transform: translateX(-260px);
-    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
-    z-index: 200;
-    width: 260px !important;
-  }
-  .sidebar.open { transform: translateX(0) !important; }
-  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 199; }
-  .sidebar-overlay.visible { display: block !important; }
-
-  /* Layout principal */
-  .main-wrap { margin-left: 0 !important; width: 100% !important; }
-  .topbar { padding: 0 12px; }
-  .topbar-search { display: none !important; }
-  .topbar-menu-btn { display: flex !important; }
-
+  .sidebar{position:fixed!important;top:0;left:0;height:100%!important;
+    width:280px!important;transform:translateX(-280px);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    z-index:200;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .sidebar.open{transform:translateX(0)!important}
+  .sidebar-overlay{display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.5);z-index:199;backdrop-filter:blur(2px)}
+  .sidebar-overlay.visible{display:block!important}
+  /* Layout */
+  .main-wrap{margin-left:0!important;width:100%!important}
+  .topbar{padding:0 12px!important}
+  .topbar-search{display:none!important}
+  .topbar-menu-btn{display:flex!important}
+  /* Page */
+  .page-content{padding:12px!important}
+  .page-header{flex-direction:column;align-items:flex-start;gap:10px;margin-bottom:14px!important}
+  .page-actions{width:100%;display:flex;flex-direction:column;gap:8px}
+  .page-actions .btn{width:100%;justify-content:center}
+  .card-body{padding:14px!important}
   /* Grilles */
-  .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-  .kpi-grid { grid-template-columns: 1fr 1fr !important; }
-  .form-grid { grid-template-columns: 1fr !important; }
-  .col-span-2 { grid-column: span 1 !important; }
-  .dashboard-grid, .dashboard-grid-3 { grid-template-columns: 1fr !important; }
-  .doc-line { grid-template-columns: 1fr !important; }
-  .doc-lines-header { display: none !important; }
-
-  /* Contenu */
-  .page-content { padding: 12px !important; }
-  .card-body { padding: 14px !important; }
-  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-  .page-actions { width: 100%; }
-  .page-actions .btn { width: 100%; justify-content: center; }
-
-  /* Tables scrollables */
-  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 480px; }
-
-  /* Modal bottom-sheet sur mobile */
-  .modal-overlay { align-items: flex-end !important; padding-bottom: 0 !important; }
-  .modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    max-height: 92vh !important;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Auth screen */
-  #auth-screen > div { padding: 12px !important; }
-  #form-login, #form-register { padding: 20px !important; }
-  #metier-grid { grid-template-columns: 1fr 1fr 1fr !important; }
-
-  /* Pub & paiement modals */
-  #pub-box { margin: 8px !important; border-radius: 16px !important; }
-  #payment-box {
-    width: 100% !important; max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    max-height: 92vh !important; overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  #payment-overlay { align-items: flex-end !important; padding: 0 !important; }
+  .stats-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+  .kpi-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+  .form-grid{grid-template-columns:1fr!important;gap:12px!important}
+  .col-span-2{grid-column:span 1!important}
+  .dashboard-grid,.dashboard-grid-3{grid-template-columns:1fr!important;gap:12px!important}
+  .doc-line{grid-template-columns:1fr!important}
+  .doc-lines-header{display:none!important}
+  /* Tables */
+  .table-container{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{min-width:500px}
+  .td-actions .btn{padding:4px 8px!important;font-size:.78rem!important}
+  /* Modales */
+  .modal-overlay{align-items:flex-end!important;padding:0!important}
+  .modal{width:100%!important;max-width:100%!important;
+    border-radius:20px 20px 0 0!important;max-height:92vh!important;
+    overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .modal-footer{flex-direction:column-reverse!important}
+  .modal-footer .btn{width:100%!important}
+  /* Auth */
+  #form-login,#form-register{padding:20px!important;border-radius:16px!important}
+  #metier-grid{grid-template-columns:repeat(3,1fr)!important}
+  /* Modales pub & paiement */
+  #pub-overlay{padding:12px!important}
+  #pub-box{border-radius:16px!important}
+  #payment-overlay{align-items:flex-end!important;padding:0!important}
+  #payment-box{width:100%!important;max-width:100%!important;
+    border-radius:20px 20px 0 0!important;max-height:92vh!important;
+    overflow-y:auto;-webkit-overflow-scrolling:touch}
 }
 
-@media (max-width: 400px) {
-  .stats-grid { grid-template-columns: 1fr !important; }
-  .kpi-grid { grid-template-columns: 1fr 1fr !important; }
-  #metier-grid { grid-template-columns: 1fr 1fr !important; }
-  .page-content { padding: 10px !important; }
+/* ── Petit mobile (< 576px) ── */
+@media(max-width:575px){
+  .topbar-right .topbar-btn:not(#dark-toggle-btn):not(.topbar-menu-btn){display:none!important}
+  #metier-grid{grid-template-columns:repeat(2,1fr)!important}
+  .stat-card{padding:12px!important}
+  .stat-value{font-size:1.4rem!important}
 }
 
-/* ══ FAB ══ */
-#fab-btn {
-  position: fixed; bottom: 24px; right: 20px;
-  width: 56px; height: 56px; border-radius: 50%;
-  background: var(--primary); color: #fff;
-  font-size: 1.6rem; display: none;
-  align-items: center; justify-content: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.28);
-  z-index: 100; border: none; cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  touch-action: manipulation;
+/* ── Très petit (< 400px) ── */
+@media(max-width:399px){
+  .stats-grid{grid-template-columns:1fr!important}
+  .kpi-grid{grid-template-columns:1fr!important}
+  #metier-grid{grid-template-columns:repeat(2,1fr)!important}
+  .page-content{padding:8px!important}
+  .card-body{padding:10px!important}
 }
-#fab-btn:active { transform: scale(0.91); box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-@media (max-width: 768px) { #fab-btn { display: flex; } }
+
+/* ── FAB ── */
+#fab-btn{
+  position:fixed;bottom:max(24px,calc(env(safe-area-inset-bottom)+16px));right:20px;
+  width:56px;height:56px;border-radius:50%;background:var(--primary);color:#fff;
+  font-size:1.7rem;display:none;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(0,0,0,.28);z-index:100;border:none;cursor:pointer;
+  transition:transform .15s ease,box-shadow .15s ease;touch-action:manipulation}
+#fab-btn:active{transform:scale(.90)}
+@media(max-width:767px){#fab-btn{display:flex}}
+
+/* ── Métier grid scrollbar ── */
+#metier-grid{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+#metier-grid::-webkit-scrollbar{width:3px}
+#metier-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ── Print ── */
+@media print{
+  .sidebar,.topbar,#fab-btn,.modal-overlay,#pub-overlay,#payment-overlay,.page-actions{display:none!important}
+  .main-wrap{margin-left:0!important}
+  .card{box-shadow:none!important;border:1px solid #ddd!important}
+}
+
 </style>
 </head>
 <body>
@@ -838,7 +870,7 @@ body::before {
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v8.0</span></div>
+      <div class="sidebar-brand">DoliPro<span>Manager v9.0</span></div>
     </div>
     <div class="sidebar-nav">
       <p class="nav-section-label">Principal</p>
@@ -1009,224 +1041,202 @@ function getCurrentWorkspaceId() {
   return session?.workspaceId || null;
 }
 
-/* ══════════════════════════════════════════════════════
-   PROFILS MÉTIER — v7 (BTP · INFORMATIQUE · OUVRIERS · COMMERCE · SERVICES)
-══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   PROFILS MÉTIER v9 — 30 métiers
+═══════════════════════════════════════════════════════ */
 const PROFILS = {
-
-  // ══ SECTEUR BTP & CONSTRUCTION ═══════════════════
-  entrepreneur_btp: {
-    label: 'Entrepreneur BTP', icon: '🏗️', couleur: '#d97706',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','chantiers_actifs','factures_en_attente','depenses_mois','benefice_net'],
-    terminologie: { facture:'Situation de travaux', devis:'Devis chantier', client:"Maître d'ouvrage", produit:'Prestation / Fourniture', stock:'Matériaux & Matériel' },
-    categoriesCompta: ['Matériaux','Sous-traitance','Main d\'œuvre','Engins & matériel','Carburant','Assurances chantier','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Chantiers de construction, rénovation et génie civil'
-  },
-
-  electricien: {
-    label: 'Électricien', icon: '⚡', couleur: '#eab308',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
-    terminologie: { facture:'Bon de travaux', devis:'Devis technique', client:'Client', produit:'Matériel électrique', stock:'Matériel & Pièces' },
-    categoriesCompta: ['Câblage & fournitures','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Installations électriques, dépannages et maintenance'
-  },
-
-  plombier: {
-    label: 'Plombier / Sanitaire', icon: '🔧', couleur: '#0891b2',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
-    terminologie: { facture:'Bon d\'intervention', devis:'Devis plomberie', client:'Client', produit:'Pièce / Fourniture', stock:'Pièces & Fournitures' },
-    categoriesCompta: ['Fournitures sanitaires','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Plomberie, sanitaire et climatisation'
-  },
-
-  menuisier: {
-    label: 'Menuisier / Métallier', icon: '🪵', couleur: '#92400e',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['commandes_actives','ca','stock_alerte','factures_en_attente'],
-    terminologie: { facture:'Facture atelier', devis:'Devis fabrication', client:'Client', produit:'Ouvrage / Pièce', stock:'Matières premières' },
-    categoriesCompta: ['Bois & matières','Quincaillerie & visserie','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Fabrication bois, aluminium, fer forgé et métallerie'
-  },
-
-  peintre: {
-    label: 'Peintre / Revêtements', icon: '🎨', couleur: '#7c3aed',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
-    terminologie: { facture:'Facture de travaux', devis:'Devis peinture', client:'Client', produit:'Produit / Fourniture', stock:'Peintures & Fournitures' },
-    categoriesCompta: ['Peintures & enduits','Matériel application','Carburant','Loyer atelier','Salaires','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Peinture bâtiment, revêtements sols et murs'
-  },
-
-  // ══ SECTEUR INFORMATIQUE & NUMÉRIQUE ═════════════
-  developpeur: {
-    label: 'Développeur / Agence Web', icon: '💻', couleur: '#059669',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','missions_actives','taux_recouvrement','taux_conversion','score_sante'],
-    terminologie: { facture:'Facture', devis:'Proposition technique', client:'Client', produit:'Développement / Module', stock:'Catalogue services' },
-    categoriesCompta: ['Hébergement & domaines','Licences logiciels','Matériel informatique','Déplacements','Salaires','Formation','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Développement web, applications et solutions numériques'
-  },
-
-  technicien_info: {
-    label: 'Technicien Informatique', icon: '🖥️', couleur: '#1e6fd9',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
-    terminologie: { facture:'Bon d\'intervention', devis:'Devis technique', client:'Client', produit:'Pièce / Service', stock:'Pièces & Matériel' },
-    categoriesCompta: ['Pièces détachées','Consommables','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Réparation, maintenance et réseau informatique'
-  },
-
-  freelance_digital: {
-    label: 'Freelance Digital', icon: '🎯', couleur: '#be185d',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','missions_actives','taux_recouvrement','score_sante','taux_conversion'],
-    terminologie: { facture:'Facture', devis:'Proposition commerciale', client:'Client', produit:'Mission / Livrable', stock:'Catalogue' },
-    categoriesCompta: ['Logiciels & abonnements','Matériel','Déplacements','Formation','Marketing','Impôts & charges','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Graphisme, marketing digital, rédaction et conseil'
-  },
-
-  formateur_digital: {
-    label: 'Formation Informatique', icon: '🎓', couleur: '#6d28d9',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','missions_actives'],
-    terminologie: { facture:'Reçu de formation', devis:'Programme de formation', client:'Apprenant / Entreprise', produit:'Formation / Module', stock:'Matériel pédagogique' },
-    categoriesCompta: ['Matériel pédagogique','Loyer salle','Salaires formateurs','Licences logiciels','Marketing','Taxes','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Formations bureautique, développement et numérique'
-  },
-
-  // ══ SECTEUR OUVRIERS SPÉCIALISÉS ═════════════════
-  carreleur: {
-    label: 'Carreleur / Maçon', icon: '🧱', couleur: '#b45309',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
-    terminologie: { facture:'Facture de travaux', devis:'Devis carrelage', client:'Client', produit:'Prestation / Matériaux', stock:'Carreaux & Matériaux' },
-    categoriesCompta: ['Carreaux & faïences','Colle & joints','Outillage','Carburant','Salaires','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Carrelage, maçonnerie, enduits et revêtements'
-  },
-
-  soudeur: {
-    label: 'Soudeur / Ferronnier', icon: '🔩', couleur: '#374151',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['commandes_actives','ca','stock_alerte','factures_en_attente'],
-    terminologie: { facture:'Bon de commande', devis:'Devis fabrication', client:'Client', produit:'Ouvrage / Pièce', stock:'Métaux & Consommables' },
-    categoriesCompta: ['Métal & profilés','Consommables soudure','Gaz industriel','Outillage','Loyer atelier','Salaires','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Soudure, ferronnerie, portails et structures métalliques'
-  },
-
-  chauffeur: {
-    label: 'Transporteur / Chauffeur', icon: '🚛', couleur: '#1d4ed8',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','missions_actives','depenses_mois','taux_recouvrement'],
-    terminologie: { facture:'Bon de transport', devis:'Devis de course', client:'Expéditeur / Client', produit:'Course / Trajet', stock:'Véhicules & Matériel' },
-    categoriesCompta: ['Carburant','Entretien véhicule','Assurance','Péages & taxes','Salaires chauffeurs','Location','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Transport de marchandises, déménagement et logistique'
-  },
-
-  // ══ SECTEUR COMMERCE ══════════════════════════════
-  boutique: {
-    label: 'Boutique / Détaillant', icon: '🛒', couleur: '#dc2626',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','stock_alerte','factures_en_attente','top_clients','depenses_mois'],
-    terminologie: { facture:'Ticket / Facture', devis:'Devis', client:'Client', produit:'Article', stock:'Stock Boutique' },
-    categoriesCompta: ['Achats marchandises','Loyer boutique','Salaires','Emballages','Publicité','Taxes & impôts','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Vente au détail, boutique et commerce de proximité'
-  },
-
-  grossiste: {
-    label: 'Grossiste / Importateur', icon: '🏭', couleur: '#0369a1',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','stock_alerte','factures_en_attente','top_clients','depenses_mois'],
-    terminologie: { facture:'Bon de livraison', devis:'Proforma', client:'Revendeur', produit:'Article', stock:'Entrepôt & Stock' },
-    categoriesCompta: ['Importation & douane','Transport marchandises','Loyer entrepôt','Salaires','Emballage','Taxes & impôts','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Import, gros volumes, distribution et revente'
-  },
-
-  pharmacie: {
-    label: 'Pharmacie / Para-pharmacie', icon: '💊', couleur: '#0f766e',
-    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','stock_alerte','depenses_mois','benefice_net'],
-    terminologie: { facture:'Reçu client', devis:'Devis médicaments', client:'Patient / Client', produit:'Médicament / Produit', stock:'Pharmacie & Stocks' },
-    categoriesCompta: ['Achats médicaments','Loyer officine','Salaires','Équipement','Licences','Taxes','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Officine, parapharmacie et produits de santé'
-  },
-
-  superette: {
-    label: 'Supérette / Épicerie', icon: '🏪', couleur: '#16a34a',
-    modules: ['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
-    dashboardWidgets: ['ca','stock_alerte','depenses_mois','benefice_net'],
-    terminologie: { facture:'Ticket de caisse', devis:'Bon de commande', client:'Client', produit:'Produit alimentaire', stock:'Rayons & Stock' },
-    categoriesCompta: ['Achats alimentaires','Loyer local','Salaires','Emballages','Eau & électricité','Taxes','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Épicerie, supérette et commerce alimentaire'
-  },
-
-  // ══ SECTEUR SERVICES ══════════════════════════════
-  prestataire: {
-    label: 'Prestataire de Services', icon: '💼', couleur: '#7c3aed',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','taux_recouvrement','score_sante','taux_conversion'],
-    terminologie: { facture:'Facture de prestation', devis:'Proposition commerciale', client:'Client', produit:'Service', stock:'Catalogue de services' },
-    categoriesCompta: ['Logiciels & outils','Déplacements','Loyer bureau','Salaires','Marketing','Formation','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Consulting, audit, conseil et prestations intellectuelles'
-  },
-
-  agence_com: {
-    label: 'Agence Communication', icon: '📣', couleur: '#db2777',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','missions_actives','taux_conversion','taux_recouvrement','top_clients'],
-    terminologie: { facture:'Facture client', devis:'Brief & Proposition', client:'Annonceur', produit:'Prestation / Pack', stock:'Ressources créatives' },
-    categoriesCompta: ['Sous-traitance créative','Publicité & médias','Location matériel','Salaires','Logiciels','Déplacements','Autres'],
-    fabAction: 'openNewDevis',
-    description: 'Communication, publicité, évènementiel et marketing'
-  },
-
-  nettoyage: {
-    label: 'Nettoyage / Entretien', icon: '🧹', couleur: '#0891b2',
-    modules: ['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','factures_en_attente','depenses_mois'],
-    terminologie: { facture:'Bon de prestation', devis:'Devis nettoyage', client:'Client / Site', produit:'Prestation / Produit', stock:'Produits & Matériel' },
-    categoriesCompta: ['Produits ménagers','Matériel nettoyage','Salaires agents','Carburant','Assurances','Loyer dépôt','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Nettoyage industriel, bureaux, chantiers et résidences'
-  },
-
-  securite: {
-    label: 'Sécurité / Gardiennage', icon: '🛡️', couleur: '#1e3a5f',
-    modules: ['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
-    dashboardWidgets: ['ca','clients_actifs','factures_en_attente','taux_recouvrement'],
-    terminologie: { facture:'Facture de garde', devis:'Offre de sécurité', client:'Site / Entreprise', produit:'Prestation de garde', stock:'Équipements sécurité' },
-    categoriesCompta: ['Salaires agents','Uniformes & équipements','Formation sécurité','Carburant','Assurances','Loyer bureau','Autres'],
-    fabAction: 'openNewFacture',
-    description: 'Gardiennage, sécurité privée et surveillance de sites'
-  }
-
+  // ═══ BTP & CONSTRUCTION ═══════════════════════════
+  entrepreneur_btp:{label:'Entrepreneur BTP',icon:'🏗️',couleur:'#d97706',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','chantiers_actifs','factures_en_attente','depenses_mois','benefice_net'],
+    terminologie:{facture:'Situation de travaux',devis:'Devis chantier',client:"Maître d'ouvrage",produit:'Prestation / Fourniture',stock:'Matériaux & Matériel'},
+    categoriesCompta:['Matériaux','Sous-traitance',"Main d'œuvre",'Engins & matériel','Carburant','Assurances chantier','Autres'],
+    fabAction:'openNewDevis',description:'Chantiers de construction, rénovation et génie civil'},
+  electricien:{label:'Électricien',icon:'⚡',couleur:'#eab308',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie:{facture:'Bon de travaux',devis:'Devis technique',client:'Client',produit:'Matériel électrique',stock:'Matériel & Pièces'},
+    categoriesCompta:['Câblage & fournitures','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
+    fabAction:'openNewDevis',description:'Installations électriques, dépannages et maintenance'},
+  plombier:{label:'Plombier / Sanitaire',icon:'🚿',couleur:'#0891b2',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie:{facture:"Bon d'intervention",devis:'Devis plomberie',client:'Client',produit:'Pièce / Fourniture',stock:'Pièces & Fournitures'},
+    categoriesCompta:['Fournitures sanitaires','Outillage','Carburant','Loyer atelier','Salaires','Formation','Autres'],
+    fabAction:'openNewDevis',description:'Plomberie, sanitaire et climatisation'},
+  menuisier:{label:'Menuisier / Métallier',icon:'🪵',couleur:'#92400e',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['commandes_actives','ca','stock_alerte','factures_en_attente'],
+    terminologie:{facture:'Facture atelier',devis:'Devis fabrication',client:'Client',produit:'Ouvrage / Pièce',stock:'Matières premières'},
+    categoriesCompta:['Bois & matières','Quincaillerie & visserie','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
+    fabAction:'openNewDevis',description:'Fabrication bois, aluminium, fer forgé et métallerie'},
+  peintre:{label:'Peintre / Revêtements',icon:'🎨',couleur:'#7c3aed',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
+    terminologie:{facture:'Facture de travaux',devis:'Devis peinture',client:'Client',produit:'Produit / Fourniture',stock:'Peintures & Fournitures'},
+    categoriesCompta:['Peintures & enduits','Matériel application','Carburant','Loyer atelier','Salaires','Autres'],
+    fabAction:'openNewDevis',description:'Peinture bâtiment, revêtements sols et murs'},
+  carreleur:{label:'Carreleur / Maçon',icon:'🧱',couleur:'#b45309',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['chantiers_actifs','ca','factures_en_attente','depenses_mois'],
+    terminologie:{facture:'Facture de travaux',devis:'Devis carrelage',client:'Client',produit:'Prestation / Matériaux',stock:'Carreaux & Matériaux'},
+    categoriesCompta:['Carreaux & faïences','Colle & joints','Outillage','Carburant','Salaires','Autres'],
+    fabAction:'openNewDevis',description:'Carrelage, maçonnerie, enduits et revêtements'},
+  soudeur:{label:'Soudeur / Ferronnier',icon:'🔩',couleur:'#374151',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['commandes_actives','ca','stock_alerte','factures_en_attente'],
+    terminologie:{facture:'Bon de commande',devis:'Devis fabrication',client:'Client',produit:'Ouvrage / Pièce',stock:'Métaux & Consommables'},
+    categoriesCompta:['Métal & profilés','Consommables soudure','Gaz industriel','Outillage','Loyer atelier','Salaires','Autres'],
+    fabAction:'openNewDevis',description:'Soudure, ferronnerie, portails et structures métalliques'},
+  garagiste:{label:'Garagiste / Mécanicien',icon:'🔧',couleur:'#334155',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie:{facture:'Ordre de réparation',devis:'Devis réparation',client:'Propriétaire',produit:"Pièce / Main d'œuvre",stock:'Pièces détachées'},
+    categoriesCompta:['Pièces détachées','Consommables atelier','Outillage','Carburant','Loyer garage','Salaires','Autres'],
+    fabAction:'openNewFacture',description:'Réparations, pièces et gestion atelier automobile'},
+  // ═══ INFORMATIQUE & DIGITAL ═══════════════════════
+  developpeur:{label:'Développeur / Agence Web',icon:'💻',couleur:'#059669',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','missions_actives','taux_recouvrement','taux_conversion','score_sante'],
+    terminologie:{facture:'Facture',devis:'Proposition technique',client:'Client',produit:'Développement / Module',stock:'Catalogue services'},
+    categoriesCompta:['Hébergement & domaines','Licences logiciels','Matériel informatique','Déplacements','Salaires','Formation','Autres'],
+    fabAction:'openNewDevis',description:'Développement web, applications et solutions numériques'},
+  technicien_info:{label:'Technicien Informatique',icon:'🖥️',couleur:'#1e6fd9',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['interventions_en_cours','ca','pieces_stock','factures_en_attente'],
+    terminologie:{facture:"Bon d'intervention",devis:'Devis technique',client:'Client',produit:'Pièce / Service',stock:'Pièces & Matériel'},
+    categoriesCompta:['Pièces détachées','Consommables','Outillage','Carburant','Loyer atelier','Salaires','Autres'],
+    fabAction:'openNewFacture',description:'Réparation, maintenance et réseau informatique'},
+  freelance_digital:{label:'Freelance Digital',icon:'🎯',couleur:'#be185d',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','missions_actives','taux_recouvrement','score_sante','taux_conversion'],
+    terminologie:{facture:'Facture',devis:'Proposition commerciale',client:'Client',produit:'Mission / Livrable',stock:'Catalogue'},
+    categoriesCompta:['Logiciels & abonnements','Matériel','Déplacements','Formation','Marketing','Impôts & charges','Autres'],
+    fabAction:'openNewDevis',description:'Graphisme, marketing digital, rédaction et conseil'},
+  formateur_digital:{label:'Formation Informatique',icon:'🎓',couleur:'#6d28d9',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','taux_recouvrement','missions_actives'],
+    terminologie:{facture:'Reçu de formation',devis:'Programme de formation',client:'Apprenant / Entreprise',produit:'Formation / Module',stock:'Matériel pédagogique'},
+    categoriesCompta:['Matériel pédagogique','Loyer salle','Salaires formateurs','Licences logiciels','Marketing','Taxes','Autres'],
+    fabAction:'openNewFacture',description:'Formations bureautique, développement et numérique'},
+  photographe:{label:'Photographe / Vidéaste',icon:'📷',couleur:'#9333ea',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','missions_actives','taux_recouvrement','taux_conversion'],
+    terminologie:{facture:'Facture de prestation',devis:'Devis shooting',client:'Client',produit:'Prestation / Pack',stock:'Matériel photo/vidéo'},
+    categoriesCompta:['Matériel photo','Logiciels retouche','Location studio','Déplacements','Stockage cloud','Marketing','Autres'],
+    fabAction:'openNewDevis',description:'Shootings, événements et productions audiovisuelles'},
+  // ═══ OUVRIERS ═════════════════════════════════════
+  chauffeur:{label:'Transporteur / Chauffeur',icon:'🚛',couleur:'#1d4ed8',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','missions_actives','depenses_mois','taux_recouvrement'],
+    terminologie:{facture:'Bon de transport',devis:'Devis de course',client:'Expéditeur / Client',produit:'Course / Trajet',stock:'Véhicules & Matériel'},
+    categoriesCompta:['Carburant','Entretien véhicule','Assurance','Péages & taxes','Salaires chauffeurs','Location','Autres'],
+    fabAction:'openNewFacture',description:'Transport de marchandises, déménagement et logistique'},
+  // ═══ COMMERCE ═════════════════════════════════════
+  boutique:{label:'Boutique / Détaillant',icon:'🛒',couleur:'#dc2626',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','factures_en_attente','top_clients','depenses_mois'],
+    terminologie:{facture:'Ticket / Facture',devis:'Devis',client:'Client',produit:'Article',stock:'Stock Boutique'},
+    categoriesCompta:['Achats marchandises','Loyer boutique','Salaires','Emballages','Publicité','Taxes & impôts','Autres'],
+    fabAction:'openNewFacture',description:'Vente au détail, boutique et commerce de proximité'},
+  grossiste:{label:'Grossiste / Importateur',icon:'🏭',couleur:'#0369a1',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','factures_en_attente','top_clients','depenses_mois'],
+    terminologie:{facture:'Bon de livraison',devis:'Proforma',client:'Revendeur',produit:'Article',stock:'Entrepôt & Stock'},
+    categoriesCompta:['Importation & douane','Transport marchandises','Loyer entrepôt','Salaires','Emballage','Taxes & impôts','Autres'],
+    fabAction:'openNewFacture',description:'Import, gros volumes, distribution et revente'},
+  pharmacie:{label:'Pharmacie / Para-pharmacie',icon:'💊',couleur:'#0f766e',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','depenses_mois','benefice_net'],
+    terminologie:{facture:'Reçu client',devis:'Devis médicaments',client:'Patient / Client',produit:'Médicament / Produit',stock:'Pharmacie & Stocks'},
+    categoriesCompta:['Achats médicaments','Loyer officine','Salaires','Équipement','Licences','Taxes','Autres'],
+    fabAction:'openNewFacture',description:'Officine, parapharmacie et produits de santé'},
+  superette:{label:'Supérette / Épicerie',icon:'🏪',couleur:'#16a34a',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','depenses_mois','benefice_net'],
+    terminologie:{facture:'Ticket de caisse',devis:'Bon de commande',client:'Client',produit:'Produit alimentaire',stock:'Rayons & Stock'},
+    categoriesCompta:['Achats alimentaires','Loyer local','Salaires','Emballages','Eau & électricité','Taxes','Autres'],
+    fabAction:'openNewFacture',description:'Épicerie, supérette et commerce alimentaire'},
+  // ═══ SERVICES ═════════════════════════════════════
+  prestataire:{label:'Prestataire de Services',icon:'💼',couleur:'#7c3aed',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','taux_recouvrement','score_sante','taux_conversion'],
+    terminologie:{facture:'Facture de prestation',devis:'Proposition commerciale',client:'Client',produit:'Service',stock:'Catalogue de services'},
+    categoriesCompta:['Logiciels & outils','Déplacements','Loyer bureau','Salaires','Marketing','Formation','Autres'],
+    fabAction:'openNewFacture',description:'Consulting, audit, conseil et prestations intellectuelles'},
+  agence_com:{label:'Agence Communication',icon:'📣',couleur:'#db2777',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','missions_actives','taux_conversion','taux_recouvrement','top_clients'],
+    terminologie:{facture:'Facture client',devis:'Brief & Proposition',client:'Annonceur',produit:'Prestation / Pack',stock:'Ressources créatives'},
+    categoriesCompta:['Sous-traitance créative','Publicité & médias','Location matériel','Salaires','Logiciels','Déplacements','Autres'],
+    fabAction:'openNewDevis',description:'Communication, publicité, événementiel et marketing'},
+  nettoyage:{label:'Nettoyage / Entretien',icon:'🧹',couleur:'#0891b2',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','relances','parametres'],
+    dashboardWidgets:['ca','clients_actifs','factures_en_attente','depenses_mois'],
+    terminologie:{facture:'Bon de prestation',devis:'Devis nettoyage',client:'Client / Site',produit:'Prestation / Produit',stock:'Produits & Matériel'},
+    categoriesCompta:['Produits ménagers','Matériel nettoyage','Salaires agents','Carburant','Assurances','Loyer dépôt','Autres'],
+    fabAction:'openNewFacture',description:'Nettoyage industriel, bureaux, chantiers et résidences'},
+  securite:{label:'Sécurité / Gardiennage',icon:'🛡️',couleur:'#1e3a5f',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','factures_en_attente','taux_recouvrement'],
+    terminologie:{facture:'Facture de garde',devis:'Offre de sécurité',client:'Site / Entreprise',produit:'Prestation de garde',stock:'Équipements sécurité'},
+    categoriesCompta:['Salaires agents','Uniformes & équipements','Formation sécurité','Carburant','Assurances','Loyer bureau','Autres'],
+    fabAction:'openNewFacture',description:'Gardiennage, sécurité privée et surveillance de sites'},
+  // ═══ SANTÉ & BIEN-ÊTRE ════════════════════════════
+  medecin:{label:'Médecin / Cabinet médical',icon:'🩺',couleur:'#0891b2',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','depenses_mois','benefice_net'],
+    terminologie:{facture:'Reçu de consultation',devis:'Devis soins',client:'Patient',produit:'Acte médical',stock:'Matériel médical'},
+    categoriesCompta:['Consommables médicaux','Loyer cabinet','Salaires','Équipement','Assurance professionnelle','Formation médicale','Autres'],
+    fabAction:'openNewFacture',description:'Consultations, soins et gestion cabinet médical'},
+  coiffeur:{label:'Coiffeur / Salon de beauté',icon:'✂️',couleur:'#db2777',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','stock_alerte','depenses_mois'],
+    terminologie:{facture:'Ticket de caisse',devis:'Devis prestation',client:'Cliente / Client',produit:'Soin / Prestation',stock:'Produits coiffure'},
+    categoriesCompta:['Produits coiffure','Loyer salon','Salaires','Équipement','Eau & électricité','Marketing','Autres'],
+    fabAction:'openNewFacture',description:'Salon, soins capillaires et gestion clientèle'},
+  // ═══ RESTAURATION ══════════════════════════════════
+  restaurateur:{label:'Restaurateur / Traiteur',icon:'🍽️',couleur:'#dc2626',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','depenses_mois','benefice_net'],
+    terminologie:{facture:'Note / Ticket',devis:'Menu sur devis',client:'Client',produit:'Plat / Ingrédient',stock:'Stocks cuisine'},
+    categoriesCompta:['Matières premières','Boissons','Gaz & énergie','Emballages','Loyer','Salaires','Autres'],
+    fabAction:'openNewFacture',description:'Caisse, stocks cuisine et gestion restaurant'},
+  boulanger:{label:'Boulanger / Pâtissier',icon:'🍞',couleur:'#c2410c',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','depenses_mois','benefice_net'],
+    terminologie:{facture:'Bon de commande',devis:'Devis commande',client:'Client',produit:'Produit boulangerie',stock:'Farines & Ingrédients'},
+    categoriesCompta:['Matières premières','Gaz & four','Emballages','Loyer','Salaires','Entretien matériel','Autres'],
+    fabAction:'openNewFacture',description:'Boulangerie, commandes et gestion stocks'},
+  // ═══ IMMOBILIER & AUTRES ══════════════════════════
+  agent_immo:{label:'Agent immobilier / Gérant',icon:'🏠',couleur:'#065f46',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','taux_recouvrement','factures_en_attente'],
+    terminologie:{facture:'Quittance / Reçu',devis:'Proposition locative',client:'Locataire',produit:'Bien immobilier',stock:'Portefeuille biens'},
+    categoriesCompta:['Charges locatives','Travaux entretien','Taxes foncières','Assurances','Frais agence','Salaires','Autres'],
+    fabAction:'openNewFacture',description:'Location, gestion locative et transactions immobilières'},
+  agriculteur:{label:'Agriculteur / Éleveur',icon:'🌾',couleur:'#16a34a',
+    modules:['dashboard','clients','factures','devis','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','stock_alerte','depenses_mois','benefice_net'],
+    terminologie:{facture:'Bon de vente',devis:'Proforma récolte',client:'Acheteur',produit:'Récolte / Produit',stock:'Stocks & Intrants'},
+    categoriesCompta:["Semences & intrants","Main d'œuvre",'Carburant','Irrigation','Transport récolte','Équipement agricole','Autres'],
+    fabAction:'openNewFacture',description:'Récoltes, élevage et gestion exploitation agricole'},
+  ecole:{label:'École / Centre de formation',icon:'🏫',couleur:'#6d28d9',
+    modules:['dashboard','clients','factures','devis','comptabilite','relances','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','taux_recouvrement','factures_en_attente'],
+    terminologie:{facture:'Reçu de scolarité',devis:'Devis inscription',client:'Élève / Parent',produit:'Formation / Filière',stock:'Matériel pédagogique'},
+    categoriesCompta:['Salaires enseignants','Loyer locaux','Fournitures','Eau & électricité','Équipement informatique','Marketing','Autres'],
+    fabAction:'openNewFacture',description:'Scolarité, inscriptions et gestion établissement'},
+  pressing:{label:'Pressing / Blanchisserie',icon:'👔',couleur:'#0369a1',
+    modules:['dashboard','clients','factures','stock','comptabilite','rapports','parametres'],
+    dashboardWidgets:['ca','clients_actifs','depenses_mois','benefice_net'],
+    terminologie:{facture:'Ticket pressing',devis:'Devis nettoyage',client:'Client',produit:'Article / Prestation',stock:'Produits pressing'},
+    categoriesCompta:['Produits chimiques','Eau & électricité','Loyer local','Salaires','Équipement','Emballages','Autres'],
+    fabAction:'openNewFacture',description:'Nettoyage vêtements, pressing et blanchisserie'}
 };
 
-
-/* ══════════════════════════════════════════════════════
-   LIMITES FREE
-══════════════════════════════════════════════════════ */
 const LIMITS_FREE = {
-  clients: 10, factures: 20, devis: 10, produits: 15, membres: 1
+  clients:10, factures:20, devis:10, produits:15, membres:1, rapports:false
 };
 
 /* ══════════════════════════════════════════════════════
@@ -1482,7 +1492,7 @@ function startApp() {
   const si = document.getElementById('save-indicator');
   if (si) si.style.display = '';
   startAutoSave();
-  // Afficher la pub 1.2s après le chargement
+  checkAbonnement();
   setTimeout(() => showPubModal(), 1200);
 }
 function updateUserNav() {
@@ -1803,6 +1813,7 @@ let clientSearch = '', clientPage = 1;
 const PAGE_SIZE = 10;
 
 function renderClients() {
+  const _bC=renderBanniereGratuit();
   const clients = Store.get('clients');
   const profil = getCurrentProfil();
   const termClient = profil.terminologie?.client || 'Client';
@@ -1821,8 +1832,7 @@ function renderClients() {
     </div>
     ${renderEmptyState('👥', `Aucun ${termClient.toLowerCase()} encore`, `Ajoutez votre premier ${termClient.toLowerCase()} pour commencer à facturer.`, `+ Nouveau ${termClient.toLowerCase()}`, 'openNewClient()')}`;
   }
-  return `
-  <div class="page-header">
+  return _bC+`  <div class="page-header">
     <div><div class="page-title">${termClient}s</div><div class="page-subtitle">${total} ${termClient.toLowerCase()}${total>1?'s':''} au total</div></div>
     <div class="page-actions"><button class="btn btn-primary" onclick="openNewClient()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termClient.toLowerCase()}</button></div>
   </div>
@@ -1943,6 +1953,7 @@ function viewClient(id) {
 let factureSearch='', factureStatut='', facturePage=1;
 
 function renderFactures() {
+  const _bF=renderBanniereGratuit();
   const factures = Store.get('factures');
   const profil = getCurrentProfil();
   const termFacture = profil.terminologie?.facture || 'Facture';
@@ -1963,8 +1974,7 @@ function renderFactures() {
     </div>
     ${renderEmptyState('📄', `Aucune ${termFacture.toLowerCase()} encore`, `Créez votre première ${termFacture.toLowerCase()} en quelques secondes.`, `+ Nouvelle ${termFacture.toLowerCase()}`, 'openNewFacture()')}`;
   }
-  return `
-  <div class="page-header">
+  return _bF+`  <div class="page-header">
     <div><div class="page-title">${termFacture}s</div><div class="page-subtitle">${total} ${termFacture.toLowerCase()}${total>1?'s':''}</div></div>
     <div class="page-actions"><button class="btn btn-primary" onclick="openNewFacture()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouvelle ${termFacture.toLowerCase()}</button></div>
   </div>
@@ -2017,6 +2027,7 @@ function openNewDevis()   { if (!checkLimit('devis'))    return; editDoc('devis'
 let devisSearch='', devisStatut='', devisPage=1;
 
 function renderDevis() {
+  const _bD=renderBanniereGratuit();
   const devis = Store.get('devis');
   const profil = getCurrentProfil();
   const termDevis  = profil.terminologie?.devis  || 'Devis';
@@ -2037,8 +2048,7 @@ function renderDevis() {
     </div>
     ${renderEmptyState('📋', `Aucun ${termDevis.toLowerCase()} encore`, `Commencez par créer un ${termDevis.toLowerCase()} pour votre ${termClient.toLowerCase()}.`, `+ Nouveau ${termDevis.toLowerCase()}`, 'openNewDevis()')}`;
   }
-  return `
-  <div class="page-header">
+  return _bD+`  <div class="page-header">
     <div><div class="page-title">${termDevis}</div><div class="page-subtitle">${total} ${termDevis.toLowerCase()}</div></div>
     <div class="page-actions"><button class="btn btn-primary" onclick="openNewDevis()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termDevis.toLowerCase()}</button></div>
   </div>
@@ -2270,6 +2280,7 @@ function convertDevisToFacture(devisId) {
 let stockSearch='', stockTab='produits';
 
 function renderStock() {
+  const _bS=renderBanniereGratuit();
   const produits = Store.get('produits');
   const mvts = Store.get('mouvements');
   const profil = getCurrentProfil();
@@ -2281,8 +2292,7 @@ function renderStock() {
   const lowStock = produits.filter(p => p.quantite !== undefined && p.quantite <= (p.seuil||0) && p.quantite > 0).length;
   const outStock = produits.filter(p => p.quantite !== undefined && p.quantite <= 0).length;
 
-  return `
-  <div class="page-header">
+  return _bS+`  <div class="page-header">
     <div><div class="page-title">${termStock}</div><div class="page-subtitle">${produits.length} ${termProduit.toLowerCase()}${produits.length>1?'s':''} · ${lowStock} stock faible · ${outStock} épuisé</div></div>
     <div class="page-actions">
       <button class="btn btn-outline" onclick="openMouvement()">Mouvement stock</button>
@@ -2694,6 +2704,8 @@ function printDoc(type, id) {
   if (!doc) return;
   const co = Store.getObj('company', {});
   const primaryColor = getCurrentProfil().couleur || (type==='facture' ? '#1e6fd9' : '#d97706');
+  const _pu=getCurrentUser()||App.user;
+  const _wm=_pu?.plan!=='premium'?'<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:2.8rem;font-weight:900;color:rgba(0,0,0,0.055);pointer-events:none;white-space:nowrap;z-index:9999;letter-spacing:2px">DoliPro — Version Gratuite</div>':'';	
   const profil  = getCurrentProfil();
   const docType = (type==='facture' ? profil.terminologie.facture : profil.terminologie.devis).toUpperCase();
 
@@ -3491,12 +3503,12 @@ function getFluxTresorerie(n = 6) {
 }
 
 function renderComptabilite() {
+  const _bK=renderBanniereGratuit();
   const today = new Date();
   const recap = getRecapMensuel(today.getFullYear(), today.getMonth() + 1);
   const solde = getSoldeActuel();
   const cats  = getCategories();
-  return `
-    <div class="page-header">
+  return _bK+`    <div class="page-header">
       <div>
         <h1 class="page-title" style="font-family:var(--font-title)">Comptabilité</h1>
         <p class="page-subtitle">Solde actuel : <strong style="color:${solde>=0?'var(--success)':'var(--danger)'}">
@@ -3715,6 +3727,7 @@ const NIVEAUX_LABELS = { 1:'Amiable', 2:'Ferme', 3:'Mise en demeure' };
 const NIVEAUX_COLORS = { 1:'var(--warning)', 2:'var(--danger)', 3:'#7f1d1d' };
 
 function renderRelances() {
+  const _bR=renderBanniereGratuit();
   const enRetard = getFacturesEnRetard();
   if (!enRetard.length) return `
     <div class="page-header"><h1 class="page-title" style="font-family:var(--font-title)">Relances client</h1></div>
@@ -3725,8 +3738,7 @@ function renderRelances() {
       </svg>
       <p style="margin-top:16px;color:var(--text-muted)">Aucune facture en retard de paiement 🎉</p>
     </div>`;
-  return `
-    <div class="page-header">
+  return _bR+`    <div class="page-header">
       <h1 class="page-title" style="font-family:var(--font-title)">Relances client</h1>
       <p class="page-subtitle">${enRetard.length} facture(s) en retard</p>
     </div>
@@ -3867,6 +3879,11 @@ function comparerMois(anneeN, moisN) {
 }
 
 function renderRapports() {
+  const _u=getCurrentUser()||App.user;
+  if(_u?.plan!=='premium') return renderModuleVerrouille(
+    'Rapports & Analyses',
+    'Accédez aux exports CSV, aux graphiques mensuels et synthèses détaillées avec le plan Premium.'
+  );
   const today = new Date();
   const annee = today.getFullYear();
   const mois  = today.getMonth() + 1;
@@ -4006,6 +4023,7 @@ function renderWidgetAlertes() {
    INIT
 ══════════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
+  checkRetourPaiement();
   // Build metier grid in register form
   const grid = document.getElementById('metier-grid');
   if (grid) {
@@ -4124,6 +4142,149 @@ function downloadBackup() {
   a.click();
   URL.revokeObjectURL(url);
   toast('Sauvegarde téléchargée ✓', 'success');
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   V9 — ABONNEMENT : VÉRIFICATION & NOTIFICATIONS
+═══════════════════════════════════════════════════════ */
+function checkAbonnement() {
+  const user = getCurrentUser()||App.user;
+  if(!user||user.plan!=='premium'||!user.premiumExpires) return;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const exp=new Date(user.premiumExpires); exp.setHours(0,0,0,0);
+  const j=Math.round((exp-today)/86400000);
+  if(j<0){downgradePremiumToFree(user);return;}
+  if(j<=1&&!user.premiumNotified1j){_markN(user,'1j');setTimeout(()=>_notifExp(j),2000);}
+  else if(j<=3&&!user.premiumNotified3j){_markN(user,'3j');setTimeout(()=>_notifExp(j),2000);}
+  else if(j<=7&&!user.premiumNotified7j){_markN(user,'7j');setTimeout(()=>_notifExp(j),2000);}
+}
+function _markN(user,niv) {
+  const us=getAllUsers(); const i=us.findIndex(u=>u.id===user.id);
+  if(i>=0){us[i]['premiumNotified'+niv]=true;saveAllUsers(us);}
+  if(App.user) App.user['premiumNotified'+niv]=true;
+}
+function _notifExp(j) {
+  const urg=j<=1;
+  openModal(
+    urg?'⚠️ Abonnement expire demain !':'⏰ '+j+' jours restants',
+    `<div style="text-align:center;padding:16px 0">
+      <div style="font-size:3rem;margin-bottom:12px">${urg?'⚠️':'📅'}</div>
+      <p style="font-size:1rem;margin-bottom:10px">
+        ${urg?'Votre abonnement Premium expire <strong>demain</strong>. Renouvelez maintenant.':'Votre abonnement expire dans <strong>'+j+' jours</strong>. Pensez à le renouveler.'}
+      </p>
+      <p style="font-size:0.85rem;color:var(--text-muted)">
+        Sans renouvellement, votre compte repassera en version gratuite<br>
+        (limite 10 clients, 20 factures, rapports bloqués).
+      </p>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Plus tard</button>
+     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">🔄 Renouveler maintenant</button>`
+  );
+}
+function downgradePremiumToFree(user) {
+  const us=getAllUsers(); const i=us.findIndex(u=>u.id===user.id);
+  if(i>=0){us[i].plan='free';us[i].premiumExpires=null;saveAllUsers(us);}
+  if(App.user) App.user.plan='free';
+  applyProfil(); updateUserNav();
+  setTimeout(()=>openModal('Abonnement Premium terminé',
+    `<div style="text-align:center;padding:16px 0">
+      <div style="font-size:3rem;margin-bottom:12px">😔</div>
+      <p style="margin-bottom:10px">Votre abonnement est arrivé à expiration.<br>Votre compte est maintenant en <strong>version gratuite</strong>.</p>
+      <p style="font-size:0.85rem;color:var(--text-muted)">Vos données sont conservées. Renouvelez pour récupérer vos accès.</p>
+    </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Continuer en gratuit</button>
+     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Renouveler — 5 000 FCFA/mois</button>`
+  ), 800);
+}
+
+/* ═══════════════════════════════════════════════════════
+   V9 — BANNIÈRE GRATUIT & MODULE VERROUILLÉ
+═══════════════════════════════════════════════════════ */
+function renderBanniereGratuit() {
+  const user=getCurrentUser()||App.user;
+  if(user?.plan==='premium') return '';
+  const nC=Store.get('clients',[]).length, nF=Store.get('factures',[]).length, nD=Store.get('devis',[]).length;
+  const pct=Math.max(Math.round(nC/LIMITS_FREE.clients*100),Math.round(nF/LIMITS_FREE.factures*100));
+  const lv=pct>=90?'danger':pct>=70?'warning':'info';
+  const col={danger:{bg:'var(--danger-light)',border:'var(--danger)',msg:'⚠ Limite presque atteinte !'},
+             warning:{bg:'var(--warning-light)',border:'var(--warning)',msg:'Version gratuite — limite proche'},
+             info:{bg:'var(--info-light)',border:'var(--info)',msg:'Version gratuite'}}[lv];
+  return `<div style="background:${col.bg};border:1.5px solid ${col.border};border-radius:var(--radius);
+    padding:9px 14px;margin-bottom:14px;display:flex;align-items:center;
+    justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div style="font-size:0.84rem">
+      <strong>${col.msg}</strong>
+      <span style="color:var(--text-muted);margin-left:6px">
+        Clients ${nC}/${LIMITS_FREE.clients} · Factures ${nF}/${LIMITS_FREE.factures} · Devis ${nD}/${LIMITS_FREE.devis}
+      </span>
+    </div>
+    <button onclick="openPaymentModal()" style="background:var(--primary);color:#fff;border:none;
+      border-radius:8px;padding:6px 14px;font-weight:700;font-size:0.8rem;
+      cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit">
+      ✦ Passer Premium
+    </button>
+  </div>`;
+}
+
+function renderModuleVerrouille(nom, desc) {
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:360px;text-align:center;padding:40px 20px">
+    <div style="font-size:3.5rem;margin-bottom:16px">🔒</div>
+    <div style="font-family:var(--font-title);font-size:1.2rem;font-weight:700;margin-bottom:8px">
+      ${nom} — Fonctionnalité Premium
+    </div>
+    <p style="color:var(--text-muted);font-size:0.9rem;max-width:340px;
+      margin:0 auto 24px;line-height:1.6">${desc}</p>
+    <button onclick="openPaymentModal()" class="btn btn-primary" style="font-size:0.95rem;padding:11px 26px">
+      ✦ Débloquer — 5 000 FCFA/mois
+    </button>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-top:10px">
+      ou 45 000 FCFA/an · Annulation à tout moment
+    </div>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════
+   V9 — seedDemoDataForMetier (30 métiers)
+═══════════════════════════════════════════════════════ */
+function seedDemoDataForMetier(metier) {
+  seedDemoData();
+  const map={
+    entrepreneur_btp:{nom:'BâtiPro Construction SARL',adresse:'Zone Industrielle Mbao',ville:'Dakar'},
+    electricien:{nom:'ÉlectroPro Installations',adresse:'Parcelles Assainies U26',ville:'Dakar'},
+    plombier:{nom:'Plomb & Sanitaire Services',adresse:'Grand-Dakar, Rue 12',ville:'Dakar'},
+    menuisier:{nom:'Atelier Bois & Métal',adresse:'Thiaroye, VDN',ville:'Thiaroye'},
+    peintre:{nom:'Peinture & Déco Pro',adresse:'Yeumbeul, Route Nationale',ville:'Yeumbeul'},
+    carreleur:{nom:'Carrelage & Maçonnerie Plus',adresse:'Pikine, Route de Rufisque',ville:'Pikine'},
+    soudeur:{nom:'Atelier Soudure & Ferronnerie',adresse:'Zone Industrielle',ville:'Dakar'},
+    garagiste:{nom:'Garage Auto Mécanique Pro',adresse:'Rufisque, Route Nationale',ville:'Rufisque'},
+    developpeur:{nom:'DevSénégal Agency',adresse:'Point E, Rue 8',ville:'Dakar'},
+    technicien_info:{nom:'TechRepair Services',adresse:'Zone Industrielle, Rue 15',ville:'Dakar'},
+    freelance_digital:{nom:'Creative Digital Studio',adresse:'Mermoz, Villa 12',ville:'Dakar'},
+    formateur_digital:{nom:'École Numérique Pro',adresse:'Liberté VI, Villa 4',ville:'Dakar'},
+    photographe:{nom:'Studio Photo Pro',adresse:'Plateau, Avenue Roume',ville:'Dakar'},
+    chauffeur:{nom:'Express Transport SN',adresse:'Colobane, Rue de Thiès',ville:'Dakar'},
+    boutique:{nom:'Boutique Excellence',adresse:'Marché Sandaga, Stand 42',ville:'Dakar'},
+    grossiste:{nom:'Diallo Import-Export SARL',adresse:'Zone Portuaire, Entrepôt 7',ville:'Dakar'},
+    pharmacie:{nom:'Pharmacie de la Paix',adresse:'Avenue Cheikh Anta Diop N°18',ville:'Dakar'},
+    superette:{nom:'Épicerie du Quartier',adresse:'HLM Grand-Yoff, Lot 5',ville:'Dakar'},
+    prestataire:{nom:'Conseil & Stratégie SN',adresse:'Plateau, Avenue Peytavin',ville:'Dakar'},
+    agence_com:{nom:'Agence Créative 360°',adresse:'Point E, Rue 8 x Rue 10',ville:'Dakar'},
+    nettoyage:{nom:'Clean Pro Services',adresse:'Ouakam, Voie de Dégagement',ville:'Dakar'},
+    securite:{nom:'Sécurité Sénégal SARL',adresse:'Plateau, Avenue Roume',ville:'Dakar'},
+    medecin:{nom:'Cabinet Médical Dr. Ndiaye',adresse:'Fann Résidence, Villa 5',ville:'Dakar'},
+    coiffeur:{nom:'Salon Beauté Prestige',adresse:'Sacré-Cœur III, Rue 10',ville:'Dakar'},
+    restaurateur:{nom:'Restaurant Le Thiébou',adresse:'Almadies, Route de Ngor',ville:'Dakar'},
+    boulanger:{nom:'Boulangerie du Sahel',adresse:'Grand-Yoff, Rue 12',ville:'Dakar'},
+    agent_immo:{nom:'Immobilier Sénégal SARL',adresse:'Plateau, Rue Carnot',ville:'Dakar'},
+    agriculteur:{nom:'Ferme Diallo & Fils',adresse:'Route de Thiès, KM 35',ville:'Thiès'},
+    ecole:{nom:'Institut de Formation Excellence',adresse:'Liberté VI, Villa 4',ville:'Dakar'},
+    pressing:{nom:'Pressing Net & Propre',adresse:'HLM Grand-Yoff, Rue 8',ville:'Dakar'},
+  };
+  const ov=map[metier]||map.boutique;
+  Store.set('company',{...Store.getObj('company',{}),...ov});
+  Store.set('settings',{metier,devise:'FCFA'});
 }
 
 window.addEventListener('beforeunload', () => {
@@ -4565,8 +4726,9 @@ function showPubModal() {
   if (user.plan === 'premium') return; // Pas de pub pour les Premium
 
   // Vérifier si déjà montré dans cette session
-  if (sessionStorage.getItem('dolipro_pub_shown')) return;
-  sessionStorage.setItem('dolipro_pub_shown', '1');
+  const _pubKey = 'dolipro_pub_' + (user.id || 'g');
+  if (sessionStorage.getItem(_pubKey)) return;
+  sessionStorage.setItem(_pubKey, '1');
 
   const overlay = document.getElementById('pub-overlay');
   if (!overlay) return;
@@ -4802,10 +4964,79 @@ function processPayment() {
   const btn = document.getElementById('pay-btn');
   if (btn) { btn.textContent = '⏳ Traitement en cours…'; btn.disabled = true; }
 
-  setTimeout(() => {
-    closePaymentModal();
-    activatePremiumFromPayment();
-  }, 2200);
+  // Dispatch vers méthode réelle
+  if (_selectedMethod==='wave')     { _launchWave();     return; }
+  if (_selectedMethod==='orange')   { _launchPayDunya(); return; }
+  if (_selectedMethod==='paydunya') { _launchPayDunya(); return; }
+  if (_selectedMethod==='card')     { _launchCard();     return; }
+}
+
+async function _launchWave() {
+  const m = _selectedPlan==='annuel'?45000:5000;
+  const btn = document.getElementById('pay-btn');
+  if(btn){btn.textContent='⏳ Connexion Wave…';btn.disabled=true;}
+  try {
+    // PRODUCTION: décommentez et remplacez WAVE_SECRET_KEY_ICI
+    // const r = await fetch('https://api.wave.com/v1/checkout/sessions',{
+    //   method:'POST',headers:{'Authorization':'Bearer WAVE_SECRET_KEY_ICI','Content-Type':'application/json'},
+    //   body:JSON.stringify({amount:m,currency:'XOF',
+    //     error_url:location.href+'?pay=fail',
+    //     success_url:location.href+'?pay=ok&plan='+_selectedPlan,
+    //     client_reference:(getCurrentUser()||{}).id||'guest'})
+    // });
+    // const d=await r.json();
+    // if(d.wave_launch_url){localStorage.setItem('dp_plan',_selectedPlan);location.href=d.wave_launch_url;return;}
+    // MODE DÉMO (supprimer en production)
+    throw new Error('demo');
+  } catch(e) {
+    toast('Wave — Mode démonstration activé','warning');
+    setTimeout(()=>{closePaymentModal();activatePremiumFromPayment();},1500);
+    if(btn){btn.disabled=false;}
+  }
+}
+
+async function _launchPayDunya() {
+  const m = _selectedPlan==='annuel'?45000:5000;
+  const btn = document.getElementById('pay-btn');
+  if(btn){btn.textContent='⏳ Connexion PayDunya…';btn.disabled=true;}
+  try {
+    // PRODUCTION: décommentez et remplacez les clés PayDunya
+    // const r = await fetch('https://app.paydunya.com/api/v1/checkout-invoice/create',{
+    //   method:'POST',
+    //   headers:{'PAYDUNYA-MASTER-KEY':'MK','PAYDUNYA-PRIVATE-KEY':'PK','PAYDUNYA-TOKEN':'TK','Content-Type':'application/json'},
+    //   body:JSON.stringify({invoice:{total_amount:m,description:'DoliPro Premium '+_selectedPlan},
+    //     store:{name:'DoliPro Manager'},
+    //     actions:{cancel_url:location.href+'?pay=fail',return_url:location.href+'?pay=ok&plan='+_selectedPlan}})
+    // });
+    // const d=await r.json();
+    // if(d.response_code==='00'){localStorage.setItem('dp_plan',_selectedPlan);location.href=d.invoice_url;return;}
+    throw new Error('demo');
+  } catch(e) {
+    toast('PayDunya — Mode démonstration activé','warning');
+    setTimeout(()=>{closePaymentModal();activatePremiumFromPayment();},1500);
+    if(btn){btn.disabled=false;}
+  }
+}
+
+function _launchCard() {
+  // PRODUCTION: Remplacez par vos Stripe Payment Links
+  // const links={mensuel:'https://buy.stripe.com/LIEN_MENSUEL',annuel:'https://buy.stripe.com/LIEN_ANNUEL'};
+  // localStorage.setItem('dp_plan',_selectedPlan); location.href=links[_selectedPlan]; return;
+  toast('Carte bancaire — Mode démonstration activé','warning');
+  setTimeout(()=>{closePaymentModal();activatePremiumFromPayment();},1800);
+}
+
+function checkRetourPaiement() {
+  const p = new URLSearchParams(location.search);
+  const stat = p.get('pay'); const plan = p.get('plan')||localStorage.getItem('dp_plan');
+  if(stat==='ok'&&plan){
+    localStorage.removeItem('dp_plan');
+    history.replaceState({},'',location.pathname);
+    _selectedPlan=plan; setTimeout(()=>activatePremiumFromPayment(),600);
+  } else if(stat==='fail'){
+    history.replaceState({},'',location.pathname);
+    setTimeout(()=>toast('Paiement annulé. Réessayez.','danger'),500);
+  }
 }
 
 function activatePremiumFromPayment() {
@@ -4814,15 +5045,19 @@ function activatePremiumFromPayment() {
   if (!user) return;
   const idx = users.findIndex(u => u.id === user.id);
   if (idx >= 0) {
-    users[idx].plan = 'premium';
-    users[idx].premiumSince = fmt.dateISO();
-    users[idx].premiumPlan  = _selectedPlan;
+    const _dur = _selectedPlan==='annuel' ? 365 : 30;
+    const _exp = new Date(); _exp.setDate(_exp.getDate()+_dur);
+    const _expStr = _exp.toISOString().split('T')[0];
+    users[idx].plan='premium'; users[idx].premiumSince=fmt.dateISO();
+    users[idx].premiumPlan=_selectedPlan; users[idx].premiumExpires=_expStr;
+    users[idx].premiumNotified7j=false; users[idx].premiumNotified3j=false; users[idx].premiumNotified1j=false;
     saveAllUsers(users);
-    if (App.user) { App.user.plan = 'premium'; App.user.premiumSince = fmt.dateISO(); }
+    if (App.user){App.user.plan='premium';App.user.premiumExpires=_expStr;}
   }
   // Confettis + toast
   if (typeof launchConfetti === 'function') launchConfetti();
-  toast('🎉 Premium activé ! Bienvenue dans DoliPro Premium ✦', 'success');
+  const _expD = (App.user?.premiumExpires) ? fmt.date(App.user.premiumExpires) : '30 jours';
+  toast('🎉 Premium activé ! Valable jusqu\'au '+_expD, 'success');
   applyProfil();
   updateUserNav();
   render();
