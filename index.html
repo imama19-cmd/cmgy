@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DoliPro Manager v9</title>
+<title>DoliPro Manager v10</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1023,30 +1023,41 @@ table { border-collapse: collapse; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 /* ── Desktop XL (1280px+) ── */
+/* ── 2XL: Desktop large 1280px+ ── */
 @media (min-width: 1280px) {
   .stats-grid { grid-template-columns: repeat(5, 1fr) !important; }
+  .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
   .dashboard-grid { grid-template-columns: 2fr 1fr !important; }
   .dashboard-grid-3 { grid-template-columns: repeat(3, 1fr) !important; }
-  .kpi-grid { grid-template-columns: repeat(4, 1fr) !important; }
+  .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ── Tablette (768px–1279px) ── */
-@media (min-width: 768px) and (max-width: 1279px) {
+/* ── LG: Tablette large 1024px-1279px ── */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
+  .kpi-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .dashboard-grid { grid-template-columns: 3fr 2fr !important; }
+  .dashboard-grid-3 { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* ── MD: Tablette 768px-1023px ── */
+@media (min-width: 768px) and (max-width: 1023px) {
   :root { --sidebar-width: 220px; }
   .stats-grid { grid-template-columns: repeat(3, 1fr) !important; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
   .dashboard-grid { grid-template-columns: 1fr !important; }
   .dashboard-grid-3 { grid-template-columns: repeat(2, 1fr) !important; }
+  .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ── Mobile principal (< 768px) ── */
+/* ── SM: Mobile < 768px ── */
 @media (max-width: 767px) {
   /* Sidebar slide */
   .sidebar {
     position: fixed !important;
     top: 0; left: 0;
     height: 100% !important;
-    width: min(280px, 85vw) !important;
+    width: min(280px, 88vw) !important;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 200;
@@ -1068,156 +1079,84 @@ table { border-collapse: collapse; }
   .sidebar-overlay.visible { display: block !important; }
 
   /* Layout */
-  .main-wrap {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
-
-  /* Force 16px on inputs to prevent iOS zoom */
-  input, select, textarea { font-size: 16px !important; }
-  /* Topbar */
+  .main-wrap { margin-left: 0 !important; width: 100% !important; max-width: 100vw; overflow-x: hidden; }
+  .page-content { padding: 12px !important; width: 100%; max-width: 100vw; overflow-x: hidden; }
   .topbar { padding: 0 12px !important; }
   .topbar-search { display: none !important; }
   .topbar-menu-btn { display: flex !important; flex-shrink: 0; }
   .topbar-right { gap: 4px !important; }
 
-  /* Page content */
-  .page-content {
-    padding: 12px !important;
-    width: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
-  }
+  /* Force 16px on inputs to prevent iOS zoom */
+  input, select, textarea { font-size: 16px !important; }
 
   /* En-tête de page */
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 14px !important;
-  }
-  .page-actions {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .page-actions .btn {
-    width: 100% !important;
-    justify-content: center;
-  }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 14px !important; }
+  .page-actions { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+  .page-actions .btn { width: 100% !important; justify-content: center; }
 
   /* Cards */
   .card { margin-bottom: 10px !important; overflow: hidden; }
   .card-body { padding: 14px !important; }
 
-  /* Grilles — toutes en colonnes */
+  /* Grilles */
   .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
   .kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
   .form-grid { grid-template-columns: 1fr !important; gap: 10px !important; }
   .col-span-2 { grid-column: span 1 !important; }
-  .dashboard-grid,
-  .dashboard-grid-3 { grid-template-columns: 1fr !important; gap: 10px !important; }
+  .dashboard-grid, .dashboard-grid-3 { grid-template-columns: 1fr !important; gap: 10px !important; }
 
   /* Lignes de document */
   .doc-line { grid-template-columns: 1fr !important; }
   .doc-lines-header { display: none !important; }
 
   /* Tables scrollables */
-  .table-container {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .table-container { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
   table { min-width: 480px; width: max-content; }
   .td-actions { white-space: nowrap; }
-  .td-actions .btn {
-    padding: 4px 8px !important;
-    font-size: 0.76rem !important;
-  }
+  .td-actions .btn { padding: 4px 8px !important; font-size: 0.76rem !important; }
 
   /* Modales → bottom sheet */
-  .modal-overlay {
-    align-items: flex-end !important;
-    padding: 0 !important;
-  }
-  .modal {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  .modal-footer {
-    flex-direction: column-reverse !important;
-    gap: 8px;
-  }
+  .modal-overlay { align-items: flex-end !important; padding: 0 !important; }
+  .modal { width: 100% !important; max-width: 100% !important; border-radius: 20px 20px 0 0 !important; max-height: 92vh !important; overflow-y: auto !important; overflow-x: hidden !important; -webkit-overflow-scrolling: touch; }
+  .modal-footer { flex-direction: column-reverse !important; gap: 8px; }
   .modal-footer .btn { width: 100% !important; }
 
   /* Auth */
-  #auth-screen > div { padding: 16px 12px 48px !important; }
-  #form-login,
-  #form-register {
-    padding: 20px 16px 28px !important;
-    border-radius: 16px !important;
-  }
-  #metier-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  #auth-screen { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
+  #auth-screen > div { align-items: flex-start !important; padding: 20px 12px 60px !important; min-height: 100% !important; }
+  #form-login, #form-register { padding: 20px 16px !important; border-radius: 16px !important; }
+  #metier-grid { grid-template-columns: repeat(3, 1fr) !important; max-height: 200px !important; }
 
   /* Pub & paiement modals */
   #pub-overlay { padding: 12px !important; }
   #pub-box { border-radius: 16px !important; max-width: 100% !important; }
   #payment-overlay { align-items: flex-end !important; padding: 0 !important; }
-  #payment-box {
-    width: 100% !important;
-    max-width: 100% !important;
-    border-radius: 20px 20px 0 0 !important;
-    max-height: 90vh !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-  #payment-box .grid2 { grid-template-columns: 1fr 1fr !important; }
+  #payment-box { width: 100% !important; max-width: 100% !important; border-radius: 20px 20px 0 0 !important; max-height: 92vh !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch; }
+  #payment-box .grid3 { grid-template-columns: 1fr !important; }
 
   /* Stat cards compactes */
   .stat-card { padding: 12px 14px !important; }
   .stat-value { font-size: 1.5rem !important; }
   .stat-label { font-size: 0.78rem !important; }
 
-  /* Settings sections */
+  /* Settings */
   .settings-section { margin-bottom: 16px !important; }
 }
 
-/* ── Petit mobile (< 576px) ── */
+/* ── XS: Petit mobile < 576px ── */
 @media (max-width: 575px) {
-  /* Cacher les boutons topbar non essentiels */
-  .topbar-right .topbar-btn:not(#dark-toggle-btn):not(.topbar-menu-btn) {
-    display: none !important;
-  }
-
-  /* Grille métier 2 colonnes */
+  .topbar-right .topbar-btn:not(#dark-toggle-btn):not(.topbar-menu-btn) { display: none !important; }
   #metier-grid { grid-template-columns: repeat(2, 1fr) !important; }
-
-  /* Cards plus compactes */
   .stat-value { font-size: 1.3rem !important; }
   .modal-body { padding: 14px 12px !important; }
   .modal-header { padding: 14px 16px !important; }
-
-  /* Formulaires */
-  #form-login,
-  #form-register { padding: 16px 14px 24px !important; }
-
-  /* Tables encore plus petites */
+  #form-login, #form-register { padding: 16px 14px 24px !important; }
   table { min-width: 420px; }
   .td-actions .btn { padding: 3px 6px !important; font-size: 0.72rem !important; }
-
-  /* Paiement plan */
-  #payment-box .grid2 { grid-template-columns: 1fr !important; }
+  #payment-box .grid3 { grid-template-columns: 1fr !important; }
 }
 
-/* ── Très petit (< 400px) ── */
+/* ── XXS: Très petit < 400px ── */
 @media (max-width: 399px) {
   .stats-grid { grid-template-columns: 1fr !important; }
   .kpi-grid { grid-template-columns: 1fr 1fr !important; }
@@ -1225,8 +1164,7 @@ table { border-collapse: collapse; }
   .page-content { padding: 8px !important; }
   .card-body { padding: 10px 8px !important; }
   .topbar { padding: 0 8px !important; }
-  #form-login,
-  #form-register { padding: 14px 10px 20px !important; }
+  #form-login, #form-register { padding: 14px 10px 20px !important; }
   .stat-value { font-size: 1.2rem !important; }
   table { min-width: 380px; }
 }
@@ -1354,7 +1292,7 @@ table { border-collapse: collapse; }
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v9.0</span></div>
+      <div class="sidebar-brand">DoliPro<span>Manager v10.0</span></div>
     </div>
     <div class="sidebar-nav">
       <p class="nav-section-label">Principal</p>
@@ -1721,6 +1659,30 @@ const PROFILS = {
 
 const LIMITS_FREE = {
   clients:10, factures:20, devis:10, produits:15, membres:1, rapports:false
+};
+
+const PLANS = {
+  free: {
+    label: 'Gratuit', prix: 0, devise: 'FCFA',
+    membres: 1, workspaces: 1,
+    limits: { clients:10, factures:20, devis:10, produits:15 },
+    features: ['Factures & devis PDF','Gestion clients','Stock basique','Comptabilité simple'],
+    locked: ['Rapports avancés','Multi-utilisateurs','Export CSV','Support prioritaire']
+  },
+  standard: {
+    label: 'Standard', prix: 5000, devise: 'FCFA/mois',
+    membres: 1, workspaces: 1,
+    limits: { clients:9999, factures:9999, devis:9999, produits:9999 },
+    features: ['Tout Gratuit +','Clients illimités','Rapports & exports CSV','Pas de filigrane PDF','Support email'],
+    locked: ['Multi-utilisateurs','Sous-comptes employés']
+  },
+  business: {
+    label: 'Business', prix: 25000, devise: 'FCFA/mois',
+    membres: 5, workspaces: 3,
+    limits: { clients:9999, factures:9999, devis:9999, produits:9999 },
+    features: ['Tout Standard +','5 sous-comptes employés','3 espaces de travail','Rapports avancés N/N-1','Support prioritaire WhatsApp'],
+    locked: []
+  }
 };
 
 /* ══════════════════════════════════════════════════════
@@ -2391,11 +2353,10 @@ function saveClient(id) {
   closeModal(); toast(id?'Client modifié':'Client créé','success'); render();
 }
 function deleteClient(id) {
-  confirmModal('Supprimer ce client ? Ses factures et devis associés ne seront pas supprimés.', () => {
-    const clients = Store.get('clients').filter(c=>c.id!==id);
-    Store.set('clients', clients);
-    toast('Client supprimé','success'); render();
-  });
+  const client = Store.get('clients',[]).find(c=>c.id===id);
+  if (!confirm(`Supprimer "${client?.nom||'ce client'}" ?\n\nCette action est irréversible.`)) return;
+  Store.set('clients', Store.get('clients',[]).filter(c=>c.id!==id));
+  toast('Client supprimé','success'); render();
 }
 function viewClient(id) {
   const clients = Store.get('clients');
@@ -2442,10 +2403,13 @@ function renderFactures() {
   const profil = getCurrentProfil();
   const termFacture = profil.terminologie?.facture || 'Facture';
   const termClient  = profil.terminologie?.client  || 'Client';
-  const filtered = factures.filter(f =>
-    (!factureSearch || f.numero?.toLowerCase().includes(factureSearch) || f.clientNom?.toLowerCase().includes(factureSearch)) &&
-    (!factureStatut || f.statut===factureStatut)
-  ).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const filtered = factures.filter(f => {
+    const matchSearch = !factureSearch || f.numero?.toLowerCase().includes(factureSearch) || f.clientNom?.toLowerCase().includes(factureSearch) || String(f.totalTTC||0).includes(factureSearch);
+    if (factureStatut === 'retard') {
+      return matchSearch && f.statut==='validee' && f.echeance && new Date(f.echeance) < new Date();
+    }
+    return matchSearch && (!factureStatut || f.statut===factureStatut);
+  }).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const total = filtered.length;
   const pages = Math.ceil(total/PAGE_SIZE)||1;
   facturePage = Math.min(facturePage, pages);
@@ -2470,6 +2434,7 @@ function renderFactures() {
       <option value="validee" ${factureStatut==='validee'?'selected':''}>Validée</option>
       <option value="payee" ${factureStatut==='payee'?'selected':''}>Payée</option>
       <option value="annulee" ${factureStatut==='annulee'?'selected':''}>Annulée</option>
+      <option value="retard" ${factureStatut==='retard'?'selected':''}>⚠️ En retard</option>
     </select>
   </div>
   <div class="table-container">
@@ -2617,6 +2582,14 @@ function editDoc(type, id) {
         <strong style="flex:1;font-size:0.88rem">Lignes du document</strong>
         <button class="btn btn-sm btn-outline" onclick="openProduitPicker()">+ Produit catalogue</button>
         <button class="btn btn-sm btn-outline" onclick="addDocLine()">+ Ligne</button>
+        <button class="btn btn-sm btn-outline" onclick="addLigneMainOeuvre()">👷 + Main d'œuvre</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--bg);border-radius:var(--radius)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;font-weight:600">
+          <input type="checkbox" id="doc-tva-active" ${(doc?.tvaActive !== false) ? 'checked' : ''} onchange="toggleTVA(this.checked)" style="width:16px;height:16px;accent-color:var(--primary)">
+          Facturer la TVA
+        </label>
+        <span style="font-size:0.8rem;color:var(--text-muted)">Décochez si vous n'êtes pas assujetti à la TVA</span>
       </div>
       <div class="doc-lines-header">
         <span>Description</span><span>Qté</span><span>P.U. HT</span><span>TVA %</span><span></span>
@@ -2632,21 +2605,61 @@ function editDoc(type, id) {
 function renderDocLines() {
   const container = document.getElementById('doc-lines-container');
   if (!container) return;
-  container.innerHTML = docLines.map((l,i) => `
-    <div class="doc-line" id="line-${l.id}">
-      <input class="form-control" placeholder="Description" value="${esc(l.description||'')}" oninput="docLines[${i}].description=this.value">
-      <input class="form-control" type="number" min="0" step="0.01" value="${l.quantite||1}" oninput="docLines[${i}].quantite=parseFloat(this.value)||0;updateDocTotaux()">
-      <input class="form-control" type="number" min="0" step="1" value="${l.prixHT||0}" oninput="docLines[${i}].prixHT=parseFloat(this.value)||0;updateDocTotaux()">
-      <input class="form-control" type="number" min="0" max="100" value="${l.tva||18}" oninput="docLines[${i}].tva=parseFloat(this.value)||0;updateDocTotaux()">
+  const tvaActive = document.getElementById('doc-tva-active')?.checked !== false;
+  container.innerHTML = docLines.map((l,i) => {
+    const isMainOeuvre = l.type === 'main_oeuvre';
+    const lineStyle = isMainOeuvre
+      ? 'background:rgba(234,179,8,0.08);border-left:3px solid #eab308;border-radius:6px;padding-left:8px;margin-bottom:6px'
+      : 'margin-bottom:6px';
+    const badge = isMainOeuvre ? '<span style="font-size:0.7rem;background:#eab308;color:#fff;padding:1px 6px;border-radius:8px;margin-right:6px">👷 MO</span>' : '';
+    const uniteOptions = isMainOeuvre
+      ? `<select class="form-control" style="min-width:80px" onchange="docLines[${i}].unite=this.value">
+          <option value="heure" ${l.unite==='heure'?'selected':''}>heure</option>
+          <option value="jour" ${l.unite==='jour'?'selected':''}>jour</option>
+          <option value="forfait" ${l.unite==='forfait'?'selected':''}>forfait</option>
+        </select>`
+      : '';
+    return `
+    <div class="doc-line" id="line-${l.id}" style="${lineStyle}">
+      <div style="display:flex;align-items:center;gap:4px;flex:1">
+        ${badge}
+        <input class="form-control" placeholder="Description" value="${esc(l.description||'')}" oninput="docLines[${i}].description=this.value" style="flex:1">
+      </div>
+      ${uniteOptions}
+      <input class="form-control" type="number" min="0" step="0.01" value="${l.quantite||1}" oninput="docLines[${i}].quantite=parseFloat(this.value)||0;updateDocTotaux()" placeholder="Qté">
+      <input class="form-control" type="number" min="0" step="1" value="${l.prixHT||0}" oninput="docLines[${i}].prixHT=parseFloat(this.value)||0;updateDocTotaux()" placeholder="${isMainOeuvre?'Prix/unité':'P.U. HT'}">
+      <input class="form-control" type="number" min="0" max="100" value="${l.tva||0}" oninput="docLines[${i}].tva=parseFloat(this.value)||0;updateDocTotaux()" placeholder="TVA%" ${tvaActive?'':'style="display:none"'}>
       <button class="btn btn-icon" style="color:var(--danger)" onclick="removeDocLine(${i})" ${docLines.length<=1?'disabled':''}>
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-  `).join('');
+  `}).join('');
   updateDocTotaux();
 }
+
+function addLigneMainOeuvre() {
+  docLines.push({
+    id: uid(),
+    description: "Main d'œuvre",
+    quantite: 1,
+    unite: 'heure',
+    prixHT: 0,
+    tva: document.getElementById('doc-tva-active')?.checked ? 18 : 0,
+    type: 'main_oeuvre'
+  });
+  renderDocLines();
+  toast("Ligne main d'œuvre ajoutée", 'success');
+}
+
+function toggleTVA(active) {
+  docLines = docLines.map(l => ({ ...l, tva: active ? (l.tva || 18) : 0 }));
+  renderDocLines();
+  updateDocTotaux();
+}
+
 function addDocLine() {
-  docLines.push({ id:uid(), description:'', quantite:1, prixHT:0, tva:18 });
+  const tvaActive = document.getElementById('doc-tva-active')?.checked !== false;
+  docLines.push({ id:uid(), description:'', quantite:1, prixHT:0, tva: tvaActive ? 18 : 0 });
   renderDocLines();
 }
 function removeDocLine(i) {
@@ -2657,16 +2670,17 @@ function removeDocLine(i) {
 function updateDocTotaux() {
   const tot = document.getElementById('doc-totaux');
   if (!tot) return;
+  const tvaActive = document.getElementById('doc-tva-active')?.checked !== false;
   let ht=0, tva=0;
   docLines.forEach(l => {
     const lineHT = (l.quantite||0)*(l.prixHT||0);
     ht += lineHT;
     tva += lineHT*(l.tva||0)/100;
   });
-  const ttc = ht+tva;
+  const ttc = ht + (tvaActive ? tva : 0);
   tot.innerHTML = `
     <div class="doc-total-row"><span>Total HT</span><span>${fmt.fcfa(ht)}</span></div>
-    <div class="doc-total-row"><span>TVA</span><span>${fmt.fcfa(tva)}</span></div>
+    ${tvaActive ? `<div class="doc-total-row"><span>TVA</span><span>${fmt.fcfa(tva)}</span></div>` : ''}
     <div class="doc-total-row main"><span>Total TTC</span><span>${fmt.fcfa(ttc)}</span></div>
   `;
 }
@@ -2691,9 +2705,10 @@ function saveDoc(type, id) {
   const totals = calcTotals(docLines);
   const echeance = document.getElementById('doc-echeance').value;
   const notes = document.getElementById('doc-notes').value;
+  const tvaActive = document.getElementById('doc-tva-active')?.checked !== false;
   const data = {
     clientId, clientNom: client?.nom||'', date, echeance: echeance||null,
-    validite: echeance||null, notes,
+    validite: echeance||null, notes, tvaActive,
     lignes: JSON.parse(JSON.stringify(docLines)),
     totalHT: totals.ht, totalTVA: totals.tva, totalTTC: totals.ttc,
     updatedAt: now()
@@ -2702,7 +2717,7 @@ function saveDoc(type, id) {
     const i = docs.findIndex(d=>d.id===id);
     if (i>=0) docs[i] = {...docs[i], ...data};
   } else {
-    const num = genNumero(type);
+    const num = getNextNumero(type);
     docs.push({ id:uid(), numero:num, statut:'brouillon', createdAt:now(), ...data });
   }
   Store.set(storeKey, docs);
@@ -2710,14 +2725,21 @@ function saveDoc(type, id) {
   closeModal(); toast(id?'Document modifié':'Document créé','success'); render();
 }
 
-function genNumero(type) {
-  const prefix = type==='facture' ? 'FAC' : 'DEV';
-  const year = new Date().getFullYear();
-  const docs = Store.get(type==='facture'?'factures':'devis');
-  const nums = docs.filter(d=>d.numero?.startsWith(`${prefix}-${year}`)).map(d=>parseInt(d.numero?.split('-').pop()||0));
-  const max = nums.length ? Math.max(...nums) : 0;
-  return `${prefix}-${year}-${String(max+1).padStart(3,'0')}`;
+function getNextNumero(type) {
+  const prefix = type === 'facture' ? 'FAC' : 'DEV';
+  const year   = new Date().getFullYear();
+  const docs   = Store.get(type==='facture'?'factures':'devis', []);
+  let maxSeq = 0;
+  const pattern = new RegExp(`^${prefix}-${year}-(\\d+)$`);
+  docs.forEach(d => {
+    const m = (d.numero||'').match(pattern);
+    if (m) maxSeq = Math.max(maxSeq, parseInt(m[1]));
+  });
+  const next = String(maxSeq + 1).padStart(3, '0');
+  return `${prefix}-${year}-${next}`;
 }
+// Alias pour compatibilité
+function genNumero(type) { return getNextNumero(type); }
 function changeDocStatut(type, id, statut) {
   const storeKey = type==='facture'?'factures':'devis';
   const docs = Store.get(storeKey);
@@ -2730,11 +2752,11 @@ function changeDocStatut(type, id, statut) {
   toast('Statut mis à jour','success'); render();
 }
 function deleteDoc(type, id) {
-  confirmModal('Supprimer ce document définitivement ?', () => {
-    const key = type==='facture'?'factures':'devis';
-    Store.set(key, Store.get(key).filter(d=>d.id!==id));
-    updateBadges(); toast('Document supprimé','success'); render();
-  });
+  const key = type==='facture'?'factures':'devis';
+  const doc = Store.get(key,[]).find(d=>d.id===id);
+  if (!confirm(`Supprimer le document ${doc?.numero||''} ?\n\nCette action est irréversible.`)) return;
+  Store.set(key, Store.get(key,[]).filter(d=>d.id!==id));
+  updateBadges(); toast('Document supprimé','success'); render();
 }
 function convertDevisToFacture(devisId) {
   const devis = Store.get('devis');
@@ -2912,10 +2934,10 @@ function saveProduit(id) {
   updateBadges(); closeModal(); toast(id?'Produit modifié':'Produit créé','success'); render();
 }
 function deleteProduit(id) {
-  confirmModal('Supprimer ce produit du catalogue ?', () => {
-    Store.set('produits', Store.get('produits').filter(p=>p.id!==id));
-    updateBadges(); toast('Produit supprimé','success'); render();
-  });
+  const produit = Store.get('produits',[]).find(p=>p.id===id);
+  if (!confirm(`Supprimer "${produit?.nom||'ce produit'}" du catalogue ?\n\nCette action est irréversible.`)) return;
+  Store.set('produits', Store.get('produits',[]).filter(p=>p.id!==id));
+  updateBadges(); toast('Produit supprimé','success'); render();
 }
 function openMouvement() {
   const produits = Store.get('produits').filter(p=>p.quantite!==undefined);
@@ -3285,10 +3307,10 @@ function printDoc(type, id) {
               <td style="padding:6px 0;color:#64748b">Total HT</td>
               <td style="padding:6px 0;text-align:right;font-weight:600">${fmt.fcfa(doc.totalHT||0)}</td>
             </tr>
-            <tr>
+            ${doc.tvaActive !== false ? `<tr>
               <td style="padding:6px 0;color:#64748b">TVA</td>
               <td style="padding:6px 0;text-align:right;font-weight:600">${fmt.fcfa(doc.totalTVA||0)}</td>
-            </tr>
+            </tr>` : ''}
             <tr>
               <td colspan="2"><div style="height:1px;background:#e2e8f0;margin:6px 0"></div></td>
             </tr>
@@ -3564,6 +3586,7 @@ function applyProfil() {
    DASHBOARD ADAPTATIF
 ══════════════════════════════════════════════════════ */
 function renderDashboardAdapte() {
+  const kpi    = getKPI();  // ← Toujours appeler getKPI() en premier
   const profil = getCurrentProfil();
   const user   = getCurrentUser() || App.user;
   const base   = renderDashboard();
@@ -3576,14 +3599,15 @@ function renderDashboardAdapte() {
           ${profil.icon} Bonjour, ${(user?.nom || user?.name || 'vous').split(' ')[0]} !
         </div>
         <div style="opacity:0.85;font-size:0.9rem;margin-top:4px">${profil.description}</div>
+        <div style="opacity:0.75;font-size:0.8rem;margin-top:2px">CA ce mois : ${fmt.fcfa(kpi.caMois||0)} · En attente : ${fmt.fcfa(kpi.enAttente||0)}</div>
       </div>
-      ${user?.plan === 'free' ? `
+      ${user?.plan !== 'premium' ? `
         <button onclick="openPaymentModal()"
           style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);
           color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer">
           ✦ Passer Premium
         </button>` : `<span style="background:rgba(255,255,255,0.2);padding:6px 14px;
-          border-radius:20px;font-weight:700;font-size:0.82rem">✦ Premium</span>`}
+          border-radius:20px;font-weight:700;font-size:0.82rem">✦ ${PLANS[user?.planType||'standard']?.label||'Premium'}</span>`}
     </div>`;
   return banner + renderCompletudeBanner() + base;
 }
@@ -4136,11 +4160,11 @@ function saveTransaction(id) {
 }
 
 function deleteTransaction(id) {
-  confirmModal('Supprimer cette transaction ?', () => {
-    Store.set('transactions', Store.get('transactions',[]).filter(t => t.id !== id));
-    toast('Transaction supprimée','info');
-    navigate('comptabilite');
-  });
+  const txn = Store.get('transactions',[]).find(t=>t.id===id);
+  if (!confirm(`Supprimer la transaction "${txn?.description||''}" ?\n\nCette action est irréversible.`)) return;
+  Store.set('transactions', Store.get('transactions',[]).filter(t => t.id !== id));
+  toast('Transaction supprimée','info');
+  navigate('comptabilite');
 }
 
 function exportTransactionsCSV() {
@@ -5041,11 +5065,19 @@ function changeMetier(newMetier) {
       </div>
 
       <!-- CTA Premium -->
-      <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:12px;padding:14px 16px;margin-bottom:16px;border:1.5px solid #f59e0b">
-        <div style="font-weight:700;color:#92400e;margin-bottom:4px">✦ Passez Premium pour tout débloquer</div>
-        <div style="font-size:0.82rem;color:#78350f">Clients illimités · Multi-utilisateurs · Support prioritaire</div>
-        <div style="font-size:1.2rem;font-weight:700;color:#92400e;margin-top:8px">
-          5 000 FCFA / mois <span style="font-size:0.8rem;font-weight:400">ou 45 000 / an</span>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:700;color:var(--text);margin-bottom:10px;font-size:0.9rem">✦ Choisissez votre plan</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--bg);border-radius:10px;padding:12px;text-align:center;border:1.5px solid var(--border)">
+            <div style="font-weight:700;font-size:1rem;color:var(--primary)">5 000 FCFA</div>
+            <div style="font-size:0.78rem;color:var(--text-muted)">Standard / mois</div>
+            <div style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">1 utilisateur · illimité</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;padding:12px;text-align:center;border:1.5px solid #f59e0b">
+            <div style="font-weight:700;font-size:1rem;color:#92400e">25 000 FCFA</div>
+            <div style="font-size:0.78rem;color:#78350f">Business / mois</div>
+            <div style="font-size:0.75rem;margin-top:4px;color:#78350f">5 employés · multi-WS</div>
+          </div>
         </div>
       </div>
 
@@ -5101,22 +5133,30 @@ function changeMetier(newMetier) {
       <!-- Choix de formule -->
       <div style="margin-bottom:20px">
         <div style="font-weight:700;font-size:0.88rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Formule</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div id="plan-mensuel" onclick="selectPlan('mensuel')" style="
-            padding:14px;border-radius:12px;border:2px solid var(--primary);
-            background:rgba(30,111,217,0.06);cursor:pointer;text-align:center;transition:0.15s">
-            <div style="font-weight:700;font-size:1rem;color:var(--primary)">5 000 FCFA</div>
-            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">par mois</div>
-            <div style="font-size:0.75rem;margin-top:6px;background:var(--primary);color:#fff;border-radius:20px;padding:2px 10px">Sélectionné</div>
+        <div class="grid3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+
+          <!-- Gratuit -->
+          <div id="plan-free" onclick="selectPlan('free')" style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;text-align:center;transition:0.15s">
+            <div style="font-weight:700;font-size:0.95rem">Gratuit</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">0 FCFA</div>
+            <div style="font-size:0.72rem;margin-top:6px;color:var(--text-muted)">Limité</div>
           </div>
-          <div id="plan-annuel" onclick="selectPlan('annuel')" style="
-            padding:14px;border-radius:12px;border:2px solid var(--border);
-            background:var(--bg);cursor:pointer;text-align:center;transition:0.15s;position:relative">
-            <div style="position:absolute;top:-10px;right:8px;background:#f59e0b;color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:700">-25%</div>
-            <div style="font-weight:700;font-size:1rem">45 000 FCFA</div>
-            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">par an</div>
-            <div style="font-size:0.75rem;margin-top:6px;color:var(--text-muted)">Économisez 15 000</div>
+
+          <!-- Standard -->
+          <div id="plan-standard" onclick="selectPlan('standard')" style="padding:14px;border-radius:12px;border:2px solid var(--primary);background:rgba(30,111,217,0.06);cursor:pointer;text-align:center;transition:0.15s">
+            <div style="font-weight:700;font-size:0.95rem;color:var(--primary)">5 000 FCFA</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">/ mois</div>
+            <div style="font-size:0.72rem;margin-top:6px;background:var(--primary);color:#fff;border-radius:20px;padding:2px 8px">Standard</div>
           </div>
+
+          <!-- Business -->
+          <div id="plan-business" onclick="selectPlan('business')" style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;text-align:center;transition:0.15s;position:relative">
+            <div style="position:absolute;top:-10px;right:8px;background:#f59e0b;color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:700">Équipe</div>
+            <div style="font-weight:700;font-size:0.95rem">25 000 FCFA</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">/ mois</div>
+            <div style="font-size:0.72rem;margin-top:6px;color:var(--text-muted)">5 utilisateurs</div>
+          </div>
+
         </div>
       </div>
 
@@ -5249,14 +5289,14 @@ function closePubModal() {
 /* ══════════════════════════════════════════════════════
    V8 — SYSTÈME DE PAIEMENT PREMIUM
 ══════════════════════════════════════════════════════ */
-let _selectedPlan    = 'mensuel';
+let _selectedPlan    = 'standard';
 let _selectedMethod  = 'wave';
 
 function openPaymentModal() {
   const overlay = document.getElementById('payment-overlay');
   if (overlay) {
     overlay.style.display = 'flex';
-    selectPlan('mensuel');
+    selectPlan('standard');
     selectPayMethod('wave');
   }
 }
@@ -5268,28 +5308,30 @@ function closePaymentModal() {
 
 function selectPlan(plan) {
   _selectedPlan = plan;
-  const plans = { mensuel: 'plan-mensuel', annuel: 'plan-annuel' };
-  Object.entries(plans).forEach(([k, id]) => {
-    const el = document.getElementById(id);
+  const montants = { free:0, standard:5000, business:25000 };
+  ['free','standard','business'].forEach(p => {
+    const el = document.getElementById('plan-'+p);
     if (!el) return;
-    const isActive = k === plan;
-    el.style.borderColor = isActive ? 'var(--primary)' : 'var(--border)';
-    el.style.background   = isActive ? 'rgba(30,111,217,0.06)' : 'var(--bg)';
-    // Update badge
-    const badge = el.querySelector('div:last-child');
-    if (badge && badge.style.fontSize === '0.75rem') {
-      if (isActive) {
-        badge.style.background = 'var(--primary)';
-        badge.style.color = '#fff';
-        badge.textContent = 'Sélectionné';
-      } else {
-        badge.style.background = 'transparent';
-        badge.style.color = 'var(--text-muted)';
-        badge.textContent = k === 'annuel' ? 'Économisez 15 000' : '';
-      }
-    }
+    el.style.borderColor = p===plan ? 'var(--primary)' : 'var(--border)';
+    el.style.background  = p===plan ? 'rgba(30,111,217,0.06)' : 'var(--bg)';
   });
+  // Cacher méthodes de paiement si plan gratuit
+  const pmZone = document.getElementById('payment-methods');
+  if (pmZone) pmZone.style.display = plan==='free' ? 'none' : 'flex';
+  const payBtn = document.getElementById('pay-btn');
+  if (payBtn) {
+    if (plan === 'free') {
+      payBtn.textContent = '✓ Continuer en version gratuite';
+    } else {
+      payBtn.textContent = `💳 Payer ${montants[plan].toLocaleString('fr-FR')} FCFA via ${_getMethodLabel()}`;
+    }
+  }
   updatePayBtn();
+}
+
+function _getMethodLabel() {
+  const labels = { wave:'Wave', orange:'Orange Money', card:'Carte bancaire', paydunya:'PayDunya' };
+  return labels[_selectedMethod] || 'Wave';
 }
 
 function selectPayMethod(method) {
@@ -5423,12 +5465,16 @@ function formatCardExpiry(input) {
 function updatePayBtn() {
   const btn = document.getElementById('pay-btn');
   if (!btn) return;
-  const montant = _selectedPlan === 'mensuel' ? '5 000 FCFA' : '45 000 FCFA';
+  if (_selectedPlan === 'free') { btn.textContent = '✓ Continuer en version gratuite'; return; }
+  const montants = { standard: '5 000 FCFA', business: '25 000 FCFA' };
   const methods = { wave:'Wave', orange:'Orange Money', card:'Carte bancaire', paydunya:'PayDunya' };
-  btn.textContent = `💳 Payer ${montant} via ${methods[_selectedMethod]}`;
+  btn.textContent = `💳 Payer ${montants[_selectedPlan]||'5 000 FCFA'} via ${methods[_selectedMethod]}`;
 }
 
 function processPayment() {
+  // Plan gratuit : activation directe
+  if (_selectedPlan === 'free') { activatePremiumFromPayment(); return; }
+
   // Validation selon le mode de paiement
   if (_selectedMethod === 'card') {
     const num   = (document.getElementById('card-number')?.value || '').replace(/\s/g,'');
@@ -5444,11 +5490,9 @@ function processPayment() {
     if (phone.length < 9) { toast('Numéro de téléphone invalide (9 chiffres)', 'danger'); return; }
   }
 
-  // Simulation paiement — remplacer par vraie API (Wave, Stripe, PayDunya)
   const btn = document.getElementById('pay-btn');
   if (btn) { btn.textContent = '⏳ Traitement en cours…'; btn.disabled = true; }
 
-  // Dispatch vers méthode réelle
   if (_selectedMethod==='wave')     { _launchWave();     return; }
   if (_selectedMethod==='orange')   { _launchPayDunya(); return; }
   if (_selectedMethod==='paydunya') { _launchPayDunya(); return; }
@@ -5456,7 +5500,9 @@ function processPayment() {
 }
 
 async function _launchWave() {
-  const m = _selectedPlan==='annuel'?45000:5000;
+  const montants = { free:0, standard:5000, business:25000 };
+  const m = montants[_selectedPlan] || 5000;
+  if (m === 0) { activatePremiumFromPayment(); return; }
   const btn = document.getElementById('pay-btn');
   if(btn){btn.textContent='⏳ Connexion Wave…';btn.disabled=true;}
   try {
@@ -5470,17 +5516,18 @@ async function _launchWave() {
     // });
     // const d=await r.json();
     // if(d.wave_launch_url){localStorage.setItem('dp_plan',_selectedPlan);location.href=d.wave_launch_url;return;}
-    // MODE DÉMO (supprimer en production)
     throw new Error('demo');
   } catch(e) {
     toast('Wave — Mode démonstration activé','warning');
-    setTimeout(()=>{closePaymentModal();activatePremiumFromPayment();},1500);
+    setTimeout(()=>{ activatePremiumFromPayment(); },1500);
     if(btn){btn.disabled=false;}
   }
 }
 
 async function _launchPayDunya() {
-  const m = _selectedPlan==='annuel'?45000:5000;
+  const montants = { free:0, standard:5000, business:25000 };
+  const m = montants[_selectedPlan] || 5000;
+  if (m === 0) { activatePremiumFromPayment(); return; }
   const btn = document.getElementById('pay-btn');
   if(btn){btn.textContent='⏳ Connexion PayDunya…';btn.disabled=true;}
   try {
@@ -5488,7 +5535,7 @@ async function _launchPayDunya() {
     // const r = await fetch('https://app.paydunya.com/api/v1/checkout-invoice/create',{
     //   method:'POST',
     //   headers:{'PAYDUNYA-MASTER-KEY':'MK','PAYDUNYA-PRIVATE-KEY':'PK','PAYDUNYA-TOKEN':'TK','Content-Type':'application/json'},
-    //   body:JSON.stringify({invoice:{total_amount:m,description:'DoliPro Premium '+_selectedPlan},
+    //   body:JSON.stringify({invoice:{total_amount:m,description:'DoliPro '+PLANS[_selectedPlan].label},
     //     store:{name:'DoliPro Manager'},
     //     actions:{cancel_url:location.href+'?pay=fail',return_url:location.href+'?pay=ok&plan='+_selectedPlan}})
     // });
@@ -5497,54 +5544,69 @@ async function _launchPayDunya() {
     throw new Error('demo');
   } catch(e) {
     toast('PayDunya — Mode démonstration activé','warning');
-    setTimeout(()=>{closePaymentModal();activatePremiumFromPayment();},1500);
+    setTimeout(()=>{ activatePremiumFromPayment(); },1500);
     if(btn){btn.disabled=false;}
   }
 }
 
 function _launchCard() {
+  if (_selectedPlan === 'free') { activatePremiumFromPayment(); return; }
   // PRODUCTION: Remplacez par vos Stripe Payment Links
-  // const links={mensuel:'https://buy.stripe.com/LIEN_MENSUEL',annuel:'https://buy.stripe.com/LIEN_ANNUEL'};
+  // const links={standard:'https://buy.stripe.com/LIEN_STANDARD',business:'https://buy.stripe.com/LIEN_BUSINESS'};
   // localStorage.setItem('dp_plan',_selectedPlan); location.href=links[_selectedPlan]; return;
   toast('Carte bancaire — Mode démonstration activé','warning');
-  setTimeout(()=>{closePaymentModal();activatePremiumFromPayment();},1800);
+  setTimeout(()=>{ activatePremiumFromPayment(); },1800);
 }
 
 function checkRetourPaiement() {
   const p = new URLSearchParams(location.search);
-  const stat = p.get('pay'); const plan = p.get('plan')||localStorage.getItem('dp_plan');
-  if(stat==='ok'&&plan){
+  const stat = p.get('pay');
+  const plan = p.get('plan') || localStorage.getItem('dp_plan');
+  if (stat==='ok' && plan && PLANS[plan]) {
     localStorage.removeItem('dp_plan');
     history.replaceState({},'',location.pathname);
-    _selectedPlan=plan; setTimeout(()=>activatePremiumFromPayment(),600);
-  } else if(stat==='fail'){
+    _selectedPlan = plan;
+    setTimeout(()=>activatePremiumFromPayment(), 600);
+  } else if (stat==='fail') {
     history.replaceState({},'',location.pathname);
-    setTimeout(()=>toast('Paiement annulé. Réessayez.','danger'),500);
+    setTimeout(()=>toast('Paiement annulé. Réessayez.','danger'), 500);
   }
 }
 
 function activatePremiumFromPayment() {
+  const planConfig = PLANS[_selectedPlan] || PLANS.standard;
+  const duree = (_selectedPlan === 'business' || _selectedPlan === 'standard') ? 30 : 0;
+  const exp = duree > 0 ? (() => { const d=new Date(); d.setDate(d.getDate()+duree); return d.toISOString().split('T')[0]; })() : null;
+
   const users = getAllUsers();
   const user  = getCurrentUser() || App.user;
   if (!user) return;
   const idx = users.findIndex(u => u.id === user.id);
   if (idx >= 0) {
-    const _dur = _selectedPlan==='annuel' ? 365 : 30;
-    const _exp = new Date(); _exp.setDate(_exp.getDate()+_dur);
-    const _expStr = _exp.toISOString().split('T')[0];
-    users[idx].plan='premium'; users[idx].premiumSince=fmt.dateISO();
-    users[idx].premiumPlan=_selectedPlan; users[idx].premiumExpires=_expStr;
-    users[idx].premiumNotified7j=false; users[idx].premiumNotified3j=false; users[idx].premiumNotified1j=false;
+    users[idx].plan           = _selectedPlan === 'free' ? 'free' : 'premium';
+    users[idx].planType       = _selectedPlan;
+    users[idx].premiumExpires = exp;
+    users[idx].premiumSince   = fmt.dateISO();
+    users[idx].maxMembres     = planConfig.membres;
+    users[idx].premiumNotified7j = false;
+    users[idx].premiumNotified3j = false;
+    users[idx].premiumNotified1j = false;
     saveAllUsers(users);
-    if (App.user){App.user.plan='premium';App.user.premiumExpires=_expStr;}
+    if (App.user) {
+      App.user.plan = _selectedPlan === 'free' ? 'free' : 'premium';
+      App.user.planType = _selectedPlan;
+      App.user.premiumExpires = exp;
+    }
   }
-  // Confettis + toast
-  if (typeof launchConfetti === 'function') launchConfetti();
-  const _expD = (App.user?.premiumExpires) ? fmt.date(App.user.premiumExpires) : '30 jours';
-  toast('🎉 Premium activé ! Valable jusqu\'au '+_expD, 'success');
-  applyProfil();
-  updateUserNav();
-  render();
+  if (_selectedPlan !== 'free') {
+    if (typeof launchConfetti === 'function') launchConfetti();
+    const expDate = exp ? fmt.date(exp) : '30 jours';
+    toast(`🎉 Plan ${planConfig.label} activé ! Valable jusqu'au ${expDate}`, 'success');
+  } else {
+    toast('Compte gratuit configuré.', 'info');
+  }
+  closePaymentModal();
+  applyProfil(); updateUserNav(); render();
 }
 </script>
 
