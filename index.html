@@ -1050,7 +1050,13 @@ table { border-collapse: collapse; }
   .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ── SM: Mobile < 768px ── */
+/* ── MD: Tablette auth — panneau gauche réduit ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  #auth-left { flex: 0 0 38% !important; padding: 36px 24px !important; }
+  #auth-left .auth-features { display: none; }
+}
+
+/* ── SM: Mobile auth — panneau gauche caché ── */
 @media (max-width: 767px) {
   /* Sidebar slide */
   .sidebar {
@@ -1121,11 +1127,16 @@ table { border-collapse: collapse; }
   .modal-footer { flex-direction: column-reverse !important; gap: 8px; }
   .modal-footer .btn { width: 100% !important; }
 
-  /* Auth */
-  #auth-screen { overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
-  #auth-screen > div { align-items: flex-start !important; padding: 20px 12px 60px !important; min-height: 100% !important; }
-  #form-login, #form-register { padding: 20px 16px !important; border-radius: 16px !important; }
-  #metier-grid { grid-template-columns: repeat(3, 1fr) !important; max-height: 200px !important; }
+  /* Auth split-panel → plein écran mobile */
+  #auth-screen { flex-direction: column !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; }
+  #auth-left { display: none !important; }
+  #auth-right { flex: 1 !important; align-items: flex-start !important; padding: 28px 16px 60px !important; min-height: 100% !important; background: linear-gradient(160deg,#0f172a 0%,#1a3f8a 100%) !important; }
+  #auth-right > div { width: 100% !important; max-width: 100% !important; }
+  /* Logo mobile au-dessus des onglets */
+  #auth-right::before { content: 'DoliPro'; display: block; font-family: 'Fraunces',serif; font-size: 2rem; font-weight: 700; color: #fff; text-align: center; margin-bottom: 4px; }
+  #auth-right::after { content: 'Manager v10 · Votre gestion, à votre image'; display: block; font-size: 0.82rem; color: rgba(255,255,255,0.5); text-align: center; margin-bottom: 24px; }
+  #form-login, #form-register { padding: 24px 18px !important; border-radius: 16px !important; }
+  #metier-grid { grid-template-columns: repeat(3, 1fr) !important; max-height: 180px !important; }
 
   /* Pub & paiement modals */
   #pub-overlay { padding: 12px !important; }
@@ -1150,7 +1161,7 @@ table { border-collapse: collapse; }
   .stat-value { font-size: 1.3rem !important; }
   .modal-body { padding: 14px 12px !important; }
   .modal-header { padding: 14px 16px !important; }
-  #form-login, #form-register { padding: 16px 14px 24px !important; }
+  #form-login, #form-register { padding: 20px 14px !important; }
   table { min-width: 420px; }
   .td-actions .btn { padding: 3px 6px !important; font-size: 0.72rem !important; }
   #payment-box .grid3 { grid-template-columns: 1fr !important; }
@@ -1216,69 +1227,176 @@ table { border-collapse: collapse; }
 <body>
 
 <!-- ══ AUTH ══ -->
-<div id="auth-screen" style="position:fixed;inset:0;z-index:1000;
-  background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
-  overflow-y:auto;-webkit-overflow-scrolling:touch;font-family:var(--font-ui)">
-  <div style="min-height:100%;display:flex;align-items:flex-start;justify-content:center;
-    padding:32px 16px 48px;box-sizing:border-box;min-height:100%">
-    <div style="width:100%;max-width:min(480px,100%)">
-      <div style="text-align:center;margin-bottom:32px">
-        <div style="font-family:var(--font-title);font-size:2.2rem;color:#fff;font-weight:700">DoliPro</div>
-        <div style="color:rgba(255,255,255,0.5);font-size:0.9rem;margin-top:4px">Votre gestion, à votre image</div>
+<div id="auth-screen" style="position:fixed;inset:0;z-index:1000;font-family:var(--font-ui);display:flex;overflow:hidden">
+
+  <!-- ══ PANNEAU GAUCHE — Branding ══ -->
+  <div id="auth-left" style="flex:0 0 46%;background:linear-gradient(160deg,#0f172a 0%,#1a3f8a 55%,#1e6fd9 100%);
+    display:flex;flex-direction:column;justify-content:center;align-items:center;padding:48px 40px;
+    position:relative;overflow:hidden">
+
+    <!-- Décorations cercles -->
+    <div style="position:absolute;top:-80px;right:-80px;width:280px;height:280px;
+      border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-60px;left:-60px;width:220px;height:220px;
+      border-radius:50%;background:rgba(30,111,217,0.18);pointer-events:none"></div>
+    <div style="position:absolute;top:50%;left:-40px;width:160px;height:160px;
+      border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none"></div>
+
+    <!-- Logo -->
+    <div style="position:relative;z-index:1;text-align:center;width:100%;max-width:320px">
+      <div style="display:inline-flex;align-items:center;justify-content:center;
+        width:72px;height:72px;background:rgba(255,255,255,0.12);border-radius:20px;
+        margin-bottom:28px;border:1.5px solid rgba(255,255,255,0.15)">
+        <span style="font-family:'Fraunces',serif;font-size:32px;color:#fff;font-weight:700">D</span>
       </div>
-      <div style="display:flex;background:rgba(255,255,255,0.08);border-radius:12px;padding:4px;margin-bottom:24px">
+      <div style="font-family:'Fraunces',serif;font-size:2.6rem;color:#fff;font-weight:700;line-height:1;margin-bottom:8px">DoliPro</div>
+      <div style="font-size:1rem;color:rgba(255,255,255,0.55);margin-bottom:48px;font-weight:400">Manager v10</div>
+
+      <!-- Points forts -->
+      <div class="auth-features" style="display:flex;flex-direction:column;gap:18px;text-align:left">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,0.1);
+            border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">📄</div>
+          <div>
+            <div style="color:#fff;font-weight:600;font-size:0.92rem">Factures & Devis PDF</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:2px">Professionnels en 30 secondes</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,0.1);
+            border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
+          <div>
+            <div style="color:#fff;font-weight:600;font-size:0.92rem">Comptabilité simplifiée</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:2px">Recettes, dépenses, bénéfice</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <div style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,0.1);
+            border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🌍</div>
+          <div>
+            <div style="color:#fff;font-weight:600;font-size:0.92rem">30 métiers couverts</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:2px">BTP, Commerce, Tech, Services…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badge pays -->
+      <div style="margin-top:48px;display:inline-flex;align-items:center;gap:8px;
+        background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
+        border-radius:20px;padding:6px 14px">
+        <span style="font-size:0.9rem">🇸🇳</span>
+        <span style="color:rgba(255,255,255,0.6);font-size:0.78rem">Conçu pour l'Afrique de l'Ouest</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PANNEAU DROIT — Formulaires ══ -->
+  <div id="auth-right" style="flex:1;background:#f8fafc;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    display:flex;align-items:center;justify-content:center;padding:40px 32px">
+
+    <div style="width:100%;max-width:400px">
+
+      <!-- Onglets -->
+      <div style="display:flex;background:#e2e8f0;border-radius:12px;padding:4px;margin-bottom:28px">
         <button id="tab-login" onclick="switchAuthTab('login')"
-          style="flex:1;padding:10px;border-radius:8px;font-weight:600;font-size:0.9rem;background:#fff;color:#0f172a;transition:0.2s;border:none;cursor:pointer">Connexion</button>
+          style="flex:1;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;
+          background:#fff;color:#0f172a;border:none;cursor:pointer;transition:0.2s;
+          box-shadow:0 1px 4px rgba(0,0,0,0.08)">
+          Connexion
+        </button>
         <button id="tab-register" onclick="switchAuthTab('register')"
-          style="flex:1;padding:10px;border-radius:8px;font-weight:600;font-size:0.9rem;background:transparent;color:rgba(255,255,255,0.6);transition:0.2s;border:none;cursor:pointer">Créer un compte</button>
+          style="flex:1;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;
+          background:transparent;color:#64748b;border:none;cursor:pointer;transition:0.2s">
+          Créer un compte
+        </button>
       </div>
-      <!-- Login -->
-      <div id="form-login" style="background:#fff;border-radius:16px;padding:28px">
-        <h2 style="font-family:var(--font-title);margin-bottom:20px;font-size:1.4rem">Connexion</h2>
-        <div style="margin-bottom:14px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Email</label>
-          <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com" value="admin@dolipro.sn" onkeydown="if(event.key==='Enter')doLogin()">
+
+      <!-- ── Formulaire Connexion ── -->
+      <div id="form-login" style="background:#fff;border-radius:20px;padding:32px;
+        box-shadow:0 4px 24px rgba(0,0,0,0.07);border:1px solid #e2e8f0">
+
+        <div style="margin-bottom:24px">
+          <h2 style="font-family:'Fraunces',serif;font-size:1.6rem;color:#0f172a;font-weight:700;margin-bottom:4px">Bon retour 👋</h2>
+          <p style="font-size:0.85rem;color:#64748b">Connectez-vous à votre espace DoliPro</p>
         </div>
-        <div style="margin-bottom:20px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Mot de passe</label>
-          <input id="login-password" type="password" class="form-control" placeholder="••••••••" value="admin123" onkeydown="if(event.key==='Enter')doLogin()">
+
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Email</label>
+          <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com" value="admin@dolipro.sn"
+            onkeydown="if(event.key==='Enter')doLogin()"
+            style="border-radius:10px;padding:12px 14px;font-size:0.95rem">
         </div>
-        <button onclick="doLogin()" class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem">Se connecter →</button>
-        <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
-          Pas encore de compte ? <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:600">Créer gratuitement</a>
+
+        <div style="margin-bottom:24px">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Mot de passe</label>
+          <input id="login-password" type="password" class="form-control" placeholder="••••••••" value="admin123"
+            onkeydown="if(event.key==='Enter')doLogin()"
+            style="border-radius:10px;padding:12px 14px;font-size:0.95rem">
+        </div>
+
+        <button onclick="doLogin()" class="btn btn-primary"
+          style="width:100%;padding:13px;font-size:0.98rem;border-radius:12px;
+          background:linear-gradient(135deg,#1e6fd9,#1a3f8a);box-shadow:0 4px 14px rgba(30,111,217,0.35)">
+          Se connecter →
+        </button>
+
+        <p style="text-align:center;margin-top:18px;font-size:0.85rem;color:#64748b">
+          Pas encore de compte ?
+          <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:600">Créer gratuitement</a>
         </p>
-        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:0.8rem;color:#64748b;text-align:center">
-          💡 Démo : <strong>admin@dolipro.sn</strong> / <strong>admin123</strong>
+
+        <div style="margin-top:20px;padding:12px 14px;background:#f0f4ff;border-radius:10px;
+          border:1px solid #c7d7f5;font-size:0.8rem;color:#475569;text-align:center">
+          💡 Démo : <strong style="color:#1e6fd9">admin@dolipro.sn</strong> / <strong style="color:#1e6fd9">admin123</strong>
         </div>
       </div>
-      <!-- Register -->
-      <div id="form-register" style="display:none;background:#fff;border-radius:16px;padding:24px 20px 32px">
-        <h2 style="font-family:var(--font-title);margin-bottom:20px;font-size:1.4rem">Créer mon compte</h2>
-        <div style="margin-bottom:14px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Nom complet *</label>
-          <input id="reg-nom" class="form-control" placeholder="Jean Diallo">
+
+      <!-- ── Formulaire Inscription ── -->
+      <div id="form-register" style="display:none;background:#fff;border-radius:20px;padding:32px;
+        box-shadow:0 4px 24px rgba(0,0,0,0.07);border:1px solid #e2e8f0">
+
+        <div style="margin-bottom:24px">
+          <h2 style="font-family:'Fraunces',serif;font-size:1.6rem;color:#0f172a;font-weight:700;margin-bottom:4px">Créer mon compte</h2>
+          <p style="font-size:0.85rem;color:#64748b">Gratuit, sans carte bancaire requise</p>
         </div>
+
         <div style="margin-bottom:14px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Email *</label>
-          <input id="reg-email" type="email" class="form-control" placeholder="vous@exemple.com">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Nom complet *</label>
+          <input id="reg-nom" class="form-control" placeholder="Jean Diallo" style="border-radius:10px;padding:12px 14px">
         </div>
+
         <div style="margin-bottom:14px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Mot de passe *</label>
-          <input id="reg-password" type="password" class="form-control" placeholder="Minimum 4 caractères">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Email *</label>
+          <input id="reg-email" type="email" class="form-control" placeholder="vous@exemple.com" style="border-radius:10px;padding:12px 14px">
         </div>
-        <div style="margin-bottom:20px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:10px;color:#374151">Votre métier *</label>
+
+        <div style="margin-bottom:16px">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Mot de passe *</label>
+          <input id="reg-password" type="password" class="form-control" placeholder="Minimum 4 caractères" style="border-radius:10px;padding:12px 14px">
+        </div>
+
+        <div style="margin-bottom:22px">
+          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:8px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Votre métier *</label>
           <input type="hidden" id="reg-metier" value="boutique">
-          <div id="metier-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px">
+          <div id="metier-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;
+            max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px">
             <!-- rempli par JS -->
           </div>
-          <div style="text-align:center;font-size:0.75rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 30 métiers</div>
+          <div style="text-align:center;font-size:0.73rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 30 métiers</div>
         </div>
-        <button onclick="doRegister()" class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem">Créer mon compte gratuitement →</button>
-        <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
-          Déjà un compte ? <a href="#" onclick="switchAuthTab('login')" style="color:var(--primary);font-weight:600">Se connecter</a>
+
+        <button onclick="doRegister()" class="btn btn-primary"
+          style="width:100%;padding:13px;font-size:0.98rem;border-radius:12px;
+          background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 14px rgba(22,163,74,0.3)">
+          Créer mon compte gratuitement →
+        </button>
+
+        <p style="text-align:center;margin-top:18px;font-size:0.85rem;color:#64748b">
+          Déjà un compte ?
+          <a href="#" onclick="switchAuthTab('login')" style="color:var(--primary);font-weight:600">Se connecter</a>
         </p>
       </div>
+
     </div>
   </div>
 </div>
@@ -1740,13 +1858,20 @@ function switchAuthTab(tab) {
   const fLogin   = document.getElementById('form-login');
   const fReg     = document.getElementById('form-register');
   if (btnLogin) {
-    btnLogin.style.background = tab==='login' ? '#fff' : 'transparent';
-    btnLogin.style.color = tab==='login' ? '#0f172a' : 'rgba(255,255,255,0.6)';
-    btnReg.style.background = tab==='register' ? '#fff' : 'transparent';
-    btnReg.style.color = tab==='register' ? '#0f172a' : 'rgba(255,255,255,0.6)';
+    // Onglet Connexion
+    btnLogin.style.background  = tab==='login' ? '#fff' : 'transparent';
+    btnLogin.style.color       = tab==='login' ? '#0f172a' : '#64748b';
+    btnLogin.style.boxShadow   = tab==='login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
+    // Onglet Inscription
+    btnReg.style.background    = tab==='register' ? '#fff' : 'transparent';
+    btnReg.style.color         = tab==='register' ? '#0f172a' : '#64748b';
+    btnReg.style.boxShadow     = tab==='register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
   }
   if (fLogin) fLogin.style.display = tab==='login' ? '' : 'none';
   if (fReg)   fReg.style.display   = tab==='register' ? '' : 'none';
+  // Scroll vers le haut du panneau droit sur mobile
+  const right = document.getElementById('auth-right');
+  if (right) right.scrollTop = 0;
 }
 
 function selectMetier(el) {
