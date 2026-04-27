@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DoliPro Manager v10</title>
+<title>DoliPro Manager v11</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1222,6 +1222,109 @@ table { border-collapse: collapse; }
   .page-content { padding: 0 !important; }
 }
 
+/* ══════════════════════════════════════════════════════
+   V11 — NOUVELLES VARIABLES & OVERRIDES
+══════════════════════════════════════════════════════ */
+:root {
+  --card-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  --input-radius: 12px;
+  --btn-radius: 12px;
+}
+
+/* ══ CHANTIER 1 — AUTH AGRANDIE ══════════════════════ */
+@media (min-width: 1024px) {
+  #auth-left { flex: 0 0 52% !important; }
+  #auth-right > div { max-width: 500px !important; }
+  #auth-right { padding: 40px 48px !important; }
+  #form-login, #form-register { padding: 40px !important; border-radius: 20px !important; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  #auth-left { flex: 0 0 42% !important; padding: 36px 28px !important; }
+  #auth-left .auth-features { display: flex !important; }
+  #auth-right > div { max-width: 440px !important; }
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+  .topbar-menu-btn { display: flex !important; }
+}
+@media (max-width: 767px) {
+  table .col-hide-mobile { display: none !important; }
+  table { min-width: 360px; }
+  .modal { max-height: 94vh !important; }
+  .modal-body { padding: 20px !important; }
+  #metier-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  #auth-right::before { font-size: 2.4rem !important; }
+  .auth-tab { padding: 13px !important; }
+  #auth-right { justify-content: flex-start; padding-top: 40px !important; padding-bottom: 60px !important; }
+}
+#form-login .form-control, #form-register .form-control {
+  padding: 14px 16px !important;
+  border-radius: 12px !important;
+}
+#form-login .btn-lg, #form-register .btn-lg {
+  padding: 15px !important;
+  font-size: 1.05rem !important;
+  border-radius: 14px !important;
+}
+
+/* ══ CHANTIER 4 — BADGES RÔLES ══════════════════════ */
+.role-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+.role-admin    { background: #dbeafe; color: #1e40af; }
+.role-comptable { background: #dcfce7; color: #166534; }
+.role-vendeur  { background: #fef3c7; color: #92400e; }
+.role-caissier { background: #f3e8ff; color: #6b21a8; }
+
+/* ══ CHANTIER 5 — MODULE BTP ═══════════════════════ */
+.chantier-card { background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 20px; box-shadow: var(--card-shadow); transition: all 0.2s ease; }
+.chantier-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.badge-planifie  { background: #f1f5f9; color: #475569; }
+.badge-en_cours  { background: #dbeafe; color: #1e40af; }
+.badge-suspendu  { background: #fef3c7; color: #92400e; }
+.badge-termine   { background: var(--success-light); color: #166534; }
+.kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 1023px) { .kanban-board { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 767px)  { .kanban-board { grid-template-columns: 1fr; } }
+.kanban-col { background: var(--bg); border-radius: var(--radius-lg); padding: 12px; }
+.kanban-col-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; padding: 0 4px; }
+
+/* ══ CHANTIER 6 — SUIVI CLIENT ═══════════════════════ */
+.tag-segment-vip        { background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.tag-segment-regulier   { background: #dbeafe; color: #1e40af; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.tag-segment-occasionnel{ background: #f1f5f9; color: #475569; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.tag-segment-inactif    { background: #fee2e2; color: #991b1b; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.timeline-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(226,232,240,0.6); }
+.timeline-dot  { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); flex-shrink: 0; margin-top: 4px; }
+
+/* ══ CHANTIER 9 — RECHERCHE GLOBALE ═══════════════ */
+#global-search-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 9000; display: none; align-items: flex-start; justify-content: center; padding-top: 80px; backdrop-filter: blur(4px); }
+#global-search-overlay.open { display: flex; }
+#global-search-box { background: var(--surface); border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); width: 100%; max-width: 600px; overflow: hidden; }
+#global-search-input { width: 100%; padding: 18px 20px; border: none; outline: none; font-size: 1rem; background: transparent; color: var(--text); font-family: var(--font-ui); border-bottom: 1px solid var(--border); }
+#global-search-results { max-height: 400px; overflow-y: auto; }
+.search-result-item { display: flex; align-items: center; gap: 12px; padding: 12px 20px; cursor: pointer; transition: background 0.15s; }
+.search-result-item:hover { background: var(--bg); }
+.search-result-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+
+/* ══ CHANTIER 9 — NOTIFICATIONS ═══════════════════ */
+.notif-panel { position: fixed; top: var(--topbar-height); right: 0; width: 360px; max-width: 100vw; background: var(--surface); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); z-index: 500; max-height: calc(100vh - var(--topbar-height)); overflow-y: auto; box-shadow: var(--shadow-lg); transform: translateX(100%); transition: transform 0.25s ease; }
+.notif-panel.open { transform: translateX(0); }
+.notif-item { padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.notif-item:hover { background: var(--bg); }
+.notif-item.unread { border-left: 3px solid var(--primary); }
+
+/* ══ DARK MODE — nouveaux éléments v11 ══ */
+[data-theme="dark"] .chantier-card { background: var(--surface); }
+[data-theme="dark"] .kanban-col    { background: #263348; }
+[data-theme="dark"] #global-search-box { background: var(--surface); }
+[data-theme="dark"] .notif-panel   { background: var(--surface); }
+
+/* ══ CHANTIER 10 — PAIE ════════════════════════════ */
+.paie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.presence-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.presence-cell { text-align: center; padding: 6px 2px; border-radius: 6px; font-size: 0.72rem; cursor: pointer; border: 1px solid var(--border); background: var(--surface); }
+.presence-cell.present { background: var(--success-light); color: #166534; border-color: var(--success); }
+.presence-cell.absent  { background: #fee2e2; color: #991b1b; border-color: var(--danger); }
+.presence-cell.conge   { background: #fef3c7; color: #92400e; border-color: var(--warning); }
+
 </style>
 </head>
 <body>
@@ -1410,7 +1513,7 @@ table { border-collapse: collapse; }
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v10.0</span></div>
+      <div class="sidebar-brand">DoliPro<span>Manager v11.0</span></div>
     </div>
     <div class="sidebar-nav">
       <p class="nav-section-label">Principal</p>
@@ -1433,6 +1536,11 @@ table { border-collapse: collapse; }
         Devis
         <span class="nav-badge" id="badge-devis" style="display:none"></span>
       </div>
+      <!-- Nav BTP — visible selon métier -->
+      <div class="nav-item nav-btp-only" id="nav-chantiers" onclick="navigate('chantiers')" style="display:none">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        Chantiers
+      </div>
       <p class="nav-section-label">Inventaire</p>
       <div class="nav-item" id="nav-stock" onclick="navigate('stock')">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -1448,6 +1556,10 @@ table { border-collapse: collapse; }
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         Relances
         <span class="nav-badge" id="badge-relances" style="display:none">0</span>
+      </div>
+      <div class="nav-item" id="nav-paie" onclick="navigate('paie')" style="display:none">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Paie & Employés
       </div>
       <div class="nav-item" id="nav-rapports" onclick="navigate('rapports')">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -1478,17 +1590,19 @@ table { border-collapse: collapse; }
       <button class="topbar-btn topbar-menu-btn" onclick="openSidebar()">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <div class="topbar-search">
+      <div class="topbar-search" onclick="openGlobalSearch()" style="cursor:pointer">
         <span class="search-icon">
           <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </span>
-        <input type="text" id="global-search" placeholder="Recherche globale…" oninput="globalSearch(this.value)">
+        <span style="font-size:0.875rem;color:var(--text-muted)">Recherche globale… <kbd style="font-size:0.72rem;background:var(--border);padding:2px 5px;border-radius:4px">Ctrl+K</kbd></span>
       </div>
       <div class="topbar-right">
-        <div class="topbar-btn" title="Alertes" onclick="navigate('stock')">
+        <span id="topbar-role-badge"></span>
+        <button class="topbar-btn" title="Notifications" onclick="toggleNotifPanel()" style="position:relative">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid var(--surface)"></span>
           <span class="notif-dot" id="notif-dot" style="display:none"></span>
-        </div>
+        </button>
         <div class="topbar-btn" title="Exporter données" onclick="exportData()">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         </div>
@@ -1499,6 +1613,25 @@ table { border-collapse: collapse; }
       </div>
     </div>
     <div class="page-content" id="page-content"></div>
+  </div>
+</div>
+
+<!-- ══ PANNEAU NOTIFICATIONS v11 ══ -->
+<div class="notif-panel" id="notif-panel">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <div style="font-weight:700;font-size:0.95rem">Notifications</div>
+    <button onclick="clearAllNotifs()" style="font-size:0.78rem;color:var(--primary);background:none;border:none;cursor:pointer;font-family:inherit">Tout effacer</button>
+  </div>
+  <div id="notif-list" style="padding:8px 0"></div>
+</div>
+
+<!-- ══ OVERLAY RECHERCHE GLOBALE v11 ══ -->
+<div id="global-search-overlay" onclick="if(event.target===this)closeGlobalSearch()">
+  <div id="global-search-box">
+    <input id="global-search-input" type="text" placeholder="Rechercher un client, facture, devis, produit…" oninput="runGlobalSearch(this.value)" onkeydown="handleSearchKey(event)">
+    <div id="global-search-results">
+      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.88rem">Tapez pour rechercher…</div>
+    </div>
   </div>
 </div>
 
@@ -2085,7 +2218,7 @@ function updateUserNav() {
 /* ══════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════ */
-const PAGE_NAMES = { dashboard:'Tableau de bord', clients:'Clients', factures:'Factures', devis:'Devis', stock:'Stock & Catalogue', comptabilite:'Comptabilité', relances:'Relances client', rapports:'Rapports & Exports', parametres:'Paramètres' };
+const PAGE_NAMES = { dashboard:'Tableau de bord', clients:'Clients', factures:'Factures', devis:'Devis', stock:'Stock & Catalogue', comptabilite:'Comptabilité', relances:'Relances client', rapports:'Rapports & Exports', parametres:'Paramètres', chantiers:'Chantiers BTP', paie:'Paie & Employés' };
 function navigate(page) {
   App.page = page;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -2123,6 +2256,8 @@ function render() {
     case 'comptabilite': c.innerHTML = renderComptabilite(); initComptaChart(); break;
     case 'relances':     c.innerHTML = renderRelances(); break;
     case 'rapports':     c.innerHTML = renderRapports(); break;
+    case 'chantiers':    c.innerHTML = ModuleBTP.renderListe(); break;
+    case 'paie':         c.innerHTML = ModulePayroll.render(); break;
     default: c.innerHTML = '<p>Page introuvable</p>';
   }
 }
@@ -3672,6 +3807,17 @@ function applyProfil() {
     if (el) el.style.display = profil.modules.includes(mod) ? '' : 'none';
   });
 
+  // 2b. Module BTP Chantiers — visible selon métier
+  const btpMetiers = ['entrepreneur_btp','electricien','plombier','menuisier','peintre','carreleur','soudeur','architecte','maconnerie'];
+  const user = getCurrentUser() || App.user;
+  const metier = user?.metier || '';
+  const isBTP = btpMetiers.includes(metier);
+  const navChantiers = document.getElementById('nav-chantiers');
+  if (navChantiers) navChantiers.style.display = isBTP ? '' : 'none';
+  // Module Paie — visible pour tous en premium
+  const navPaie = document.getElementById('nav-paie');
+  if (navPaie) navPaie.style.display = (user?.plan === 'premium') ? '' : 'none';
+
   // 3. Renommer les labels sidebar
   const t = profil.terminologie;
   const renames = {
@@ -3692,7 +3838,6 @@ function applyProfil() {
   });
 
   // 4. Nom & métier dans topbar
-  const user = getCurrentUser() || App.user;
   if (user) {
     const nameEl = document.getElementById('user-name-nav');
     if (nameEl) nameEl.textContent = user.nom || user.name || user.email;
@@ -3700,6 +3845,13 @@ function applyProfil() {
     if (av) { const n = user.nom || user.name || 'U'; av.textContent = n[0].toUpperCase(); av.style.background = avatarColor(n); }
     const roleEl = document.getElementById('user-role-nav');
     if (roleEl) roleEl.textContent = profil.label + (user.plan === 'premium' ? ' ✦ Premium' : '');
+    // Badge rôle topbar (Chantier 4)
+    const roleBadgeEl = document.getElementById('topbar-role-badge');
+    if (roleBadgeEl) {
+      const role = user.role || 'admin';
+      const roleLabels = {admin:'ADMIN',comptable:'COMPTABLE',vendeur:'VENDEUR',caissier:'CAISSIER'};
+      roleBadgeEl.innerHTML = `<span class="role-badge role-${role}">${roleLabels[role]||'ADMIN'}</span>`;
+    }
   }
 
   // 5. Workspace switcher
@@ -5137,6 +5289,1153 @@ function changeMetier(newMetier) {
   applyProfil();
   toast(`Métier changé : ${PROFILS[newMetier]?.label || newMetier}`, 'success');
   render();
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 2 — EXPORT CSV / PDF
+══════════════════════════════════════════════════════ */
+function exportCSV(type) {
+  const data = Store.get(type, []);
+  if (!data.length) { toast('Aucune donnée à exporter', 'warning'); return; }
+  let headers = [], rows = [];
+  if (type === 'clients') {
+    headers = ['Nom','Email','Téléphone','Adresse','Ville','Segment'];
+    rows = data.map(c => [c.nom||'',c.email||'',c.telephone||'',c.adresse||'',c.ville||'',c.segment||'']);
+  } else if (type === 'factures') {
+    headers = ['Numéro','Client','Date','Échéance','Statut','Total HT','TVA','Total TTC'];
+    rows = data.map(f => [f.numero||'',f.clientNom||'',f.date||'',f.echeance||'',f.statut||'',f.totalHT||0,f.totalTVA||0,f.totalTTC||0]);
+  } else if (type === 'devis') {
+    headers = ['Numéro','Client','Date','Validité','Statut','Total TTC'];
+    rows = data.map(d => [d.numero||'',d.clientNom||'',d.date||'',d.validite||'',d.statut||'',d.totalTTC||0]);
+  } else if (type === 'produits') {
+    headers = ['Nom','Référence','Prix HT','TVA','Quantité','Seuil','Catégorie'];
+    rows = data.map(p => [p.nom||'',p.reference||'',p.prixHT||0,p.tva||0,p.quantite||0,p.seuil||0,p.categorie||'']);
+  } else if (type === 'transactions') {
+    headers = ['Date','Type','Catégorie','Description','Montant'];
+    rows = data.map(t => [t.date||'',t.type||'',t.categorie||'',t.description||'',t.montant||0]);
+  }
+  const dateStr = new Date().toISOString().split('T')[0];
+  const BOM = '\uFEFF';
+  const csvContent = BOM + [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `${type}_${dateStr}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast(`Export CSV ${type} réussi`, 'success');
+}
+
+function openImportCSV(type) {
+  const cols = type === 'clients' ? 'nom, email, telephone, adresse, ville' : 'nom, reference, prixHT, tva, quantite, seuil, categorie';
+  openModal(`⬆ Importer des ${type}`, `
+    <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:16px;font-size:0.85rem;color:var(--text-muted)">
+      <strong>Colonnes attendues :</strong> ${cols}
+      <br><span style="font-size:0.78rem">La première ligne doit être l'en-tête. Format UTF-8.</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fichier CSV *</label>
+      <input type="file" id="csv-file-input" accept=".csv" class="form-control" onchange="previewCSV(this, '${type}')">
+    </div>
+    <div id="csv-preview"></div>
+  `, `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="confirmImportCSV('${type}')">✓ Importer</button>
+  `);
+}
+
+let _csvParsed = [];
+function previewCSV(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const text = e.target.result.replace(/^\uFEFF/, '');
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+      _csvParsed = [];
+      const errors = [];
+      lines.slice(1).forEach((line, i) => {
+        if (!line.trim()) return;
+        const vals = line.split(',').map(v => v.replace(/^"|"$/g,'').trim());
+        const obj = {};
+        headers.forEach((h, j) => obj[h] = vals[j] || '');
+        if (!obj.nom) { errors.push(`Ligne ${i+2} : champ "nom" manquant`); return; }
+        obj.id = uid(); obj.createdAt = new Date().toISOString();
+        _csvParsed.push(obj);
+      });
+      const preview = _csvParsed.slice(0,5);
+      let html = `<div style="margin-top:12px"><strong style="font-size:0.85rem">${_csvParsed.length} ligne(s) à importer (prévisualisation 5 premières)</strong></div>
+        <div class="table-container" style="margin-top:8px"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>
+        ${preview.map(r=>`<tr>${headers.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}
+        </tbody></table></div>`;
+      if (errors.length) html += `<div style="color:var(--danger);font-size:0.82rem;margin-top:8px">${errors.join('<br>')}</div>`;
+      document.getElementById('csv-preview').innerHTML = html;
+    } catch(err) { document.getElementById('csv-preview').innerHTML = `<div style="color:var(--danger)">Fichier invalide : ${err.message}</div>`; }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function confirmImportCSV(type) {
+  if (!_csvParsed.length) { toast('Aucune donnée valide à importer', 'warning'); return; }
+  const existing = Store.get(type, []);
+  let added = 0, dupes = 0;
+  _csvParsed.forEach(row => {
+    if (type === 'clients' && row.email && existing.find(e => e.email === row.email)) { dupes++; return; }
+    existing.push(row); added++;
+  });
+  Store.set(type, existing);
+  closeModal();
+  toast(`${added} ${type} importé(s)${dupes ? `, ${dupes} doublon(s) ignoré(s)` : ''}`, 'success');
+  render();
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 3 — CONFORMITÉ FISCALE
+══════════════════════════════════════════════════════ */
+const TVA_PAYS = {
+  senegal: { label: 'Sénégal 🇸🇳', taux: 18 },
+  cotedivoire: { label: "Côte d'Ivoire 🇨🇮", taux: 18 },
+  mali: { label: 'Mali 🇲🇱', taux: 18 },
+  cameroun: { label: 'Cameroun 🇨🇲', taux: 19.25 },
+  maroc: { label: 'Maroc 🇲🇦', taux: 20 },
+  autre: { label: 'Autre / Personnalisé', taux: 0 }
+};
+
+function getTvaDefaut() {
+  const settings = Store.get('settings', {});
+  if (settings.tvaPersonnalisee) return parseFloat(settings.tvaPersonnalisee) || 18;
+  const pays = settings.pays || 'senegal';
+  return TVA_PAYS[pays]?.taux ?? 18;
+}
+
+function getMentionsFiscales() {
+  const company = Store.get('company', {});
+  const settings = Store.get('settings', {});
+  const regime = company.regimeFiscal || '';
+  const mentions = [];
+  if (company.ninea) mentions.push(`NINEA : ${company.ninea}`);
+  if (company.rccm) mentions.push(`RCCM : ${company.rccm}`);
+  if (regime === 'forfaitaire') mentions.push('Non assujetti à la TVA — Art. 369 CGI');
+  return mentions;
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 4 — DROITS UTILISATEURS
+══════════════════════════════════════════════════════ */
+const ROLES = {
+  admin:     { label:'Administrateur', color:'role-admin',     perms:['all'] },
+  comptable: { label:'Comptable',      color:'role-comptable', perms:['read_factures','read_devis','comptabilite','relances'] },
+  vendeur:   { label:'Vendeur',        color:'role-vendeur',   perms:['create_factures','create_devis','clients'] },
+  caissier:  { label:'Caissier',       color:'role-caissier',  perms:['paiements'] }
+};
+
+function canDo(action) {
+  const user = getCurrentUser() || App.user;
+  const role = user?.role || 'admin';
+  if (role === 'admin') return true;
+  const perms = ROLES[role]?.perms || [];
+  return perms.includes('all') || perms.includes(action);
+}
+
+function renderEquipe() {
+  const user = getCurrentUser() || App.user;
+  const workspace = user?.workspaceId || user?.id;
+  const allUsers = getAllUsers().filter(u => (u.workspaceId || u.id) === workspace || u.createdBy === workspace);
+  return `
+    <div class="settings-section">
+      <div class="settings-section-title">👥 Équipe & Rôles</div>
+      <div class="card"><div class="card-body">
+        <div style="margin-bottom:16px">
+          <button class="btn btn-primary btn-sm" onclick="openInviteMembre()">+ Inviter un membre</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${allUsers.map(u => `
+                <tr>
+                  <td><strong>${esc(u.nom||u.name||'—')}</strong></td>
+                  <td>${esc(u.email||'—')}</td>
+                  <td><span class="role-badge ${ROLES[u.role||'admin']?.color||'role-admin'}">${ROLES[u.role||'admin']?.label||'Admin'}</span></td>
+                  <td><div class="td-actions">
+                    ${u.id !== (getCurrentUser()||App.user)?.id ? `
+                      <button class="btn btn-sm btn-outline" onclick="changeUserRole('${u.id}')">Changer rôle</button>
+                      <button class="btn btn-sm btn-danger" onclick="removeMembre('${u.id}')">Suppr.</button>
+                    ` : '<span style="font-size:0.78rem;color:var(--text-muted)">Vous</span>'}
+                  </div></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div></div>
+    </div>`;
+}
+
+function openInviteMembre() {
+  openModal('+ Inviter un membre', `
+    <div class="form-group">
+      <label class="form-label">Nom complet *</label>
+      <input type="text" class="form-control" id="inv-nom" placeholder="Prénom Nom">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email *</label>
+      <input type="email" class="form-control" id="inv-email" placeholder="email@exemple.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mot de passe provisoire *</label>
+      <input type="password" class="form-control" id="inv-password" placeholder="••••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rôle</label>
+      <select class="form-control" id="inv-role">
+        ${Object.entries(ROLES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+      </select>
+    </div>
+  `, `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="doInviteMembre()">Inviter</button>
+  `);
+}
+
+function doInviteMembre() {
+  const nom = document.getElementById('inv-nom')?.value?.trim();
+  const email = document.getElementById('inv-email')?.value?.trim();
+  const pw = document.getElementById('inv-password')?.value?.trim();
+  const role = document.getElementById('inv-role')?.value || 'vendeur';
+  if (!nom || !email || !pw) { toast('Tous les champs sont requis', 'error'); return; }
+  const users = getAllUsers();
+  if (users.find(u => u.email === email)) { toast('Email déjà utilisé', 'error'); return; }
+  const creator = getCurrentUser() || App.user;
+  const newUser = { id: uid(), nom, email, password: sha256(pw), role, metier: creator?.metier||'boutique', plan:'free', workspaceId: creator?.workspaceId || creator?.id, createdBy: creator?.id, createdAt: new Date().toISOString() };
+  users.push(newUser);
+  saveAllUsers(users);
+  closeModal();
+  toast(`Membre ${nom} invité avec le rôle ${ROLES[role].label}`, 'success');
+  render();
+}
+
+function changeUserRole(userId) {
+  const users = getAllUsers();
+  const u = users.find(x => x.id === userId);
+  if (!u) return;
+  openModal(`Changer le rôle de ${u.nom||u.email}`, `
+    <div class="form-group">
+      <label class="form-label">Nouveau rôle</label>
+      <select class="form-control" id="change-role-select">
+        ${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${u.role===k?'selected':''}>${v.label}</option>`).join('')}
+      </select>
+    </div>
+  `, `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="doChangeRole('${userId}')">Enregistrer</button>
+  `);
+}
+
+function doChangeRole(userId) {
+  const users = getAllUsers();
+  const idx = users.findIndex(u => u.id === userId);
+  if (idx < 0) return;
+  const newRole = document.getElementById('change-role-select')?.value;
+  users[idx].role = newRole;
+  saveAllUsers(users);
+  closeModal();
+  toast('Rôle mis à jour', 'success');
+  render();
+}
+
+function removeMembre(userId) {
+  confirmAction('Supprimer ce membre ?', 'Cette action est irréversible.', () => {
+    const users = getAllUsers().filter(u => u.id !== userId);
+    saveAllUsers(users);
+    toast('Membre supprimé', 'success');
+    render();
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 5 — MODULE BTP
+══════════════════════════════════════════════════════ */
+const ModuleBTP = {
+  getChantiers: () => Store.get('chantiers', []),
+  saveChantier: (data) => {
+    const list = ModuleBTP.getChantiers();
+    const idx = list.findIndex(c => c.id === data.id);
+    if (idx >= 0) list[idx] = data; else list.push(data);
+    Store.set('chantiers', list);
+  },
+  deleteChantier: (id) => {
+    Store.set('chantiers', ModuleBTP.getChantiers().filter(c => c.id !== id));
+  },
+  statutBadge: (s) => {
+    const map = { planifie:'badge-planifie', en_cours:'badge-en_cours', suspendu:'badge-suspendu', termine:'badge-termine' };
+    const labels = { planifie:'Planifié', en_cours:'En cours', suspendu:'Suspendu', termine:'Terminé' };
+    return `<span class="badge ${map[s]||'badge-planifie'}">${labels[s]||s}</span>`;
+  },
+  renderListe: () => {
+    const chantiers = ModuleBTP.getChantiers();
+    const [viewMode, setViewMode] = [App._btpView||'liste', v => App._btpView = v];
+    return `
+      <div class="page-header">
+        <div><div class="page-title">🏗️ Chantiers</div><div class="page-subtitle">${chantiers.length} chantier(s)</div></div>
+        <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="App._btpView='kanban';render()">📋 Kanban</button>
+          <button class="btn btn-outline btn-sm" onclick="App._btpView='liste';render()">☰ Liste</button>
+          <button class="btn btn-primary" onclick="ModuleBTP.openForm(null)">+ Nouveau chantier</button>
+        </div>
+      </div>
+      ${App._btpView === 'kanban' ? ModuleBTP.renderKanban(chantiers) : ModuleBTP.renderListeTable(chantiers)}
+    `;
+  },
+  renderListeTable: (chantiers) => {
+    if (!chantiers.length) return `<div class="empty-state"><div class="empty-state-icon">🏗️</div><div class="empty-state-title">Aucun chantier</div><p class="empty-state-desc">Créez votre premier chantier</p><button class="btn btn-primary" onclick="ModuleBTP.openForm(null)">+ Nouveau chantier</button></div>`;
+    return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      ${chantiers.map(c => {
+        const avancement = c.phases?.length ? Math.round(c.phases.reduce((s,p)=>s+(p.avancement_pct||0),0)/c.phases.length) : 0;
+        const budgetRestant = (c.budget_total||0) - (c.phases||[]).reduce((s,p)=>s+(p.cout_reel||0),0);
+        return `<div class="chantier-card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <div style="font-weight:700;font-size:0.95rem">${esc(c.nom)}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">${esc(c.client||'—')} · ${esc(c.adresse_chantier||'')}</div>
+            </div>
+            ${ModuleBTP.statutBadge(c.statut||'planifie')}
+          </div>
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-bottom:4px">
+              <span>Avancement</span><span>${avancement}%</span>
+            </div>
+            <div class="progress-bar-wrap"><div class="progress-bar" style="width:${avancement}%;background:var(--primary)"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;margin-bottom:12px">
+            <div><div style="color:var(--text-muted)">Budget</div><div style="font-weight:600">${fmt.fcfa(c.budget_total||0)}</div></div>
+            <div><div style="color:var(--text-muted)">Restant</div><div style="font-weight:600;color:${budgetRestant>=0?'var(--success)':'var(--danger)'}">${fmt.fcfa(Math.abs(budgetRestant))}</div></div>
+          </div>
+          <div class="td-actions" style="justify-content:flex-start">
+            <button class="btn btn-sm btn-outline" onclick="ModuleBTP.openDetail('${c.id}')">Détail</button>
+            <button class="btn btn-sm btn-outline" onclick="ModuleBTP.openForm('${c.id}')">Modifier</button>
+            <button class="btn btn-sm btn-danger" onclick="ModuleBTP.confirmDelete('${c.id}')">Suppr.</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  },
+  renderKanban: (chantiers) => {
+    const cols = ['planifie','en_cours','suspendu','termine'];
+    const colLabels = { planifie:'Planifié', en_cours:'En cours', suspendu:'Suspendu', termine:'Terminé' };
+    return `<div class="kanban-board">
+      ${cols.map(status => {
+        const items = chantiers.filter(c => (c.statut||'planifie') === status);
+        return `<div class="kanban-col">
+          <div class="kanban-col-title">${colLabels[status]} <span style="font-size:0.75rem;color:var(--text-muted)">(${items.length})</span></div>
+          ${items.map(c => `<div style="background:var(--surface);border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border);cursor:pointer" onclick="ModuleBTP.openDetail('${c.id}')">
+            <div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">${esc(c.nom)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">${esc(c.client||'')}</div>
+            <div style="margin-top:6px"><div class="progress-bar-wrap" style="height:4px"><div class="progress-bar" style="width:${c.phases?.length?Math.round(c.phases.reduce((s,p)=>s+(p.avancement_pct||0),0)/c.phases.length):0}%"></div></div></div>
+          </div>`).join('')}
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px" onclick="ModuleBTP.openForm(null,'${status}')">+ Ajouter</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  },
+  openForm: (id, defaultStatut) => {
+    const chantier = id ? ModuleBTP.getChantiers().find(c=>c.id===id) : null;
+    const clients = Store.get('clients', []);
+    openModal(chantier ? 'Modifier le chantier' : 'Nouveau chantier', `
+      <div class="form-grid">
+        <div class="form-group col-span-2"><label class="form-label">Nom du chantier *</label>
+          <input type="text" class="form-control" id="ch-nom" value="${esc(chantier?.nom||'')}"></div>
+        <div class="form-group"><label class="form-label">Client</label>
+          <select class="form-control" id="ch-client"><option value="">— Client —</option>
+            ${clients.map(c=>`<option value="${esc(c.nom)}" ${chantier?.client===c.nom?'selected':''}>${esc(c.nom)}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Statut</label>
+          <select class="form-control" id="ch-statut">
+            ${['planifie','en_cours','suspendu','termine'].map(s=>`<option value="${s}" ${(chantier?.statut||defaultStatut||'planifie')===s?'selected':''}>${{planifie:'Planifié',en_cours:'En cours',suspendu:'Suspendu',termine:'Terminé'}[s]}</option>`).join('')}
+          </select></div>
+        <div class="form-group col-span-2"><label class="form-label">Adresse chantier</label>
+          <input type="text" class="form-control" id="ch-adresse" value="${esc(chantier?.adresse_chantier||'')}"></div>
+        <div class="form-group"><label class="form-label">Date début</label>
+          <input type="date" class="form-control" id="ch-debut" value="${chantier?.date_debut||fmt.dateISO()}"></div>
+        <div class="form-group"><label class="form-label">Date fin prévue</label>
+          <input type="date" class="form-control" id="ch-fin" value="${chantier?.date_fin_prevue||''}"></div>
+        <div class="form-group"><label class="form-label">Budget total (FCFA)</label>
+          <input type="number" class="form-control" id="ch-budget" value="${chantier?.budget_total||0}"></div>
+        <div class="form-group"><label class="form-label">Description</label>
+          <textarea class="form-control" id="ch-desc" rows="2">${esc(chantier?.description||'')}</textarea></div>
+      </div>
+    `, `
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="ModuleBTP.saveForm('${id||''}')">Enregistrer</button>
+    `);
+  },
+  saveForm: (id) => {
+    const nom = document.getElementById('ch-nom')?.value?.trim();
+    if (!nom) { toast('Nom du chantier requis', 'error'); return; }
+    const chantier = {
+      id: id || uid(),
+      nom,
+      client: document.getElementById('ch-client')?.value || '',
+      statut: document.getElementById('ch-statut')?.value || 'planifie',
+      adresse_chantier: document.getElementById('ch-adresse')?.value || '',
+      date_debut: document.getElementById('ch-debut')?.value || '',
+      date_fin_prevue: document.getElementById('ch-fin')?.value || '',
+      budget_total: parseFloat(document.getElementById('ch-budget')?.value) || 0,
+      description: document.getElementById('ch-desc')?.value || '',
+      phases: id ? (ModuleBTP.getChantiers().find(c=>c.id===id)?.phases||[]) : [],
+      ouvriers: id ? (ModuleBTP.getChantiers().find(c=>c.id===id)?.ouvriers||[]) : [],
+      updatedAt: new Date().toISOString()
+    };
+    ModuleBTP.saveChantier(chantier);
+    closeModal();
+    toast(`Chantier ${nom} enregistré`, 'success');
+    render();
+  },
+  confirmDelete: (id) => {
+    confirmAction('Supprimer ce chantier ?', 'Toutes les phases seront perdues.', () => {
+      ModuleBTP.deleteChantier(id);
+      toast('Chantier supprimé', 'success');
+      render();
+    });
+  },
+  openDetail: (id) => {
+    const c = ModuleBTP.getChantiers().find(x=>x.id===id);
+    if (!c) return;
+    const avancement = c.phases?.length ? Math.round(c.phases.reduce((s,p)=>s+(p.avancement_pct||0),0)/c.phases.length) : 0;
+    const factures = Store.get('factures',[]).filter(f=>f.chantierLie===id);
+    const totalFacture = factures.reduce((s,f)=>s+(f.totalTTC||0),0);
+    openModal(`🏗️ ${c.nom}`, `
+      <div class="form-grid" style="margin-bottom:16px">
+        <div><label class="form-label">Client</label><p>${esc(c.client||'—')}</p></div>
+        <div><label class="form-label">Statut</label><p>${ModuleBTP.statutBadge(c.statut)}</p></div>
+        <div><label class="form-label">Adresse</label><p>${esc(c.adresse_chantier||'—')}</p></div>
+        <div><label class="form-label">Budget</label><p><strong>${fmt.fcfa(c.budget_total||0)}</strong></p></div>
+        <div><label class="form-label">Du</label><p>${fmt.date(c.date_debut)}</p></div>
+        <div><label class="form-label">Au (prévu)</label><p>${c.date_fin_prevue?fmt.date(c.date_fin_prevue):'—'}</p></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:700;margin-bottom:8px">Avancement global : ${avancement}%</div>
+        <div class="progress-bar-wrap" style="height:10px"><div class="progress-bar" style="width:${avancement}%"></div></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-weight:700;margin-bottom:8px">Phases</div>
+        ${(c.phases||[]).length === 0 ? '<p style="color:var(--text-muted);font-size:0.85rem">Aucune phase définie</p>' :
+          c.phases.map(p => `<div style="padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+            <div><div style="font-weight:600;font-size:0.88rem">${esc(p.nom_phase)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">${p.avancement_pct||0}% · ${fmt.fcfa(p.cout_reel||0)} / ${fmt.fcfa(p.cout_estime||0)}</div></div>
+            <div class="progress-bar-wrap" style="width:80px;height:6px"><div class="progress-bar" style="width:${p.avancement_pct||0}%"></div></div>
+          </div>`).join('')}
+        <button class="btn btn-sm btn-outline" style="margin-top:6px" onclick="ModuleBTP.addPhase('${id}')">+ Ajouter phase</button>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-weight:700;margin-bottom:4px">Documents liés</div>
+        <div style="font-size:0.85rem;color:var(--text-muted)">Total facturé : <strong>${fmt.fcfa(totalFacture)}</strong> / Budget : ${fmt.fcfa(c.budget_total||0)}</div>
+        ${factures.slice(0,3).map(f=>`<div style="font-size:0.82rem;padding:4px 0">${f.numero} — ${fmt.fcfa(f.totalTTC)} — <span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span></div>`).join('')}
+      </div>
+      <div style="text-align:right">
+        <button class="btn btn-outline btn-sm" onclick="closeModal();ModuleBTP.openRapportJournalier('${id}')">📊 Rapport journalier</button>
+        <button class="btn btn-sm btn-primary" onclick="closeModal();ModuleBTP.openForm('${id}')">Modifier</button>
+      </div>
+    `, `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>`);
+  },
+  addPhase: (chantierId) => {
+    openModal('Ajouter une phase', `
+      <div class="form-group"><label class="form-label">Nom de la phase *</label>
+        <input type="text" class="form-control" id="ph-nom" placeholder="Fondations, Maçonnerie, Toiture…"></div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Coût estimé (FCFA)</label>
+          <input type="number" class="form-control" id="ph-cout-estime" value="0"></div>
+        <div class="form-group"><label class="form-label">Avancement (%)</label>
+          <input type="range" class="form-control" id="ph-avancement" min="0" max="100" value="0" oninput="document.getElementById('ph-avancement-val').textContent=this.value+'%'">
+          <span id="ph-avancement-val">0%</span></div>
+      </div>
+    `, `
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="ModuleBTP.savePhase('${chantierId}')">Ajouter</button>
+    `);
+  },
+  savePhase: (chantierId) => {
+    const nom = document.getElementById('ph-nom')?.value?.trim();
+    if (!nom) { toast('Nom de phase requis', 'error'); return; }
+    const chantiers = ModuleBTP.getChantiers();
+    const c = chantiers.find(x=>x.id===chantierId);
+    if (!c) return;
+    c.phases = c.phases || [];
+    c.phases.push({ id:uid(), nom_phase:nom, cout_estime:parseFloat(document.getElementById('ph-cout-estime')?.value)||0, cout_reel:0, avancement_pct:parseInt(document.getElementById('ph-avancement')?.value)||0, statut:'en_cours' });
+    Store.set('chantiers', chantiers);
+    closeModal();
+    toast('Phase ajoutée', 'success');
+    ModuleBTP.openDetail(chantierId);
+  },
+  openRapportJournalier: (chantierId) => {
+    const c = ModuleBTP.getChantiers().find(x=>x.id===chantierId);
+    if (!c) return;
+    openModal(`📊 Rapport journalier — ${c.nom}`, `
+      <div class="form-group"><label class="form-label">Date</label>
+        <input type="date" class="form-control" id="rj-date" value="${fmt.dateISO()}"></div>
+      <div class="form-group"><label class="form-label">Météo</label>
+        <select class="form-control" id="rj-meteo">
+          <option>☀️ Ensoleillé</option><option>🌥️ Nuageux</option><option>🌧️ Pluie</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Travaux effectués</label>
+        <textarea class="form-control" id="rj-travaux" rows="3" placeholder="Décrivez les travaux réalisés…"></textarea></div>
+      <div class="form-group"><label class="form-label">Incidents / Remarques</label>
+        <textarea class="form-control" id="rj-incidents" rows="2" placeholder="Aucun incident…"></textarea></div>
+    `, `
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="ModuleBTP.saveRapportJournalier('${chantierId}')">Enregistrer</button>
+    `);
+  },
+  saveRapportJournalier: (chantierId) => {
+    const chantiers = ModuleBTP.getChantiers();
+    const c = chantiers.find(x=>x.id===chantierId);
+    if (!c) return;
+    c.rapports_journaliers = c.rapports_journaliers || [];
+    c.rapports_journaliers.push({
+      id: uid(), date: document.getElementById('rj-date')?.value,
+      meteo: document.getElementById('rj-meteo')?.value,
+      travaux: document.getElementById('rj-travaux')?.value,
+      incidents: document.getElementById('rj-incidents')?.value,
+      createdAt: new Date().toISOString()
+    });
+    Store.set('chantiers', chantiers);
+    closeModal();
+    toast('Rapport journalier enregistré', 'success');
+  }
+};
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 6 — SUIVI CLIENT
+══════════════════════════════════════════════════════ */
+const ModuleSuiviClient = {
+  getJournal: (clientId) => Store.get('journal_'+clientId, []),
+  addNote: (clientId, note) => {
+    const journal = ModuleSuiviClient.getJournal(clientId);
+    journal.unshift({ id:uid(), ...note, date: new Date().toISOString() });
+    Store.set('journal_'+clientId, journal);
+  },
+  getClientsARelancer: (joursInactivite) => {
+    const seuil = joursInactivite || parseInt(Store.get('settings',{}).joursRelance) || 30;
+    const clients = Store.get('clients', []);
+    const factures = Store.get('factures', []);
+    const now = new Date();
+    return clients.filter(c => {
+      const clientFactures = factures.filter(f => f.clientId === c.id && (f.statut==='payee'||f.statut==='validee'));
+      if (!clientFactures.length) return false;
+      const lastDate = new Date(Math.max(...clientFactures.map(f=>new Date(f.date))));
+      return (now - lastDate) / 86400000 >= seuil;
+    });
+  },
+  renderJournal: (clientId) => {
+    const journal = ModuleSuiviClient.getJournal(clientId);
+    const icons = { appel:'📞', whatsapp:'💬', visite:'🤝', facture:'📄', devis:'📋', relance:'🔔', note:'📝' };
+    return `
+      <div style="margin-top:16px">
+        <div style="font-weight:700;margin-bottom:10px;font-size:0.95rem">📓 Journal de suivi</div>
+        <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
+          ${['appel','whatsapp','visite','note'].map(t=>`
+            <button class="btn btn-sm btn-outline" onclick="ModuleSuiviClient.openAddNote('${clientId}','${t}')">${icons[t]} ${t.charAt(0).toUpperCase()+t.slice(1)}</button>
+          `).join('')}
+        </div>
+        ${journal.length === 0 ? '<p style="color:var(--text-muted);font-size:0.85rem">Aucune interaction enregistrée</p>' :
+          journal.map(e => `<div class="timeline-item">
+            <div class="timeline-dot" style="background:${e.type==='facture'?'var(--success)':e.type==='relance'?'var(--danger)':'var(--primary)'}"></div>
+            <div style="flex:1">
+              <div style="font-size:0.85rem"><strong>${icons[e.type]||'📝'} ${e.type}</strong> — ${esc(e.resume||'')}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">${fmt.date(e.date)}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  },
+  openAddNote: (clientId, type) => {
+    openModal(`Ajouter : ${type}`, `
+      <div class="form-group"><label class="form-label">Résumé *</label>
+        <textarea class="form-control" id="note-resume" rows="3" placeholder="Décrivez l'interaction…"></textarea></div>
+      <div class="form-group"><label class="form-label">Montant (optionnel)</label>
+        <input type="number" class="form-control" id="note-montant" placeholder="0"></div>
+    `, `
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="ModuleSuiviClient.saveNote('${clientId}','${type}')">Enregistrer</button>
+    `);
+  },
+  saveNote: (clientId, type) => {
+    const resume = document.getElementById('note-resume')?.value?.trim();
+    if (!resume) { toast('Résumé requis', 'error'); return; }
+    ModuleSuiviClient.addNote(clientId, { type, resume, montant: parseFloat(document.getElementById('note-montant')?.value)||0 });
+    closeModal();
+    toast('Interaction enregistrée', 'success');
+  }
+};
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 7 — RAPPORTS AVANCÉS
+══════════════════════════════════════════════════════ */
+function genererRapportJournalier() {
+  const now = new Date();
+  const today = fmt.dateISO();
+  const factures = Store.get('factures',[]);
+  const transactions = Store.get('transactions',[]);
+  const clients = Store.get('clients',[]);
+  const company = Store.get('company',{});
+  const facDuJour = factures.filter(f => f.date === today || (f.updatedAt||'').startsWith(today));
+  const transauJour = transactions.filter(t => t.date === today);
+  const recettes = transauJour.filter(t=>t.type==='recette').reduce((s,t)=>s+(t.montant||0),0);
+  const depenses = transauJour.filter(t=>t.type==='depense').reduce((s,t)=>s+(t.montant||0),0);
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Rapport Journalier — ${fmt.date(today)}</title>
+    <style>body{font-family:'Plus Jakarta Sans',sans-serif;max-width:800px;margin:40px auto;color:#0f172a;padding:0 20px}
+    h1{font-family:'Georgia',serif;font-size:1.8rem;color:#1e6fd9}h2{font-size:1.1rem;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px}
+    .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
+    .kpi-box{background:#f8fafc;border-radius:10px;padding:16px;border:1px solid #e2e8f0;text-align:center}
+    .kpi-val{font-size:1.6rem;font-weight:700;color:#1e6fd9}.kpi-lbl{font-size:0.78rem;color:#64748b;margin-top:4px}
+    table{width:100%;border-collapse:collapse;font-size:0.88rem}th{background:#f1f5f9;padding:8px 12px;text-align:left}
+    td{padding:8px 12px;border-bottom:1px solid #e2e8f0}.badge{padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700}
+    @media print{button{display:none}}</style>
+  </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+      <div><h1>📊 Rapport Journalier</h1>
+        <div style="font-size:0.9rem;color:#64748b">${esc(company.nom||'DoliPro')} · ${fmt.date(today)}</div>
+        ${getMentionsFiscales().map(m=>`<div style="font-size:0.78rem;color:#94a3b8">${m}</div>`).join('')}
+      </div>
+      <button onclick="window.print()" style="padding:10px 20px;background:#1e6fd9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">🖨️ Imprimer / PDF</button>
+    </div>
+    <div class="kpi">
+      <div class="kpi-box"><div class="kpi-val">${fmt.fcfa(recettes)}</div><div class="kpi-lbl">Recettes du jour</div></div>
+      <div class="kpi-box"><div class="kpi-val">${fmt.fcfa(depenses)}</div><div class="kpi-lbl">Dépenses du jour</div></div>
+      <div class="kpi-box"><div class="kpi-val" style="color:${recettes-depenses>=0?'#16a34a':'#dc2626'}">${fmt.fcfa(recettes-depenses)}</div><div class="kpi-lbl">Bénéfice net</div></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-box"><div class="kpi-val">${facDuJour.length}</div><div class="kpi-lbl">Factures du jour</div></div>
+      <div class="kpi-box"><div class="kpi-val">${facDuJour.filter(f=>f.statut==='payee').length}</div><div class="kpi-lbl">Payées</div></div>
+      <div class="kpi-box"><div class="kpi-val">${clients.filter(c=>(c.createdAt||'').startsWith(today)).length}</div><div class="kpi-lbl">Nouveaux clients</div></div>
+    </div>
+    <h2>Factures du jour</h2>
+    ${facDuJour.length ? `<table><thead><tr><th>N°</th><th>Client</th><th>Statut</th><th>Montant TTC</th></tr></thead><tbody>
+      ${facDuJour.map(f=>`<tr><td><strong>${esc(f.numero||'')}</strong></td><td>${esc(f.clientNom||'')}</td><td>${statutLabel(f.statut)}</td><td><strong>${fmt.fcfa(f.totalTTC)}</strong></td></tr>`).join('')}
+    </tbody></table>` : '<p style="color:#94a3b8;font-size:0.85rem">Aucune facture</p>'}
+  </body></html>`;
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
+function genererRapportSemestriel() {
+  const now = new Date();
+  const factures = Store.get('factures',[]);
+  const company = Store.get('company',{});
+  const clients = Store.get('clients',[]);
+  // CA par mois sur 12 mois
+  const moisData = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const mois = d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    const ca = factures.filter(f => { const fd=new Date(f.date); return fd.getMonth()===d.getMonth() && fd.getFullYear()===d.getFullYear() && (f.statut==='payee'||f.statut==='validee'); }).reduce((s,f)=>s+(f.totalTTC||0),0);
+    moisData.push({ mois, ca });
+  }
+  const totalCA = moisData.reduce((s,m)=>s+m.ca,0);
+  const topClients = (() => {
+    const map = {};
+    factures.filter(f=>f.statut==='payee'||f.statut==='validee').forEach(f=>{ map[f.clientNom||'—'] = (map[f.clientNom||'—']||0)+(f.totalTTC||0); });
+    return Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  })();
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>Rapport Semestriel — ${now.getFullYear()}</title>
+    <style>body{font-family:'Plus Jakarta Sans',sans-serif;max-width:900px;margin:40px auto;color:#0f172a;padding:0 20px}
+    h1{font-family:'Georgia',serif;font-size:1.8rem;color:#1e6fd9}h2{font-size:1.1rem;color:#475569;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-top:24px}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+    .kpi-box{background:#f8fafc;border-radius:10px;padding:14px;border:1px solid #e2e8f0;text-align:center}
+    .kpi-val{font-size:1.4rem;font-weight:700;color:#1e6fd9}.kpi-lbl{font-size:0.75rem;color:#64748b;margin-top:2px}
+    table{width:100%;border-collapse:collapse;font-size:0.88rem}th{background:#f1f5f9;padding:8px 12px;text-align:left}
+    td{padding:8px 12px;border-bottom:1px solid #e2e8f0}
+    .bar-chart{display:flex;flex-direction:column;gap:6px;margin:16px 0}
+    .bar-row{display:flex;align-items:center;gap:10px;font-size:0.8rem}
+    .bar-fill{height:22px;border-radius:4px;background:#1e6fd9;min-width:2px;transition:width 0.3s}
+    @media print{button{display:none}}</style>
+  </head><body>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
+      <div><h1>📈 Rapport Semestriel</h1>
+        <div style="font-size:0.9rem;color:#64748b">${esc(company.nom||'DoliPro')} · Période : 12 derniers mois · Généré le ${fmt.date(fmt.dateISO())}</div>
+        ${getMentionsFiscales().map(m=>`<div style="font-size:0.78rem;color:#94a3b8">${m}</div>`).join('')}
+      </div>
+      <button onclick="window.print()" style="padding:10px 20px;background:#1e6fd9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">🖨️ Imprimer / PDF</button>
+    </div>
+    <div class="kpi">
+      <div class="kpi-box"><div class="kpi-val">${fmt.fcfa(totalCA)}</div><div class="kpi-lbl">CA total (12 mois)</div></div>
+      <div class="kpi-box"><div class="kpi-val">${factures.filter(f=>f.statut==='payee').length}</div><div class="kpi-lbl">Factures payées</div></div>
+      <div class="kpi-box"><div class="kpi-val">${clients.length}</div><div class="kpi-lbl">Clients actifs</div></div>
+      <div class="kpi-box"><div class="kpi-val">${factures.length>0?Math.round(factures.filter(f=>f.statut==='payee').length/factures.length*100):0}%</div><div class="kpi-lbl">Taux de recouvrement</div></div>
+    </div>
+    <h2>Évolution du CA par mois</h2>
+    <div class="bar-chart">
+      ${(() => { const mx = Math.max(...moisData.map(m=>m.ca),1); return moisData.map(m=>`
+        <div class="bar-row">
+          <div style="width:130px;color:#64748b;text-transform:capitalize">${m.mois}</div>
+          <div class="bar-fill" style="width:${Math.round((m.ca/mx)*300)}px"></div>
+          <div style="color:#0f172a;font-weight:600">${fmt.fcfa(m.ca)}</div>
+        </div>`).join(''); })()}
+    </div>
+    <h2>Top 10 clients</h2>
+    <table><thead><tr><th>#</th><th>Client</th><th>CA Total</th></tr></thead><tbody>
+      ${topClients.map(([nom,ca],i)=>`<tr><td>${i+1}</td><td>${esc(nom)}</td><td><strong>${fmt.fcfa(ca)}</strong></td></tr>`).join('')}
+    </tbody></table>
+  </body></html>`;
+  const w = window.open('', '_blank');
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 8 — RELANCES EMAIL
+══════════════════════════════════════════════════════ */
+const TEMPLATES_RELANCE = {
+  courtois: { label:'Courtois 😊', sujet:'Rappel de paiement — {{numero_facture}}',
+    corps:`Bonjour {{client_nom}},\n\nJ'espère que vous allez bien. Je me permets de vous rappeler que la facture n°{{numero_facture}} d'un montant de {{montant}} est arrivée à échéance le {{date_echeance}}.\n\nPourriez-vous procéder au règlement dans les meilleurs délais ?\n\nMerci pour votre confiance.\n\nCordialement,` },
+  ferme: { label:'Ferme 📋', sujet:'Deuxième rappel — Facture {{numero_facture}} impayée',
+    corps:`Bonjour {{client_nom}},\n\nSans réponse de votre part à notre premier rappel, nous revenons vers vous au sujet de la facture n°{{numero_facture}} d'un montant de {{montant}}, échue le {{date_echeance}}.\n\nNous vous demandons de bien vouloir régulariser cette situation sous 48h.\n\nCordialement,` },
+  urgent: { label:'Urgent ⚠️', sujet:'URGENT — Facture {{numero_facture}} en retard de paiement',
+    corps:`Bonjour {{client_nom}},\n\nMalgré nos relances précédentes, la facture n°{{numero_facture}} d'un montant de {{montant}} reste impayée depuis le {{date_echeance}}.\n\nSans régularisation sous 72h, nous serons contraints d'envisager des mesures supplémentaires.\n\nCordialement,` }
+};
+
+function openRelanceModal(factureId) {
+  const factures = Store.get('factures',[]);
+  const clients = Store.get('clients',[]);
+  const f = factures.find(x=>x.id===factureId);
+  if (!f) return;
+  const client = clients.find(c=>c.id===f.clientId);
+  const email = client?.email || '';
+  const fillTemplate = (tpl) => tpl.replace(/{{client_nom}}/g, client?.nom||'Client').replace(/{{numero_facture}}/g, f.numero||'').replace(/{{montant}}/g, fmt.fcfa(f.totalTTC)).replace(/{{date_echeance}}/g, fmt.date(f.echeance||f.date));
+  App._relanceFactureId = factureId;
+  openModal(`📧 Relancer — ${f.numero}`, `
+    <div class="form-group">
+      <label class="form-label">Template</label>
+      <select class="form-control" id="relance-tpl" onchange="updateRelancePreview()">
+        ${Object.entries(TEMPLATES_RELANCE).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email client</label>
+      <input type="email" class="form-control" id="relance-email" value="${esc(email)}" placeholder="email@client.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Objet</label>
+      <input type="text" class="form-control" id="relance-sujet" value="${esc(fillTemplate(TEMPLATES_RELANCE.courtois.sujet))}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Message</label>
+      <textarea class="form-control" id="relance-corps" rows="6">${fillTemplate(TEMPLATES_RELANCE.courtois.corps)}</textarea>
+    </div>
+  `, `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-outline" onclick="copyRelanceText()">📋 Copier</button>
+    <button class="btn btn-primary" onclick="envoyerRelanceMailto()">📧 Ouvrir dans Gmail / Outlook</button>
+  `);
+}
+
+function updateRelancePreview() {
+  const tplKey = document.getElementById('relance-tpl')?.value;
+  const tpl = TEMPLATES_RELANCE[tplKey];
+  if (!tpl) return;
+  const factureId = App._relanceFactureId;
+  const f = Store.get('factures',[]).find(x=>x.id===factureId);
+  const client = Store.get('clients',[]).find(c=>c.id===f?.clientId);
+  const fill = (s) => s.replace(/{{client_nom}}/g, client?.nom||'Client').replace(/{{numero_facture}}/g, f?.numero||'').replace(/{{montant}}/g, fmt.fcfa(f?.totalTTC||0)).replace(/{{date_echeance}}/g, fmt.date(f?.echeance||f?.date||''));
+  const sujetEl = document.getElementById('relance-sujet');
+  const corpsEl = document.getElementById('relance-corps');
+  if (sujetEl) sujetEl.value = fill(tpl.sujet);
+  if (corpsEl) corpsEl.value = fill(tpl.corps);
+}
+
+function copyRelanceText() {
+  const text = `${document.getElementById('relance-sujet')?.value||''}\n\n${document.getElementById('relance-corps')?.value||''}`;
+  navigator.clipboard?.writeText(text).then(()=>toast('Texte copié','success')).catch(()=>toast('Copie non disponible','warning'));
+}
+
+function envoyerRelanceMailto() {
+  const email = document.getElementById('relance-email')?.value;
+  const sujet = encodeURIComponent(document.getElementById('relance-sujet')?.value||'');
+  const corps = encodeURIComponent(document.getElementById('relance-corps')?.value||'');
+  if (!email) { toast('Email client requis', 'error'); return; }
+  // Enregistrer dans l'historique client
+  const f = Store.get('factures',[]).find(x=>x.id===App._relanceFactureId);
+  if (f) {
+    ModuleSuiviClient.addNote(f.clientId, { type:'relance', resume:`Relance facture ${f.numero}`, montant: f.totalTTC });
+  }
+  window.open(`mailto:${email}?subject=${sujet}&body=${corps}`, '_blank');
+  closeModal();
+  toast('Email ouvert dans votre client mail', 'success');
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 9 — RECHERCHE GLOBALE & NOTIFS
+══════════════════════════════════════════════════════ */
+function openGlobalSearch() {
+  const overlay = document.getElementById('global-search-overlay');
+  if (overlay) { overlay.classList.add('open'); document.getElementById('global-search-input')?.focus(); }
+}
+function closeGlobalSearch() {
+  document.getElementById('global-search-overlay')?.classList.remove('open');
+}
+function handleSearchKey(e) {
+  if (e.key === 'Escape') closeGlobalSearch();
+}
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openGlobalSearch(); }
+});
+
+function runGlobalSearch(query) {
+  const q = query.trim().toLowerCase();
+  const resultsEl = document.getElementById('global-search-results');
+  if (!resultsEl) return;
+  if (!q) { resultsEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.88rem">Tapez pour rechercher…</div>'; return; }
+  const clients = Store.get('clients',[]).filter(c=>c.nom?.toLowerCase().includes(q)||c.email?.toLowerCase().includes(q));
+  const factures = Store.get('factures',[]).filter(f=>f.numero?.toLowerCase().includes(q)||f.clientNom?.toLowerCase().includes(q));
+  const devis = Store.get('devis',[]).filter(d=>d.numero?.toLowerCase().includes(q)||d.clientNom?.toLowerCase().includes(q));
+  const produits = Store.get('produits',[]).filter(p=>p.nom?.toLowerCase().includes(q));
+  const results = [
+    ...clients.slice(0,3).map(c=>({type:'client',icon:'👤',label:c.nom,sub:c.email||'',action:`navigate('clients')`})),
+    ...factures.slice(0,3).map(f=>({type:'facture',icon:'📄',label:f.numero+' — '+f.clientNom,sub:fmt.fcfa(f.totalTTC),action:`navigate('factures')`})),
+    ...devis.slice(0,3).map(d=>({type:'devis',icon:'📋',label:d.numero+' — '+d.clientNom,sub:fmt.fcfa(d.totalTTC),action:`navigate('devis')`})),
+    ...produits.slice(0,3).map(p=>({type:'produit',icon:'📦',label:p.nom,sub:fmt.fcfa(p.prixHT),action:`navigate('stock')`})),
+  ];
+  if (!results.length) { resultsEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.88rem">Aucun résultat pour "'+esc(q)+'"</div>'; return; }
+  resultsEl.innerHTML = results.map(r=>`
+    <div class="search-result-item" onclick="closeGlobalSearch();${r.action}">
+      <div class="search-result-icon" style="background:var(--bg)">${r.icon}</div>
+      <div style="flex:1">
+        <div style="font-size:0.88rem;font-weight:600">${esc(r.label)}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">${esc(r.sub)} · ${r.type}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Notifications v11
+function getNotifs() { return Store.get('notifs_v11', []); }
+function addNotif(msg, type) {
+  const notifs = getNotifs();
+  notifs.unshift({ id:uid(), msg, type:type||'info', date:new Date().toISOString(), read:false });
+  Store.set('notifs_v11', notifs.slice(0,50));
+  updateNotifBadge();
+}
+function updateNotifBadge() {
+  const unread = getNotifs().filter(n=>!n.read).length;
+  const badge = document.getElementById('notif-badge');
+  if (badge) badge.style.display = unread > 0 ? 'block' : 'none';
+}
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) renderNotifPanel();
+}
+function renderNotifPanel() {
+  const notifs = getNotifs();
+  const el = document.getElementById('notif-list');
+  if (!el) return;
+  if (!notifs.length) { el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.85rem">Aucune notification</div>'; return; }
+  const icons = {info:'ℹ️',success:'✅',warning:'⚠️',error:'❌'};
+  el.innerHTML = notifs.map(n=>`<div class="notif-item ${n.read?'':'unread'}" onclick="markNotifRead('${n.id}')">
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span>${icons[n.type]||'ℹ️'}</span>
+      <div>
+        <div style="font-size:0.85rem">${esc(n.msg)}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">${fmt.date(n.date)}</div>
+      </div>
+    </div>
+  </div>`).join('');
+  // Mark all as read
+  const updated = notifs.map(n=>({...n,read:true}));
+  Store.set('notifs_v11', updated);
+  updateNotifBadge();
+}
+function markNotifRead(id) {
+  const notifs = getNotifs().map(n=>n.id===id?{...n,read:true}:n);
+  Store.set('notifs_v11', notifs);
+  updateNotifBadge();
+}
+function clearAllNotifs() {
+  Store.set('notifs_v11', []);
+  renderNotifPanel();
+  updateNotifBadge();
+}
+
+// Vérification des alertes au démarrage
+function checkAlertesDemarrage() {
+  const factures = Store.get('factures',[]);
+  const settings = Store.get('settings',{});
+  const today = new Date();
+  // Factures en retard
+  const enRetard = factures.filter(f => f.statut==='validee' && f.echeance && new Date(f.echeance) < today);
+  if (enRetard.length) {
+    addNotif(`${enRetard.length} facture(s) en retard de paiement`, 'warning');
+    toast(`⚠ ${enRetard.length} facture(s) en retard de paiement`, 'warning');
+  }
+  // Clients à relancer
+  const aRelancer = ModuleSuiviClient.getClientsARelancer(settings.joursRelance||30);
+  if (aRelancer.length) {
+    addNotif(`${aRelancer.length} client(s) à relancer (inactifs depuis +${settings.joursRelance||30} jours)`, 'info');
+  }
+  // Stock faible
+  const produits = Store.get('produits',[]);
+  const stockFaible = produits.filter(p=>p.quantite!==undefined && p.quantite <= p.seuil);
+  if (stockFaible.length) {
+    addNotif(`${stockFaible.length} produit(s) en rupture ou stock faible`, 'warning');
+  }
+  updateNotifBadge();
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 9 — PWA
+══════════════════════════════════════════════════════ */
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstallPrompt = e;
+  // Show install button in settings
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.classList.add('visible');
+});
+
+function installPWA() {
+  if (!_deferredInstallPrompt) { toast('Déjà installée ou non disponible', 'info'); return; }
+  _deferredInstallPrompt.prompt();
+  _deferredInstallPrompt.userChoice.then(result => {
+    toast(result.outcome === 'accepted' ? '✅ Application installée !' : 'Installation annulée', result.outcome === 'accepted' ? 'success' : 'info');
+    _deferredInstallPrompt = null;
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   V11 — CHANTIER 10 — PAIE & EMPLOYÉS
+══════════════════════════════════════════════════════ */
+const ModulePayroll = {
+  getEmployes: () => Store.get('employes', []),
+  saveEmploye: (data) => {
+    const list = ModulePayroll.getEmployes();
+    const idx = list.findIndex(e=>e.id===data.id);
+    if (idx>=0) list[idx]=data; else list.push(data);
+    Store.set('employes', list);
+  },
+  deleteEmploye: (id) => Store.set('employes', ModulePayroll.getEmployes().filter(e=>e.id!==id)),
+  getPresences: (mois) => Store.get('presences_'+mois, {}),
+  savePresences: (mois, data) => Store.set('presences_'+mois, data),
+  render: () => {
+    const employes = ModulePayroll.getEmployes();
+    const now = new Date();
+    const moisActuel = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    return `
+      <div class="page-header">
+        <div><div class="page-title">👥 Paie & Employés</div><div class="page-subtitle">${employes.length} employé(s)</div></div>
+        <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="ModulePayroll.ouvrirPresences('${moisActuel}')">📅 Présences du mois</button>
+          <button class="btn btn-primary" onclick="ModulePayroll.openForm(null)">+ Nouvel employé</button>
+        </div>
+      </div>
+      ${employes.length === 0 ? `<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">Aucun employé</div><p class="empty-state-desc">Ajoutez votre premier employé</p><button class="btn btn-primary" onclick="ModulePayroll.openForm(null)">+ Ajouter</button></div>` :
+        `<div class="paie-grid">
+          ${employes.map(e => {
+            const presences = ModulePayroll.getPresences(moisActuel);
+            const joursP = Object.values(presences[e.id]||{}).filter(v=>v==='present').length;
+            const avances = (e.avances||[]).reduce((s,a)=>s+a.montant,0);
+            const salBrut = e.type === 'journalier' ? joursP * (e.taux_journalier||0) : (e.salaire_base||0);
+            const salNet = Math.max(0, salBrut - avances);
+            return `<div class="chantier-card">
+              <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+                <div>
+                  <div style="font-weight:700">${esc(e.nom)}</div>
+                  <div style="font-size:0.78rem;color:var(--text-muted)">${esc(e.poste||'—')}</div>
+                </div>
+                <span class="badge" style="background:var(--bg);color:var(--text-muted)">${e.type||'mensuel'}</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.78rem;margin-bottom:10px">
+                <div><div style="color:var(--text-muted)">Salaire base</div><div style="font-weight:600">${fmt.fcfa(e.salaire_base||0)}</div></div>
+                <div><div style="color:var(--text-muted)">Jours présents</div><div style="font-weight:600">${joursP} j</div></div>
+                <div><div style="color:var(--text-muted)">Avances</div><div style="font-weight:600;color:var(--danger)">${fmt.fcfa(avances)}</div></div>
+                <div><div style="color:var(--text-muted)">Net à payer</div><div style="font-weight:700;color:var(--success)">${fmt.fcfa(salNet)}</div></div>
+              </div>
+              <div class="td-actions" style="justify-content:flex-start">
+                <button class="btn btn-sm btn-outline" onclick="ModulePayroll.ouvrirFichePaie('${e.id}','${moisActuel}')">📄 Fiche de paie</button>
+                <button class="btn btn-sm btn-outline" onclick="ModulePayroll.openForm('${e.id}')">Modifier</button>
+                <button class="btn btn-sm btn-danger" onclick="ModulePayroll.confirmDelete('${e.id}')">Suppr.</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`}
+    `;
+  },
+  openForm: (id) => {
+    const e = id ? ModulePayroll.getEmployes().find(x=>x.id===id) : null;
+    openModal(e ? 'Modifier employé' : 'Nouvel employé', `
+      <div class="form-grid">
+        <div class="form-group col-span-2"><label class="form-label">Nom complet *</label>
+          <input type="text" class="form-control" id="emp-nom" value="${esc(e?.nom||'')}"></div>
+        <div class="form-group"><label class="form-label">Poste</label>
+          <input type="text" class="form-control" id="emp-poste" value="${esc(e?.poste||'')}"></div>
+        <div class="form-group"><label class="form-label">Téléphone</label>
+          <input type="tel" class="form-control" id="emp-tel" value="${esc(e?.telephone||'')}"></div>
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-control" id="emp-type">
+            ${['mensuel','journalier','horaire'].map(t=>`<option value="${t}" ${(e?.type||'mensuel')===t?'selected':''}>${t.charAt(0).toUpperCase()+t.slice(1)}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Salaire de base (FCFA)</label>
+          <input type="number" class="form-control" id="emp-salaire" value="${e?.salaire_base||0}"></div>
+        <div class="form-group"><label class="form-label">Taux journalier (si jour.)</label>
+          <input type="number" class="form-control" id="emp-taux" value="${e?.taux_journalier||0}"></div>
+      </div>
+    `, `
+      <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="ModulePayroll.saveForm('${id||''}')">Enregistrer</button>
+    `);
+  },
+  saveForm: (id) => {
+    const nom = document.getElementById('emp-nom')?.value?.trim();
+    if (!nom) { toast('Nom requis', 'error'); return; }
+    const emp = { id: id||uid(), nom, poste: document.getElementById('emp-poste')?.value||'', telephone: document.getElementById('emp-tel')?.value||'', type: document.getElementById('emp-type')?.value||'mensuel', salaire_base: parseFloat(document.getElementById('emp-salaire')?.value)||0, taux_journalier: parseFloat(document.getElementById('emp-taux')?.value)||0, avances: id ? (ModulePayroll.getEmployes().find(e=>e.id===id)?.avances||[]) : [], createdAt: new Date().toISOString() };
+    ModulePayroll.saveEmploye(emp);
+    closeModal();
+    toast(`Employé ${nom} enregistré`, 'success');
+    render();
+  },
+  confirmDelete: (id) => {
+    confirmAction('Supprimer cet employé ?', '', () => { ModulePayroll.deleteEmploye(id); toast('Employé supprimé','success'); render(); });
+  },
+  ouvrirPresences: (mois) => {
+    const employes = ModulePayroll.getEmployes();
+    if (!employes.length) { toast('Ajoutez des employés d\'abord', 'info'); return; }
+    const presences = ModulePayroll.getPresences(mois);
+    const [annee, moisNum] = mois.split('-').map(Number);
+    const joursTotal = new Date(annee, moisNum, 0).getDate();
+    const jours = Array.from({length:joursTotal},(_,i)=>i+1);
+    openModal(`📅 Présences — ${new Date(annee, moisNum-1, 1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'})}`, `
+      <div style="overflow-x:auto">
+        <table style="font-size:0.75rem;min-width:600px">
+          <thead><tr><th style="text-align:left;padding:6px 10px">Employé</th>
+            ${jours.slice(0,20).map(j=>`<th style="text-align:center;padding:4px 2px;min-width:24px">${j}</th>`).join('')}
+            <th style="text-align:center">Total</th></tr></thead>
+          <tbody>
+            ${employes.map(e => {
+              const ep = presences[e.id] || {};
+              const total = Object.values(ep).filter(v=>v==='present').length;
+              return `<tr>
+                <td style="padding:6px 10px;font-weight:600;white-space:nowrap">${esc(e.nom)}</td>
+                ${jours.slice(0,20).map(j => {
+                  const key = `${j}`;
+                  const val = ep[key]||'';
+                  const col = val==='present'?'#dcfce7':val==='absent'?'#fee2e2':val==='conge'?'#fef3c7':'var(--bg)';
+                  const txt = val==='present'?'P':val==='absent'?'A':val==='conge'?'C':'·';
+                  return `<td style="text-align:center;cursor:pointer;background:${col};border-radius:3px;padding:4px 2px" onclick="ModulePayroll.togglePresence('${mois}','${e.id}','${j}')" title="${val||'Non renseigné'}">${txt}</td>`;
+                }).join('')}
+                <td style="text-align:center;font-weight:700">${total}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted)">Cliquez sur une case pour alterner : Présent (P) → Absent (A) → Congé (C) → Non renseigné</div>
+    `, `<button class="btn btn-primary" onclick="closeModal()">Fermer</button>`);
+  },
+  togglePresence: (mois, empId, jour) => {
+    const presences = ModulePayroll.getPresences(mois);
+    if (!presences[empId]) presences[empId] = {};
+    const current = presences[empId][jour] || '';
+    const cycle = { '':'present', 'present':'absent', 'absent':'conge', 'conge':'' };
+    presences[empId][jour] = cycle[current];
+    ModulePayroll.savePresences(mois, presences);
+    // Refresh modal
+    closeModal();
+    ModulePayroll.ouvrirPresences(mois);
+  },
+  ouvrirFichePaie: (empId, mois) => {
+    const e = ModulePayroll.getEmployes().find(x=>x.id===empId);
+    if (!e) return;
+    const presences = ModulePayroll.getPresences(mois);
+    const joursPresents = Object.values(presences[empId]||{}).filter(v=>v==='present').length;
+    const avances = (e.avances||[]).reduce((s,a)=>s+a.montant,0);
+    const salBrut = e.type==='journalier' ? joursPresents*(e.taux_journalier||0) : (e.salaire_base||0);
+    const salNet = Math.max(0, salBrut - avances);
+    const company = Store.get('company',{});
+    const [annee, moisNum] = mois.split('-').map(Number);
+    const moisLabel = new Date(annee, moisNum-1, 1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bulletin de paie — ${esc(e.nom)}</title>
+      <style>body{font-family:'Plus Jakarta Sans',sans-serif;max-width:700px;margin:40px auto;color:#0f172a;padding:0 20px}
+      .header{display:flex;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid #1e6fd9}
+      h1{color:#1e6fd9;font-size:1.4rem;margin:0}table{width:100%;border-collapse:collapse;margin:16px 0}
+      th{background:#f1f5f9;padding:10px;text-align:left}td{padding:10px;border-bottom:1px solid #e2e8f0}
+      .total{background:#1e6fd9;color:#fff;font-weight:700;font-size:1.1rem}
+      @media print{button{display:none}}</style></head><body>
+      <div class="header">
+        <div><h1>Bulletin de Paie Simplifié</h1><div>${esc(company.nom||'DoliPro')}</div>
+          ${getMentionsFiscales().map(m=>`<div style="font-size:0.78rem;color:#64748b">${m}</div>`).join('')}
+        </div>
+        <div style="text-align:right"><div style="font-weight:700">${esc(e.nom)}</div>
+          <div style="color:#64748b">${esc(e.poste||'')}</div><div>${moisLabel}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Élément</th><th>Valeur</th><th>Montant</th></tr></thead>
+        <tbody>
+          <tr><td>Salaire de base</td><td>${e.type==='journalier'?`${joursPresents} j × ${fmt.fcfa(e.taux_journalier||0)}`:e.type}</td><td>${fmt.fcfa(salBrut)}</td></tr>
+          ${avances > 0 ? `<tr><td>Avances sur salaire</td><td>Déduction</td><td style="color:#dc2626">- ${fmt.fcfa(avances)}</td></tr>` : ''}
+          <tr class="total"><td colspan="2">NET À PAYER</td><td>${fmt.fcfa(salNet)}</td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:24px;display:flex;justify-content:space-between">
+        <div><div style="font-size:0.85rem;color:#64748b">Date d'émission : ${fmt.date(fmt.dateISO())}</div></div>
+        <button onclick="window.print()" style="padding:10px 20px;background:#1e6fd9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">🖨️ Imprimer</button>
+      </div>
+    </body></html>`;
+    const w = window.open('','_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+  }
+};
+
+/* ══════════════════════════════════════════════════════
+   V11 — PARAMÈTRES ÉTENDUS
+══════════════════════════════════════════════════════ */
+function renderFiscalSettings() {
+  const company = Store.get('company',{});
+  const settings = Store.get('settings',{});
+  return `
+    <div class="settings-section">
+      <div class="settings-section-title">🧾 Conformité fiscale</div>
+      <div class="card"><div class="card-body">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">NINEA</label>
+            <input type="text" class="form-control" id="set-ninea" value="${esc(company.ninea||'')}" placeholder="123456789A0001"></div>
+          <div class="form-group"><label class="form-label">RCCM</label>
+            <input type="text" class="form-control" id="set-rccm" value="${esc(company.rccm||'')}" placeholder="SN-DKR-2024-B-12345"></div>
+          <div class="form-group"><label class="form-label">Régime fiscal</label>
+            <select class="form-control" id="set-regime">
+              <option value="reel" ${(company.regimeFiscal||'reel')==='reel'?'selected':''}>Réel simplifié</option>
+              <option value="forfaitaire" ${company.regimeFiscal==='forfaitaire'?'selected':''}>Forfaitaire</option>
+              <option value="exonere" ${company.regimeFiscal==='exonere'?'selected':''}>Exonéré</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Pays (TVA par défaut)</label>
+            <select class="form-control" id="set-pays" onchange="updateTvaFromPays(this.value)">
+              ${Object.entries(TVA_PAYS).map(([k,v])=>`<option value="${k}" ${(settings.pays||'senegal')===k?'selected':''}>${v.label} — ${v.taux}%</option>`).join('')}
+            </select></div>
+          <div class="form-group"><label class="form-label">Taux TVA personnalisé (%)</label>
+            <input type="number" class="form-control" id="set-tva-custom" value="${settings.tvaPersonnalisee||''}" placeholder="Ex: 18" step="0.01"></div>
+          <div class="form-group"><label class="form-label">Délai relance auto (jours)</label>
+            <input type="number" class="form-control" id="set-jours-relance" value="${settings.joursRelance||30}" min="1" max="365"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveFiscalSettings()" style="margin-top:8px">Enregistrer</button>
+      </div></div>
+    </div>`;
+}
+
+function saveFiscalSettings() {
+  const company = { ...Store.get('company',{}), ninea: document.getElementById('set-ninea')?.value||'', rccm: document.getElementById('set-rccm')?.value||'', regimeFiscal: document.getElementById('set-regime')?.value||'reel' };
+  const settings = { ...Store.get('settings',{}), pays: document.getElementById('set-pays')?.value||'senegal', tvaPersonnalisee: document.getElementById('set-tva-custom')?.value||'', joursRelance: parseInt(document.getElementById('set-jours-relance')?.value)||30 };
+  Store.set('company', company);
+  Store.set('settings', settings);
+  toast('Paramètres fiscaux enregistrés', 'success');
+}
+
+function updateTvaFromPays(pays) {
+  const taux = TVA_PAYS[pays]?.taux;
+  if (taux !== undefined) {
+    const el = document.getElementById('set-tva-custom');
+    if (el && !el.value) el.placeholder = `${taux} (par défaut ${pays})`;
+  }
 }
 
 </script>
