@@ -3476,7 +3476,7 @@ function printDoc(type, id) {
     .page{max-width:800px;margin:0 auto;padding:40px}
     h1{font-family:'Fraunces',serif}
   </style>
-  </head><body>
+  <\/head><\/body_placeholder>
   <div class="page">
     <!-- HEADER -->
     <table style="width:100%;margin-bottom:40px">
@@ -3565,7 +3565,7 @@ function printDoc(type, id) {
     </div>
   </div>
   <script>window.onload=()=>setTimeout(()=>window.print(),500)<\/script>
-  </body></html>`;
+  <\/body><\/html>`;
 
   const w = window.open('', '_blank');
   w.document.write(html);
@@ -5682,7 +5682,7 @@ function genererRapportJournalier() {
     table{width:100%;border-collapse:collapse;font-size:0.88rem}th{background:#f1f5f9;padding:8px 12px;text-align:left}
     td{padding:8px 12px;border-bottom:1px solid #e2e8f0}.badge{padding:2px 8px;border-radius:20px;font-size:0.72rem;font-weight:700}
     @media print{button{display:none}}</style>
-  </head><body>
+  <\/head><\/body_placeholder>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
       <div><h1>📊 Rapport Journalier</h1>
         <div style="font-size:0.9rem;color:#64748b">${esc(company.nom||'DoliPro')} · ${fmt.date(today)}</div>
@@ -5704,7 +5704,7 @@ function genererRapportJournalier() {
     ${facDuJour.length ? `<table><thead><tr><th>N°</th><th>Client</th><th>Statut</th><th>Montant TTC</th></tr></thead><tbody>
       ${facDuJour.map(f=>`<tr><td><strong>${esc(f.numero||'')}</strong></td><td>${esc(f.clientNom||'')}</td><td>${statutLabel(f.statut)}</td><td><strong>${fmt.fcfa(f.totalTTC)}</strong></td></tr>`).join('')}
     </tbody></table>` : '<p style="color:#94a3b8;font-size:0.85rem">Aucune facture</p>'}
-  </body></html>`;
+  <\/body><\/html>`;
   const w = window.open('', '_blank');
   if (w) { w.document.write(html); w.document.close(); }
 }
@@ -5741,7 +5741,7 @@ function genererRapportSemestriel() {
     .bar-row{display:flex;align-items:center;gap:10px;font-size:0.8rem}
     .bar-fill{height:22px;border-radius:4px;background:#1e6fd9;min-width:2px;transition:width 0.3s}
     @media print{button{display:none}}</style>
-  </head><body>
+  <\/head><\/body_placeholder>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
       <div><h1>📈 Rapport Semestriel</h1>
         <div style="font-size:0.9rem;color:#64748b">${esc(company.nom||'DoliPro')} · Période : 12 derniers mois · Généré le ${fmt.date(fmt.dateISO())}</div>
@@ -5768,7 +5768,7 @@ function genererRapportSemestriel() {
     <table><thead><tr><th>#</th><th>Client</th><th>CA Total</th></tr></thead><tbody>
       ${topClients.map(([nom,ca],i)=>`<tr><td>${i+1}</td><td>${esc(nom)}</td><td><strong>${fmt.fcfa(ca)}</strong></td></tr>`).join('')}
     </tbody></table>
-  </body></html>`;
+  <\/body><\/html>`;
   const w = window.open('', '_blank');
   if (w) { w.document.write(html); w.document.close(); }
 }
@@ -6167,7 +6167,7 @@ const ModulePayroll = {
       h1{color:#1e6fd9;font-size:1.4rem;margin:0}table{width:100%;border-collapse:collapse;margin:16px 0}
       th{background:#f1f5f9;padding:10px;text-align:left}td{padding:10px;border-bottom:1px solid #e2e8f0}
       .total{background:#1e6fd9;color:#fff;font-weight:700;font-size:1.1rem}
-      @media print{button{display:none}}</style></head><body>
+      @media print{button{display:none}}</style><\/head><\/body_placeholder>
       <div class="header">
         <div><h1>Bulletin de Paie Simplifié</h1><div>${esc(company.nom||'DoliPro')}</div>
           ${getMentionsFiscales().map(m=>`<div style="font-size:0.78rem;color:#64748b">${m}</div>`).join('')}
@@ -6188,7 +6188,7 @@ const ModulePayroll = {
         <div><div style="font-size:0.85rem;color:#64748b">Date d'émission : ${fmt.date(fmt.dateISO())}</div></div>
         <button onclick="window.print()" style="padding:10px 20px;background:#1e6fd9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">🖨️ Imprimer</button>
       </div>
-    </body></html>`;
+    <\/body><\/html>`;
     const w = window.open('','_blank');
     if (w) { w.document.write(html); w.document.close(); }
   }
