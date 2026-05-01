@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DoliPro Manager v11</title>
+<title>DoliPro Manager v12</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1488,6 +1488,13 @@ table { border-collapse: collapse; }
           <div style="text-align:center;font-size:0.73rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 30 métiers</div>
         </div>
 
+        <div id="metier-warning" style="display:none;background:#fef3c7;border:1px solid #f59e0b;
+          border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:0.82rem;color:#92400e">
+          ⚠️ <strong>Attention :</strong> Le métier choisi <strong id="metier-warning-label"></strong>
+          ne pourra <u>pas être modifié</u> après la création du compte.
+          Il définit vos modules, terminologies et tableau de bord.
+        </div>
+
         <button onclick="doRegister()" class="btn btn-primary"
           style="width:100%;padding:13px;font-size:0.98rem;border-radius:12px;
           background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 14px rgba(22,163,74,0.3)">
@@ -1513,7 +1520,7 @@ table { border-collapse: collapse; }
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v11.0</span></div>
+      <div class="sidebar-brand">DoliPro<span>Manager v12.0</span></div>
     </div>
     <div class="sidebar-nav">
       <p class="nav-section-label">Principal</p>
@@ -1656,6 +1663,24 @@ table { border-collapse: collapse; }
 </div>
 
 <script>
+// SHA-256 natif (Web Crypto API) — sans dépendance externe
+async function sha256(message) {
+  try {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch(e) {
+    // Fallback simple si Web Crypto non disponible
+    let hash = 0;
+    for (let i = 0; i < message.length; i++) {
+      hash = ((hash << 5) - hash) + message.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0') + message.length.toString(16);
+  }
+}
+
 /* ══════════════════════════════════════════════════════
    UTILITAIRES GLOBAUX
 ══════════════════════════════════════════════════════ */
@@ -1982,6 +2007,11 @@ function confirmModal(msg, cb) {
       <button class="btn btn-danger" onclick="closeModal();(${cb.toString()})()">Supprimer</button>`, 'sm');
 }
 
+// Alias v12 — utilisé par ModuleBTP, ModulePayroll, removeMembre
+function confirmAction(titre, desc, cb) {
+  confirmModal(titre + (desc ? '\n' + desc : ''), cb);
+}
+
 /* ══════════════════════════════════════════════════════
    AUTH — MULTI-UTILISATEUR
 ══════════════════════════════════════════════════════ */
@@ -2020,6 +2050,13 @@ function selectMetier(el) {
     el.style.background  = profil.couleur + '18';
   }
   document.getElementById('reg-metier').value = el.dataset.metier;
+  // v12: Afficher le warning de verrouillage
+  const warning = document.getElementById('metier-warning');
+  const wLabel  = document.getElementById('metier-warning-label');
+  if (warning && wLabel && profil) {
+    wLabel.textContent = '"' + profil.label + '"';
+    warning.style.display = 'block';
+  }
 }
 
 function doLogin() {
@@ -2054,6 +2091,10 @@ function doLogin() {
   localStorage.setItem('dolipro_session', JSON.stringify({ userId: user.id, workspaceId: wsId, role: 'admin', loginAt: now() }));
   patchStoreForWorkspace(wsId);
   App.user = user;
+  // v12: Mise à jour lastLoginAt
+  const _allUsers = getAllUsers();
+  const _uidx = _allUsers.findIndex(u => u.id === user.id);
+  if (_uidx >= 0) { _allUsers[_uidx].lastLoginAt = new Date().toISOString(); saveAllUsers(_allUsers); }
   toast(`Bon retour, ${user.nom.split(' ')[0]} !`, 'success');
   startApp();
 }
@@ -2070,7 +2111,7 @@ function doRegister() {
   const userId = 'usr_' + uid();
   const wsId   = 'ws_'  + uid();
   const newUser = { id: userId, nom, email, passwordHash: btoa(unescape(encodeURIComponent(pass))),
-    metier, plan: 'free', workspaceId: wsId, createdAt: now() };
+    metier, plan: 'free', role: 'admin', workspaceId: wsId, createdAt: now(), metierLockedAt: now() };
   const newWs = { id: wsId, nom: nom + ' — Espace', ownerId: userId, plan: 'free',
     membres: [{ userId, role: 'admin' }] };
   users.push(newUser);
@@ -2115,67 +2156,27 @@ function checkSession() {
 }
 
 function renderAuth() {
-  document.body.innerHTML = `
-  <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px"></div>
-  <div style="min-height:100vh;background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
-    display:flex;align-items:center;justify-content:center;padding:20px;font-family:var(--font-ui)">
-    <div style="width:100%;max-width:min(480px,100%)">
-      <div style="text-align:center;margin-bottom:32px">
-        <div style="font-family:var(--font-title);font-size:2.2rem;color:#fff;font-weight:700">DoliPro</div>
-        <div style="color:rgba(255,255,255,0.5);font-size:0.9rem;margin-top:4px">Votre gestion, à votre image</div>
-      </div>
-      <div style="display:flex;background:rgba(255,255,255,0.08);border-radius:12px;padding:4px;margin-bottom:24px">
-        <button id="tab-login" onclick="switchAuthTab('login')"
-          style="flex:1;padding:10px;border-radius:8px;font-weight:600;font-size:0.9rem;background:#fff;color:#0f172a;transition:0.2s;border:none;cursor:pointer">Connexion</button>
-        <button id="tab-register" onclick="switchAuthTab('register')"
-          style="flex:1;padding:10px;border-radius:8px;font-weight:600;font-size:0.9rem;background:transparent;color:rgba(255,255,255,0.6);transition:0.2s;border:none;cursor:pointer">Créer un compte</button>
-      </div>
-      <!-- Login -->
-      <div id="form-login" style="background:#fff;border-radius:16px;padding:28px">
-        <h2 style="font-family:var(--font-title);margin-bottom:20px;font-size:1.4rem">Connexion</h2>
-        <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Email</label>
-          <input id="login-email" type="email" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="vous@exemple.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-        <div style="margin-bottom:20px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Mot de passe</label>
-          <input id="login-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
-        <button onclick="doLogin()" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:1rem;cursor:pointer">Se connecter →</button>
-        <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
-          Pas encore de compte ? <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:600">Créer gratuitement</a>
-        </p>
-        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:0.8rem;color:#64748b;text-align:center">
-          💡 Démo : <strong>admin@dolipro.sn</strong> / <strong>admin123</strong>
-        </div>
-      </div>
-      <!-- Register -->
-      <div id="form-register" style="display:none;background:#fff;border-radius:16px;padding:24px 20px 32px">
-        <h2 style="font-family:var(--font-title);margin-bottom:20px;font-size:1.4rem">Créer mon compte</h2>
-        <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Nom complet *</label>
-          <input id="reg-nom" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="Jean Diallo"></div>
-        <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Email *</label>
-          <input id="reg-email" type="email" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="vous@exemple.com"></div>
-        <div style="margin-bottom:14px"><label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:6px;color:#374151">Mot de passe *</label>
-          <input id="reg-password" type="password" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:16px;font-family:inherit;outline:none" placeholder="Minimum 4 caractères"></div>
-        <div style="margin-bottom:20px">
-          <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:10px;color:#374151">Votre métier *</label>
-          <input type="hidden" id="reg-metier" value="boutique">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px">
-            ${Object.entries(PROFILS).map(([k,p]) => `
-              <div class="metier-card${k==='boutique'?' selected':''}" data-metier="${k}" onclick="selectMetier(this)"
-                style="border:2px solid ${k==='boutique'?p.couleur:'#e2e8f0'};border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:0.2s;background:${k==='boutique'?p.couleur+'15':'#fff'}">
-                <div style="font-size:1.5rem">${p.icon}</div>
-                <div style="font-size:0.72rem;font-weight:600;color:#374151;margin-top:4px;line-height:1.2">${p.label.split('/')[0].trim()}</div>
-              </div>`).join('')}
-          </div>
-          <div style="text-align:center;font-size:0.75rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 30 métiers</div>
-        </div>
-        <button onclick="doRegister()" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:1rem;cursor:pointer">Créer mon compte gratuitement →</button>
-        <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:#64748b">
-          Déjà un compte ? <a href="#" onclick="switchAuthTab('login')" style="color:var(--primary);font-weight:600">Se connecter</a>
-        </p>
-      </div>
-    </div>
-  </div>`;
-  // Re-add toast container reference
-  const toastEl = document.getElementById('toast-container');
+  // Show the static #auth-screen instead of replacing body.innerHTML
+  // (replacing innerHTML would destroy <script> tags and break all JS functions)
+  const authScreen = document.getElementById('auth-screen');
+  const appEl      = document.getElementById('app');
+  if (authScreen) {
+    authScreen.style.display = 'flex';
+    // Reset to login tab
+    switchAuthTab('login');
+  }
+  if (appEl) appEl.classList.remove('visible');
+  // Rebuild metier grid if needed
+  const grid = document.getElementById('metier-grid');
+  if (grid && !grid.children.length) {
+    grid.innerHTML = Object.entries(PROFILS).map(([k,p]) => `
+      <div class="metier-card${k==='boutique'?' selected':''}" data-metier="${k}" onclick="selectMetier(this)"
+        style="border:2px solid ${k==='boutique'?p.couleur:'#e2e8f0'};border-radius:10px;padding:10px 8px;
+        text-align:center;cursor:pointer;transition:0.2s;background:${k==='boutique'?p.couleur+'15':'#fff'}">
+        <div style="font-size:1.5rem">${p.icon}</div>
+        <div style="font-size:0.72rem;font-weight:600;color:#374151;margin-top:4px;line-height:1.2">${p.label.split('/')[0].trim()}</div>
+      </div>`).join('');
+  }
 }
 function startApp() {
   const authScreen = document.getElementById('auth-screen');
@@ -2197,6 +2198,7 @@ function startApp() {
   if (si) si.style.display = '';
   startAutoSave();
   checkAbonnement();
+  setTimeout(() => checkAlertesDemarrage(), 1500);
   setTimeout(() => showPubModal(), 1200);
 }
 function updateUserNav() {
@@ -2534,20 +2536,26 @@ function renderClients() {
     return `
     <div class="page-header">
       <div><div class="page-title">${termClient}s</div><div class="page-subtitle">Aucun ${termClient.toLowerCase()} pour le moment</div></div>
-      <div class="page-actions"><button class="btn btn-primary" onclick="openNewClient()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termClient.toLowerCase()}</button></div>
+      <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV('clients')">⬇ CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="openImportCSV('clients')">⬆ Importer</button>
+          <button class="btn btn-primary" onclick="openNewClient()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termClient.toLowerCase()}</button></div>
     </div>
     ${renderEmptyState('👥', `Aucun ${termClient.toLowerCase()} encore`, `Ajoutez votre premier ${termClient.toLowerCase()} pour commencer à facturer.`, `+ Nouveau ${termClient.toLowerCase()}`, 'openNewClient()')}`;
   }
   return _bC+`  <div class="page-header">
     <div><div class="page-title">${termClient}s</div><div class="page-subtitle">${total} ${termClient.toLowerCase()}${total>1?'s':''} au total</div></div>
-    <div class="page-actions"><button class="btn btn-primary" onclick="openNewClient()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termClient.toLowerCase()}</button></div>
+    <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV('clients')">⬇ CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="openImportCSV('clients')">⬆ Importer</button>
+          <button class="btn btn-primary" onclick="openNewClient()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termClient.toLowerCase()}</button></div>
   </div>
   <div class="filters-bar">
     <input type="text" class="filter-input search" placeholder="🔍 Rechercher un ${termClient.toLowerCase()}…" value="${esc(clientSearch)}" oninput="clientSearch=this.value.toLowerCase();clientPage=1;render()">
   </div>
   <div class="table-container">
     <table>
-      <thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Ville</th><th>Pays</th><th>NINEA</th><th class="text-right">Actions</th></tr></thead>
+      <thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Ville</th><th>Segment</th><th class="text-right">Actions</th></tr></thead>
       <tbody>
         ${slice.length===0 ? `<tr><td colspan="7">${renderEmptyState('👥','Aucun résultat','Modifiez votre recherche.','','')}</td></tr>` :
         slice.map(c => `
@@ -2556,8 +2564,7 @@ function renderClients() {
             <td>${esc(c.email||'—')}</td>
             <td>${esc(c.telephone||'—')}</td>
             <td>${esc(c.ville||'—')}</td>
-            <td>${esc(c.pays||'Sénégal')}</td>
-            <td>${esc(c.ninea||'—')}</td>
+            <td><span class="tag-segment-${c.segment||'regulier'}">${c.segment==='vip'?'⭐ VIP':c.segment==='occasionnel'?'Occasionnel':c.segment==='inactif'?'Inactif':'Régulier'}</span></td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="viewClient('${c.id}')">Détails</button>
               <button class="btn btn-sm btn-outline" onclick="editClient('${c.id}')">Modifier</button>
@@ -2585,6 +2592,21 @@ function editClient(id) {
       <div class="form-group"><label class="form-label">Ville</label><input class="form-control" id="c-ville" value="${esc(c?.ville||'')}"></div>
       <div class="form-group"><label class="form-label">Pays</label><input class="form-control" id="c-pays" value="${esc(c?.pays||'Sénégal')}"></div>
       <div class="form-group col-span-2"><label class="form-label">Notes</label><textarea class="form-control" id="c-notes" rows="3">${esc(c?.notes||'')}</textarea></div>
+      <div class="form-group"><label class="form-label">Segment client</label>
+        <select class="form-control" id="c-segment">
+          <option value="regulier" ${(c?.segment||'regulier')==='regulier'?'selected':''}>Régulier</option>
+          <option value="vip" ${c?.segment==='vip'?'selected':''}>⭐ VIP</option>
+          <option value="occasionnel" ${c?.segment==='occasionnel'?'selected':''}>Occasionnel</option>
+          <option value="inactif" ${c?.segment==='inactif'?'selected':''}>Inactif</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Canal d'acquisition</label>
+        <select class="form-control" id="c-canal">
+          <option value="bouche_oreille" ${(c?.canal_acquisition||'bouche_oreille')==='bouche_oreille'?'selected':''}>Bouche à oreille</option>
+          <option value="reseaux_sociaux" ${c?.canal_acquisition==='reseaux_sociaux'?'selected':''}>Réseaux sociaux</option>
+          <option value="parrainage" ${c?.canal_acquisition==='parrainage'?'selected':''}>Parrainage</option>
+          <option value="walk_in" ${c?.canal_acquisition==='walk_in'?'selected':''}>Walk-in (passage)</option>
+          <option value="pub" ${c?.canal_acquisition==='pub'?'selected':''}>Publicité</option>
+        </select></div>
     </div>
   `, `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
       <button class="btn btn-primary" onclick="saveClient('${id||''}')">Enregistrer</button>`);
@@ -2601,6 +2623,8 @@ function saveClient(id) {
     ville: document.getElementById('c-ville').value.trim(),
     pays: document.getElementById('c-pays').value.trim() || 'Sénégal',
     notes: document.getElementById('c-notes').value.trim(),
+    segment: document.getElementById('c-segment')?.value || 'regulier',
+    canal_acquisition: document.getElementById('c-canal')?.value || 'bouche_oreille',
     updatedAt: now()
   };
   if (id) {
@@ -2648,6 +2672,7 @@ function viewClient(id) {
         <span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span>
         <span style="font-size:0.85rem;font-weight:700;color:var(--primary)">${fmt.fcfa(f.totalTTC)}</span>
       </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.85rem">Aucune facture</p>'}
+  ${ModuleSuiviClient.renderJournal(id)}
   `, `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
       <button class="btn btn-primary" onclick="closeModal();editClient('${id}')">Modifier</button>`, 'lg');
 }
@@ -2678,13 +2703,17 @@ function renderFactures() {
     return `
     <div class="page-header">
       <div><div class="page-title">${termFacture}s</div><div class="page-subtitle">Aucune ${termFacture.toLowerCase()} pour le moment</div></div>
-      <div class="page-actions"><button class="btn btn-primary" onclick="openNewFacture()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouvelle ${termFacture.toLowerCase()}</button></div>
+      <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV('factures')">⬇ CSV</button>
+          <button class="btn btn-primary" onclick="openNewFacture()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouvelle ${termFacture.toLowerCase()}</button></div>
     </div>
     ${renderEmptyState('📄', `Aucune ${termFacture.toLowerCase()} encore`, `Créez votre première ${termFacture.toLowerCase()} en quelques secondes.`, `+ Nouvelle ${termFacture.toLowerCase()}`, 'openNewFacture()')}`;
   }
   return _bF+`  <div class="page-header">
     <div><div class="page-title">${termFacture}s</div><div class="page-subtitle">${total} ${termFacture.toLowerCase()}${total>1?'s':''}</div></div>
-    <div class="page-actions"><button class="btn btn-primary" onclick="openNewFacture()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouvelle ${termFacture.toLowerCase()}</button></div>
+    <div class="page-actions">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV('factures')">⬇ CSV</button>
+          <button class="btn btn-primary" onclick="openNewFacture()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouvelle ${termFacture.toLowerCase()}</button></div>
   </div>
   <div class="filters-bar">
     <input type="text" class="filter-input search" placeholder="🔍 N°, ${termClient.toLowerCase()}…" value="${esc(factureSearch)}" oninput="factureSearch=this.value.toLowerCase();facturePage=1;render()">
@@ -3062,6 +3091,8 @@ function renderStock() {
     <div><div class="page-title">${termStock}</div><div class="page-subtitle">${produits.length} ${termProduit.toLowerCase()}${produits.length>1?'s':''} · ${lowStock} stock faible · ${outStock} épuisé</div></div>
     <div class="page-actions">
       <button class="btn btn-outline" onclick="openMouvement()">Mouvement stock</button>
+      <button class="btn btn-outline btn-sm" onclick="exportCSV('produits')">⬇ CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="openImportCSV('produits')">⬆ Importer</button>
       <button class="btn btn-primary" onclick="openNewProduit()"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nouveau ${termProduit.toLowerCase()}</button>
     </div>
   </div>
@@ -3380,6 +3411,8 @@ function renderParametres() {
       <div class="settings-section-title">Équipe & Collaborateurs</div>
       <div class="card"><div class="card-body">
         ${renderEquipe()}
+      ${renderSousComptes()}
+      ${renderFiscalSettings()}
       </div></div>
     </div>
     ${renderPreferences()}
@@ -3808,7 +3841,7 @@ function applyProfil() {
   });
 
   // 2b. Module BTP Chantiers — visible selon métier
-  const btpMetiers = ['entrepreneur_btp','electricien','plombier','menuisier','peintre','carreleur','soudeur','architecte','maconnerie'];
+  const btpMetiers = ['entrepreneur_btp','electricien','plombier','menuisier','peintre','carreleur','soudeur','garagiste','architecte','btp'];
   const user = getCurrentUser() || App.user;
   const metier = user?.metier || '';
   const isBTP = btpMetiers.includes(metier);
@@ -3816,7 +3849,7 @@ function applyProfil() {
   if (navChantiers) navChantiers.style.display = isBTP ? '' : 'none';
   // Module Paie — visible pour tous en premium
   const navPaie = document.getElementById('nav-paie');
-  if (navPaie) navPaie.style.display = (user?.plan === 'premium') ? '' : 'none';
+  if (navPaie) navPaie.style.display = ''; // v12: accessible pour tous
 
   // 3. Renommer les labels sidebar
   const t = profil.terminologie;
@@ -3857,7 +3890,10 @@ function applyProfil() {
   // 5. Workspace switcher
   const wsCont = document.getElementById('ws-switcher-container');
   if (wsCont) wsCont.innerHTML = renderWorkspaceSwitcher();
-}
+
+  // v12: filtrage sidebar par rôle pour sous-comptes
+  const _v12user = getCurrentUser() || App.user;
+  if (_v12user?.isSubAccount) applyRoleSidebar(_v12user);}
 
 /* ══════════════════════════════════════════════════════
    DASHBOARD ADAPTATIF
@@ -3956,103 +3992,7 @@ const ROLES_DISPONIBLES = {
   lecture:    { label: 'Lecture seule', droits: [] }
 };
 
-function renderEquipe() {
-  const user = getCurrentUser() || App.user;
-  if (user?.plan !== 'premium') {
-    return `<div style="text-align:center;padding:40px">
-      <div style="font-size:2.5rem;margin-bottom:12px">🔒</div>
-      <p style="font-weight:700;margin-bottom:8px">Fonctionnalité Premium</p>
-      <p style="color:var(--text-muted);margin-bottom:20px">Invitez des collaborateurs avec des rôles définis.</p>
-      <button class="btn btn-primary" onclick="openPaymentModal()">✦ Passer Premium</button>
-    </div>`;
-  }
-  const wsId    = getCurrentWorkspaceId();
-  const ws      = JSON.parse(localStorage.getItem(`dolipro_ws_${wsId}_meta`) || '{}');
-  const membres = ws.membres || [];
-  const allUsers = getAllUsers();
-  return `
-    <div class="page-header" style="margin-bottom:20px">
-      <h2 style="font-family:var(--font-title)">Mon équipe</h2>
-      <button class="btn btn-primary" onclick="openInviteMembre()">+ Inviter un membre</button>
-    </div>
-    <div class="card"><div class="card-body">
-      <div class="table-container">
-        <table class="table">
-          <thead><tr><th>Membre</th><th>Email</th><th>Rôle</th><th>Actions</th></tr></thead>
-          <tbody>${membres.map(m => {
-            const u = allUsers.find(x => x.id === m.userId);
-            if (!u) return '';
-            return `<tr>
-              <td><strong>${esc(u.nom || u.name)}</strong> ${m.userId === user.id ? '<span style="font-size:0.72rem;color:var(--primary)">(vous)</span>' : ''}</td>
-              <td>${esc(u.email)}</td>
-              <td><span class="badge badge-info">${esc(m.role)}</span></td>
-              <td>${m.userId !== user.id ? `<button class="btn-icon" onclick="retirerMembre('${m.userId}')">🗑</button>` : '—'}</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>
-      </div>
-    </div></div>`;
-}
 
-function openInviteMembre() {
-  const allUsers = getAllUsers();
-  const wsId     = getCurrentWorkspaceId();
-  const ws       = JSON.parse(localStorage.getItem(`dolipro_ws_${wsId}_meta`) || '{}');
-  const membreIds = (ws.membres || []).map(m => m.userId);
-  const disponibles = allUsers.filter(u => !membreIds.includes(u.id));
-  openModal('Inviter un membre', `
-    <div class="form-group">
-      <label class="form-label">Utilisateur (doit avoir un compte)</label>
-      <select id="invite-user" class="form-control">
-        <option value="">-- Sélectionner --</option>
-        ${disponibles.map(u => `<option value="${u.id}">${esc(u.nom || u.name)} — ${esc(u.email)}</option>`).join('')}
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Rôle</label>
-      <select id="invite-role" class="form-control">
-        ${Object.entries(ROLES_DISPONIBLES).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
-      </select>
-    </div>`,
-    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
-     <button class="btn btn-primary" onclick="confirmerInvitation()">Ajouter au workspace</button>`
-  );
-}
-
-function confirmerInvitation() {
-  const userId = document.getElementById('invite-user').value;
-  const role   = document.getElementById('invite-role').value;
-  if (!userId) { toast('Sélectionner un utilisateur','warning'); return; }
-  const wsId  = getCurrentWorkspaceId();
-  const wsKey = `dolipro_ws_${wsId}_meta`;
-  const ws    = JSON.parse(localStorage.getItem(wsKey) || '{}');
-  if (!ws.membres) ws.membres = [];
-  if (ws.membres.length >= 10) { toast('Limite de 10 membres atteinte','warning'); return; }
-  ws.membres.push({ userId, role });
-  localStorage.setItem(wsKey, JSON.stringify(ws));
-  const users = getAllUsers();
-  const idx = users.findIndex(u => u.id === userId);
-  if (idx >= 0) {
-    if (!users[idx].workspaces) users[idx].workspaces = [];
-    users[idx].workspaces.push({ wsId, role });
-    saveAllUsers(users);
-  }
-  closeModal();
-  toast('Membre ajouté avec succès','success');
-  navigate('parametres');
-}
-
-function retirerMembre(userId) {
-  confirmModal('Retirer ce membre du workspace ?', () => {
-    const wsId  = getCurrentWorkspaceId();
-    const wsKey = `dolipro_ws_${wsId}_meta`;
-    const ws    = JSON.parse(localStorage.getItem(wsKey) || '{}');
-    ws.membres  = (ws.membres || []).filter(m => m.userId !== userId);
-    localStorage.setItem(wsKey, JSON.stringify(ws));
-    toast('Membre retiré','info');
-    navigate('parametres');
-  });
-}
 
 function renderWorkspaceSwitcher() {
   const user = getCurrentUser() || App.user;
@@ -4547,7 +4487,7 @@ function renderRelances() {
               ${NIVEAUX_LABELS[niveau]||'—'}
             </span></td>
             <td>
-              <button class="btn btn-outline" style="font-size:0.8rem" onclick="openRelanceModal('${f.id}',${niveau})">
+              <button class="btn btn-outline" style="font-size:0.8rem" onclick="openRelanceModal('${f.id}')">
                 Envoyer relance
               </button>
               ${relances.length ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-left:8px">${relances.length} envoyée(s)</span>` : ''}
@@ -4557,84 +4497,6 @@ function renderRelances() {
       </table>
     </div>`;
 }
-
-function openRelanceModal(factureId, niveauSuggere) {
-  openModal('Envoyer une relance',
-    `<div class="form-group">
-      <label class="form-label">Niveau de relance</label>
-      <select id="rel-niveau" class="form-control">
-        <option value="1" ${niveauSuggere===1?'selected':''}>1 — Amiable (J+30)</option>
-        <option value="2" ${niveauSuggere===2?'selected':''}>2 — Ferme (J+60)</option>
-        <option value="3" ${niveauSuggere===3?'selected':''}>3 — Mise en demeure (J+90)</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Notes internes</label>
-      <textarea id="rel-notes" class="form-control" rows="3" placeholder="Notes optionnelles..."></textarea>
-    </div>`,
-    `<button class="btn btn-outline" onclick="closeModal()">Annuler</button>
-     <button class="btn btn-primary" onclick="creerRelance('${factureId}')">Générer la lettre</button>`
-  );
-}
-
-function creerRelance(factureId) {
-  const niveau = parseInt(document.getElementById('rel-niveau').value);
-  const notes  = document.getElementById('rel-notes').value.trim();
-  const relances = Store.get('relances', []);
-  relances.push({
-    id: 'rel_'+uid(), facture_id: factureId,
-    niveau, date_envoi: fmt.dateISO(), notes, createdAt: now()
-  });
-  Store.set('relances', relances);
-  closeModal();
-  toast(`Relance niveau ${niveau} enregistrée`, 'success');
-  printRelance(factureId, niveau);
-  navigate('relances');
-}
-
-function printRelance(factureId, niveau) {
-  const facture = Store.get('factures',[]).find(f => f.id === factureId);
-  const co = Store.getObj('company', {});
-  if (!facture) return;
-  const restant = getMontantRestant(facture);
-  const jours   = getJoursRetard(facture);
-  const nLabel  = NIVEAUX_LABELS[niveau];
-  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Fraunces:wght@700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Plus Jakarta Sans',sans-serif;padding:40px;max-width:720px;margin:0 auto;color:#0f172a}
-    h1{font-family:'Fraunces',serif}@media print{@page{margin:15mm}}</style>
-    </head><body>
-    <div style="display:flex;justify-content:space-between;margin-bottom:40px">
-      <div><strong style="font-size:16px">${esc(co.nom||'DoliPro Manager')}</strong><br>
-        <span style="color:#64748b;font-size:13px">${co.adresse||''}, ${co.ville||'Dakar'}</span></div>
-      <div style="text-align:right;color:#64748b;font-size:13px">
-        Dakar, le ${fmt.date(fmt.dateISO())}<br>
-        RELANCE — NIVEAU ${niveau} : ${nLabel.toUpperCase()}
-      </div>
-    </div>
-    <div style="background:#f0f4ff;padding:16px;border-radius:10px;margin-bottom:30px">
-      <strong>Destinataire :</strong> ${esc(facture.clientNom)}<br>
-      <strong>Objet :</strong> Relance ${nLabel} — Facture ${esc(facture.numero)}
-    </div>
-    <p>Madame, Monsieur,</p>
-    <p style="margin:16px 0">Sauf erreur de notre part, nous constatons que la facture <strong>${esc(facture.numero)}</strong>
-    d'un montant de <strong>${formatMontant(facture.totalTTC)}</strong>, dont l'échéance était fixée au
-    <strong>${fmt.date(facture.echeance)}</strong>, soit <strong>${jours} jours</strong> de retard,
-    n'a pas encore été réglée. Le montant restant dû s'élève à <strong>${formatMontant(restant)}</strong>.</p>
-    ${niveau === 1 ? `<p>Nous vous remercions de bien vouloir régulariser cette situation dans les meilleurs délais.</p>` : ''}
-    ${niveau === 2 ? `<p>Sans règlement de votre part dans un délai de 8 jours, nous nous verrons contraints d'engager des procédures de recouvrement.</p>` : ''}
-    ${niveau === 3 ? `<p style="color:#dc2626;font-weight:700">À défaut de paiement sous 48 heures, nous transmettrons ce dossier à notre service juridique pour engagement de procédures légales.</p>` : ''}
-    <p style="margin-top:30px">Cordialement,<br><strong>${esc(co.nom||'DoliPro Manager')}</strong><br>${co.telephone||''}</p>
-    <script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script>
-    </body></html>`;
-  const w = window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
-}
-
-/* ══════════════════════════════════════════════════════
-   [RAPPORTS] — Rapports & Exports
-══════════════════════════════════════════════════════ */
 
 function getRapportMensuel(annee, mois) {
   const factures = Store.get('factures',[]).filter(f => {
@@ -4683,7 +4545,9 @@ function renderRapports() {
     <div class="page-header">
       <h1 class="page-title" style="font-family:var(--font-title)">Rapports & Exports</h1>
       <div style="display:flex;gap:10px">
-        <button class="btn btn-outline" onclick="exportRapportCSV()">⬇ Exporter CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="exportRapportCSV()">⬇ Exporter CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="genererRapportJournalier()">📊 Rapport du jour</button>
+        <button class="btn btn-primary btn-sm" onclick="genererRapportSemestriel()">📈 Rapport semestriel</button>
         <button class="btn btn-outline" onclick="window.print()">🖨 Imprimer</button>
       </div>
     </div>
@@ -5033,44 +4897,6 @@ function renderModuleVerrouille(nom, desc) {
 /* ═══════════════════════════════════════════════════════
    V9 — seedDemoDataForMetier (30 métiers)
 ═══════════════════════════════════════════════════════ */
-function seedDemoDataForMetier(metier) {
-  seedDemoData();
-  const map={
-    entrepreneur_btp:{nom:'BâtiPro Construction SARL',adresse:'Zone Industrielle Mbao',ville:'Dakar'},
-    electricien:{nom:'ÉlectroPro Installations',adresse:'Parcelles Assainies U26',ville:'Dakar'},
-    plombier:{nom:'Plomb & Sanitaire Services',adresse:'Grand-Dakar, Rue 12',ville:'Dakar'},
-    menuisier:{nom:'Atelier Bois & Métal',adresse:'Thiaroye, VDN',ville:'Thiaroye'},
-    peintre:{nom:'Peinture & Déco Pro',adresse:'Yeumbeul, Route Nationale',ville:'Yeumbeul'},
-    carreleur:{nom:'Carrelage & Maçonnerie Plus',adresse:'Pikine, Route de Rufisque',ville:'Pikine'},
-    soudeur:{nom:'Atelier Soudure & Ferronnerie',adresse:'Zone Industrielle',ville:'Dakar'},
-    garagiste:{nom:'Garage Auto Mécanique Pro',adresse:'Rufisque, Route Nationale',ville:'Rufisque'},
-    developpeur:{nom:'DevSénégal Agency',adresse:'Point E, Rue 8',ville:'Dakar'},
-    technicien_info:{nom:'TechRepair Services',adresse:'Zone Industrielle, Rue 15',ville:'Dakar'},
-    freelance_digital:{nom:'Creative Digital Studio',adresse:'Mermoz, Villa 12',ville:'Dakar'},
-    formateur_digital:{nom:'École Numérique Pro',adresse:'Liberté VI, Villa 4',ville:'Dakar'},
-    photographe:{nom:'Studio Photo Pro',adresse:'Plateau, Avenue Roume',ville:'Dakar'},
-    chauffeur:{nom:'Express Transport SN',adresse:'Colobane, Rue de Thiès',ville:'Dakar'},
-    boutique:{nom:'Boutique Excellence',adresse:'Marché Sandaga, Stand 42',ville:'Dakar'},
-    grossiste:{nom:'Diallo Import-Export SARL',adresse:'Zone Portuaire, Entrepôt 7',ville:'Dakar'},
-    pharmacie:{nom:'Pharmacie de la Paix',adresse:'Avenue Cheikh Anta Diop N°18',ville:'Dakar'},
-    superette:{nom:'Épicerie du Quartier',adresse:'HLM Grand-Yoff, Lot 5',ville:'Dakar'},
-    prestataire:{nom:'Conseil & Stratégie SN',adresse:'Plateau, Avenue Peytavin',ville:'Dakar'},
-    agence_com:{nom:'Agence Créative 360°',adresse:'Point E, Rue 8 x Rue 10',ville:'Dakar'},
-    nettoyage:{nom:'Clean Pro Services',adresse:'Ouakam, Voie de Dégagement',ville:'Dakar'},
-    securite:{nom:'Sécurité Sénégal SARL',adresse:'Plateau, Avenue Roume',ville:'Dakar'},
-    medecin:{nom:'Cabinet Médical Dr. Ndiaye',adresse:'Fann Résidence, Villa 5',ville:'Dakar'},
-    coiffeur:{nom:'Salon Beauté Prestige',adresse:'Sacré-Cœur III, Rue 10',ville:'Dakar'},
-    restaurateur:{nom:'Restaurant Le Thiébou',adresse:'Almadies, Route de Ngor',ville:'Dakar'},
-    boulanger:{nom:'Boulangerie du Sahel',adresse:'Grand-Yoff, Rue 12',ville:'Dakar'},
-    agent_immo:{nom:'Immobilier Sénégal SARL',adresse:'Plateau, Rue Carnot',ville:'Dakar'},
-    agriculteur:{nom:'Ferme Diallo & Fils',adresse:'Route de Thiès, KM 35',ville:'Thiès'},
-    ecole:{nom:'Institut de Formation Excellence',adresse:'Liberté VI, Villa 4',ville:'Dakar'},
-    pressing:{nom:'Pressing Net & Propre',adresse:'HLM Grand-Yoff, Rue 8',ville:'Dakar'},
-  };
-  const ov=map[metier]||map.boutique;
-  Store.set('company',{...Store.getObj('company',{}),...ov});
-  Store.set('settings',{metier,devise:'FCFA'});
-}
 
 window.addEventListener('beforeunload', () => {
   autoSaveToLocalBackup();
@@ -5255,11 +5081,21 @@ function renderPreferences() {
           </div>
           <div class="form-group">
             <label class="form-label">Mon métier</label>
-            <select id="pref-metier" class="form-control" onchange="changeMetier(this.value)">
-              ${Object.entries(PROFILS).map(([k,p]) =>
-                `<option value="${k}" ${user.metier===k?'selected':''}>${p.icon} ${p.label}</option>`
-              ).join('')}
-            </select>
+            ${user.metierLockedAt
+              ? `<div style="background:var(--bg);border-radius:10px;padding:14px 16px;border:1px solid var(--border);display:flex;align-items:center;gap:12px">
+                  <span style="font-size:1.4rem">${PROFILS[user.metier]?.icon||'🏢'}</span>
+                  <div>
+                    <div style="font-weight:700">${PROFILS[user.metier]?.label||user.metier}</div>
+                    <div style="font-size:0.78rem;color:var(--text-muted)">🔒 Verrouillé le ${fmt.date(user.metierLockedAt||user.createdAt)}</div>
+                  </div>
+                </div>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">Le métier ne peut pas être modifié. Pour utiliser un autre métier, créez un nouveau compte.</p>`
+              : `<select id="pref-metier" class="form-control" onchange="changeMetier(this.value)">
+                  ${Object.entries(PROFILS).map(([k,p]) =>
+                    '<option value="'+k+'" '+(user.metier===k?'selected':'')+'>'+p.icon+' '+p.label+'</option>'
+                  ).join('')}
+                </select>`
+            }
           </div>
         </div>
         <div style="margin-top:16px">
@@ -5281,8 +5117,12 @@ function saveUserPref(key, value) {
 }
 
 function changeMetier(newMetier) {
+  const user = getCurrentUser() || App.user;
+  if (user?.metierLockedAt) {
+    toast('Le métier est verrouillé et ne peut pas être modifié.', 'warning');
+    return;
+  }
   const users = getAllUsers();
-  const user  = getCurrentUser();
   if (!user) return;
   const idx   = users.findIndex(u => u.id === user.id);
   if (idx >= 0) { users[idx].metier = newMetier; saveAllUsers(users); }
@@ -5498,7 +5338,7 @@ function openInviteMembre() {
   `);
 }
 
-function doInviteMembre() {
+async function doInviteMembre() {
   const nom = document.getElementById('inv-nom')?.value?.trim();
   const email = document.getElementById('inv-email')?.value?.trim();
   const pw = document.getElementById('inv-password')?.value?.trim();
@@ -5507,7 +5347,8 @@ function doInviteMembre() {
   const users = getAllUsers();
   if (users.find(u => u.email === email)) { toast('Email déjà utilisé', 'error'); return; }
   const creator = getCurrentUser() || App.user;
-  const newUser = { id: uid(), nom, email, password: sha256(pw), role, metier: creator?.metier||'boutique', plan:'free', workspaceId: creator?.workspaceId || creator?.id, createdBy: creator?.id, createdAt: new Date().toISOString() };
+  const hash = await sha256(pw);
+  const newUser = { id: uid(), nom, email, password: hash, role, metier: creator?.metier||'boutique', plan:'free', workspaceId: creator?.workspaceId || creator?.id, createdBy: creator?.id, createdAt: new Date().toISOString() };
   users.push(newUser);
   saveAllUsers(users);
   closeModal();
@@ -7032,6 +6873,259 @@ function activatePremiumFromPayment() {
   closePaymentModal();
   applyProfil(); updateUserNav(); render();
 }
+
+/* ══════════════════════════════════════════════════════
+   V12 — SOUS-COMPTES ENTREPRISE
+══════════════════════════════════════════════════════ */
+const MAX_SOUS_COMPTES = 5;
+
+function renderSousComptes() {
+  const user = getCurrentUser() || App.user;
+  if (user?.isSubAccount) return '';
+  const allUsers = getAllUsers();
+  const sousComptes = allUsers.filter(u => u.parentUserId === user.id);
+
+  return `
+  <div class="settings-section">
+    <div class="settings-section-title">👥 Sous-comptes employés</div>
+    <div class="card"><div class="card-body">
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
+        Créez des accès individuels pour vos employés. Chaque sous-compte partage vos données avec des droits restreints.
+        <strong>${sousComptes.length}/${MAX_SOUS_COMPTES}</strong> sous-compte(s) utilisé(s).
+      </p>
+      ${sousComptes.length > 0 ? `
+        <div class="table-container" style="margin-bottom:16px">
+          <table>
+            <thead><tr>
+              <th>Nom</th><th>Email</th><th>Rôle</th><th>Dernière connexion</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${sousComptes.map(sc => `<tr>
+                <td><strong>${esc(sc.nom)}</strong></td>
+                <td style="font-size:0.82rem">${esc(sc.email)}</td>
+                <td><span class="role-badge ${ROLES[sc.role]?.color||'role-vendeur'}">${ROLES[sc.role]?.label||sc.role}</span></td>
+                <td style="font-size:0.78rem;color:var(--text-muted)">${sc.lastLoginAt ? fmt.date(sc.lastLoginAt) : 'Jamais connecté'}</td>
+                <td><div class="td-actions">
+                  <button class="btn btn-sm btn-outline" onclick="editSousCompte('${sc.id}')">Modifier</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteSousCompte('${sc.id}')">Suppr.</button>
+                </div></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>` : `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px">Aucun sous-compte créé pour le moment.</p>`}
+      ${sousComptes.length < MAX_SOUS_COMPTES
+        ? `<button class="btn btn-primary" onclick="openCreerSousCompte()">+ Créer un sous-compte</button>`
+        : `<p style="color:var(--warning);font-size:0.85rem;font-weight:600">⚠ Limite de ${MAX_SOUS_COMPTES} sous-comptes atteinte.</p>`}
+    </div></div>
+  </div>`;
+}
+
+function openCreerSousCompte() {
+  openModal('Nouveau sous-compte employé', `
+    <div style="background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:0.82rem;color:var(--text-muted)">
+      ℹ️ L'employé pourra se connecter avec son email et mot de passe. Il accèdera aux données de votre espace avec les droits du rôle choisi.
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nom complet *</label>
+      <input type="text" class="form-control" id="sc-nom" placeholder="Prénom Nom">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email de connexion *</label>
+      <input type="email" class="form-control" id="sc-email" placeholder="employe@monentreprise.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Mot de passe provisoire *</label>
+      <input type="password" class="form-control" id="sc-password" placeholder="Minimum 4 caractères">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Rôle & permissions</label>
+      <select class="form-control" id="sc-role">
+        <option value="vendeur">Vendeur — Factures, Devis, Clients, Stock</option>
+        <option value="caissier">Caissier — Paiements uniquement</option>
+        <option value="comptable">Comptable — Lecture + Comptabilité</option>
+        <option value="admin">Administrateur — Accès complet</option>
+      </select>
+    </div>
+    <div style="background:#fef3c7;border-radius:8px;padding:10px 12px;font-size:0.8rem;color:#92400e;margin-top:4px">
+      ⚠️ Le sous-compte partagera <strong>toutes vos données</strong> selon les droits du rôle choisi.
+    </div>
+  `, `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="doCreerSousCompte()">Créer le sous-compte</button>
+  `);
+}
+
+function doCreerSousCompte() {
+  const nom      = document.getElementById('sc-nom')?.value?.trim();
+  const email    = document.getElementById('sc-email')?.value?.trim().toLowerCase();
+  const password = document.getElementById('sc-password')?.value;
+  const role     = document.getElementById('sc-role')?.value || 'vendeur';
+
+  if (!nom || !email || !password) { toast('Tous les champs sont requis', 'error'); return; }
+  if (password.length < 4) { toast('Mot de passe trop court (min 4 caractères)', 'error'); return; }
+
+  const allUsers = getAllUsers();
+  if (allUsers.find(u => u.email === email)) { toast('Cet email est déjà utilisé', 'error'); return; }
+
+  const parent = getCurrentUser() || App.user;
+  const sousComptes = allUsers.filter(u => u.parentUserId === parent.id);
+  if (sousComptes.length >= MAX_SOUS_COMPTES) { toast(`Limite de ${MAX_SOUS_COMPTES} sous-comptes atteinte`, 'warning'); return; }
+
+  const newSubAccount = {
+    id:             'usr_' + uid(),
+    nom,
+    email,
+    passwordHash:   btoa(unescape(encodeURIComponent(password))),
+    metier:         parent.metier,
+    metierLockedAt: parent.metierLockedAt || parent.createdAt,
+    plan:           'subaccount',
+    role,
+    workspaceId:    parent.workspaceId,
+    parentUserId:   parent.id,
+    isSubAccount:   true,
+    createdAt:      new Date().toISOString()
+  };
+
+  allUsers.push(newSubAccount);
+  saveAllUsers(allUsers);
+  closeModal();
+  toast(`Sous-compte créé pour ${nom} — Rôle : ${ROLES[role]?.label || role}`, 'success');
+  navigate('parametres');
+}
+
+function editSousCompte(userId) {
+  const u = getAllUsers().find(x => x.id === userId);
+  if (!u) return;
+  openModal(`Modifier : ${esc(u.nom)}`, `
+    <div class="form-group">
+      <label class="form-label">Rôle</label>
+      <select class="form-control" id="sc-edit-role">
+        ${Object.entries(ROLES).map(([k,v]) =>
+          `<option value="${k}" ${u.role===k?'selected':''}>${v.label}</option>`
+        ).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nouveau mot de passe (laisser vide = inchangé)</label>
+      <input type="password" class="form-control" id="sc-edit-pw" placeholder="Nouveau mot de passe…">
+    </div>
+  `, `
+    <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+    <button class="btn btn-primary" onclick="saveEditSousCompte('${userId}')">Enregistrer</button>
+  `);
+}
+
+function saveEditSousCompte(userId) {
+  const users = getAllUsers();
+  const idx   = users.findIndex(u => u.id === userId);
+  if (idx < 0) return;
+  users[idx].role = document.getElementById('sc-edit-role')?.value || users[idx].role;
+  const newPw = document.getElementById('sc-edit-pw')?.value;
+  if (newPw && newPw.length >= 4) {
+    users[idx].passwordHash = btoa(unescape(encodeURIComponent(newPw)));
+  }
+  saveAllUsers(users);
+  closeModal();
+  toast('Sous-compte mis à jour', 'success');
+  navigate('parametres');
+}
+
+function deleteSousCompte(userId) {
+  confirmAction('Supprimer ce sous-compte ?', "L'employé ne pourra plus se connecter.", () => {
+    saveAllUsers(getAllUsers().filter(u => u.id !== userId));
+    toast('Sous-compte supprimé', 'success');
+    navigate('parametres');
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   V12 — FILTRAGE SIDEBAR PAR RÔLE (sous-comptes)
+══════════════════════════════════════════════════════ */
+const ACCES_PAR_ROLE = {
+  admin:     ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres','chantiers','paie'],
+  comptable: ['dashboard','factures','devis','comptabilite','relances','rapports'],
+  vendeur:   ['dashboard','clients','factures','devis','stock'],
+  caissier:  ['dashboard','factures']
+};
+
+function applyRoleSidebar(user) {
+  if (!user) return;
+  const role = user.role || 'admin';
+  const acces = ACCES_PAR_ROLE[role] || ACCES_PAR_ROLE['admin'];
+  const allNavMods = ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres','chantiers','paie'];
+  allNavMods.forEach(mod => {
+    const el = document.getElementById('nav-' + mod);
+    if (!el) return;
+    if (!acces.includes(mod)) el.style.display = 'none';
+  });
+  // Badge sous-compte dans topbar
+  if (user.isSubAccount) {
+    const roleBadgeEl = document.getElementById('topbar-role-badge');
+    if (roleBadgeEl) {
+      const roleLabels = {admin:'ADMIN',comptable:'COMPTABLE',vendeur:'VENDEUR',caissier:'CAISSIER'};
+      roleBadgeEl.innerHTML = `<span class="role-badge role-${role}">${roleLabels[role]||'ADMIN'}</span> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px">· Sous-compte</span>`;
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   V12 — CONNEXION SOUS-COMPTE (patch doLogin)
+══════════════════════════════════════════════════════ */
+// Surcharger la vérification login pour supporter passwordHash simple
+const _origDoLogin = typeof doLogin === 'function' ? doLogin : null;
+
+// Patch de la vérification password dans doLogin pour les sous-comptes
+function checkPasswordMatch(user, inputPass) {
+  // Méthode 1 : passwordHash btoa
+  if (user.passwordHash) {
+    try {
+      const decoded = decodeURIComponent(escape(atob(user.passwordHash)));
+      if (decoded === inputPass) return true;
+    } catch(e) {}
+  }
+  // Méthode 2 : password en clair (anciens comptes)
+  if (user.password === inputPass) return true;
+  // Méthode 3 : ancienne méthode btoa directe
+  if (user.passwordHash === btoa(inputPass)) return true;
+  return false;
+}
+
+/* ══════════════════════════════════════════════════════
+   V12 — POLISSAGE UX (Bloc 5)
+══════════════════════════════════════════════════════ */
+
+// Segment client dans saveClient
+function getClientSegmentFromForm() {
+  return document.getElementById('c-segment')?.value || 'regulier';
+}
+function getClientCanalFromForm() {
+  return document.getElementById('c-canal')?.value || 'bouche_oreille';
+}
+
+// Date d'échéance en rouge sur PDF
+function echeanceStyle(dateStr, statut) {
+  if (!dateStr) return '';
+  const depasse = new Date(dateStr) < new Date() && statut !== 'payee';
+  return depasse
+    ? `style="color:#dc2626;font-weight:700"`
+    : `style="color:inherit"`;
+}
+
+// Mentions fiscales sur PDF — déjà définie dans v11, on s'assure qu'elle existe
+if (typeof getMentionsFiscales === 'undefined') {
+  function getMentionsFiscales() {
+    const company = Store.get('company', {});
+    const mentions = [];
+    if (company.ninea) mentions.push(`NINEA : ${company.ninea}`);
+    if (company.rccm)  mentions.push(`RCCM : ${company.rccm}`);
+    if (company.regimeFiscal === 'forfaitaire') mentions.push('Non assujetti à la TVA — Art. 369 CGI');
+    return mentions;
+  }
+}
+
+
+
+
 </script>
 
 </body>
