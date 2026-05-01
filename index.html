@@ -1351,7 +1351,7 @@ table { border-collapse: collapse; }
 .timeline-dot  { width: 10px; height: 10px; border-radius: 50%; background: var(--primary); flex-shrink: 0; margin-top: 4px; }
 
 /* ══ CHANTIER 9 — RECHERCHE GLOBALE ═══════════════ */
-#global-search-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 9000; display: none; align-items: flex-start; justify-content: center; padding-top: 80px; backdrop-filter: blur(4px); }
+#global-search-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 9000; display: none; align-items: flex-start; justify-content: center; padding-top: 80px; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 #global-search-overlay.open { display: flex; }
 #global-search-box { background: var(--surface); border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.3); width: 100%; max-width: 600px; overflow: hidden; }
 #global-search-input { width: 100%; padding: 18px 20px; border: none; outline: none; font-size: 1rem; background: transparent; color: var(--text); font-family: var(--font-ui); border-bottom: 1px solid var(--border); }
@@ -1487,7 +1487,7 @@ table { border-collapse: collapse; }
         <div class="form-group" style="margin-bottom:18px">
           <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse email</label>
           <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com" value="admin@dolipro.sn"
-            onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()"
+            onkeydown="if(event.key==='Enter')document.getElementById('login-password')?.focus()"
             style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
         </div>
 
@@ -1497,7 +1497,7 @@ table { border-collapse: collapse; }
             <input id="login-password" type="password" class="form-control" placeholder="••••••••" value="admin123"
               onkeydown="if(event.key==='Enter')doLogin()"
               style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
-            <button onclick="togglePwdVisibility('login-password',this)" type="button"
+            <button onclick="togglePwdVisibility('login-password',this)" type="button" aria-label="Afficher / masquer le mot de passe" title="Afficher / masquer le mot de passe"
               style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">👁</button>
           </div>
         </div>
@@ -1538,7 +1538,7 @@ table { border-collapse: collapse; }
           <div style="position:relative">
             <input id="reg-password" type="password" class="form-control" placeholder="Minimum 4 caractères"
               style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
-            <button onclick="togglePwdVisibility('reg-password',this)" type="button"
+            <button onclick="togglePwdVisibility('reg-password',this)" type="button" aria-label="Afficher / masquer le mot de passe" title="Afficher / masquer le mot de passe"
               style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">👁</button>
           </div>
         </div>
@@ -1575,7 +1575,7 @@ table { border-collapse: collapse; }
   <div id="modal-box" class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">Titre</div>
-      <button class="modal-close" onclick="closeModal()">
+      <button class="modal-close" onclick="closeModal()" aria-label="Fermer" title="Fermer">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -1583,6 +1583,160 @@ table { border-collapse: collapse; }
     <div class="modal-footer" id="modal-footer"></div>
   </div>
 </div>
+
+<!-- ══ APP SHELL ══ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">D</div>
+      <div class="sidebar-brand">DoliPro <span>Manager v12</span></div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav">
+      <div id="ws-switcher-container"></div>
+      <div class="nav-section-label">Menu</div>
+
+      <div class="nav-item" id="nav-dashboard" onclick="navigate('dashboard')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span class="nav-label">Tableau de bord</span>
+      </div>
+
+      <div class="nav-item" id="nav-clients" onclick="navigate('clients')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="nav-label">Clients</span>
+      </div>
+
+      <div class="nav-item" id="nav-factures" onclick="navigate('factures')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span class="nav-label">Factures</span>
+        <span class="nav-badge" id="badge-factures" style="display:none">0</span>
+      </div>
+
+      <div class="nav-item" id="nav-devis" onclick="navigate('devis')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span class="nav-label">Devis</span>
+        <span class="nav-badge" id="badge-devis" style="display:none">0</span>
+      </div>
+
+      <div class="nav-item" id="nav-stock" onclick="navigate('stock')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        <span class="nav-label">Stock</span>
+        <span class="nav-badge" id="badge-stock" style="display:none">0</span>
+      </div>
+
+      <div class="nav-item" id="nav-comptabilite" onclick="navigate('comptabilite')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="nav-label">Comptabilité</span>
+      </div>
+
+      <div class="nav-item" id="nav-relances" onclick="navigate('relances')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-.88a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span class="nav-label">Relances</span>
+        <span class="nav-badge" id="badge-relances" style="display:none">0</span>
+      </div>
+
+      <div class="nav-item" id="nav-rapports" onclick="navigate('rapports')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="nav-label">Rapports</span>
+      </div>
+
+      <div class="nav-item" id="nav-chantiers" onclick="navigate('chantiers')" style="display:none">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="nav-label">Chantiers BTP</span>
+      </div>
+
+      <div class="nav-item" id="nav-paie" onclick="navigate('paie')" style="display:none">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span class="nav-label">Paie & Employés</span>
+      </div>
+
+      <div class="nav-item" id="nav-parametres" onclick="navigate('parametres')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="nav-label">Paramètres</span>
+      </div>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="navigate('parametres')">
+        <div class="user-avatar" id="user-avatar-nav">A</div>
+        <div class="user-info">
+          <div class="user-name" id="user-name-nav">Utilisateur</div>
+          <div class="user-role" id="user-role-nav">Admin</div>
+        </div>
+      </div>
+      <div id="topbar-role-badge"></div>
+      <button onclick="doLogout()" title="Déconnexion" aria-label="Déconnexion"
+        style="margin-top:8px;width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;
+        border-radius:9px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.6);
+        font-size:0.88rem;font-weight:500;transition:0.2s"
+        onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='#fff'"
+        onmouseout="this.style.background='none';this.style.color='rgba(255,255,255,0.6)'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- SIDEBAR OVERLAY (mobile) -->
+  <div id="sidebar-overlay" onclick="closeSidebar()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:190;opacity:0;transition:opacity 0.2s"></div>
+
+  <!-- MAIN WRAP -->
+  <div class="main-wrap">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <button class="topbar-btn topbar-menu-btn" onclick="openSidebar()" aria-label="Ouvrir le menu" title="Ouvrir le menu">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <span id="topbar-page-name" style="font-weight:700;font-size:1.05rem;color:var(--text)">Tableau de bord</span>
+      <div class="topbar-search" onclick="openGlobalSearch()" style="cursor:pointer">
+        <span class="search-icon"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+        <input id="global-search" readonly placeholder="Rechercher… (Ctrl+K)" style="pointer-events:none">
+      </div>
+      <div class="topbar-right">
+        <button id="dark-toggle-btn" class="topbar-btn" onclick="toggleDarkMode()" aria-label="Mode sombre / clair" title="Mode sombre / clair">🌙</button>
+        <button class="topbar-btn" onclick="toggleNotifPanel()" aria-label="Notifications" title="Notifications" style="position:relative">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="notif-dot" class="notif-dot" style="display:none"></span>
+        </button>
+        <span id="save-indicator" style="font-size:0.75rem;color:var(--text-muted);display:none">✓ Sauvegardé</span>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main class="page-content" id="page-content"></main>
+
+  </div><!-- /main-wrap -->
+
+</div><!-- /app -->
+
+<!-- PANNEAU NOTIFICATIONS -->
+<div id="notif-panel" class="notif-panel">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+    <strong style="font-size:0.95rem">Notifications</strong>
+    <button onclick="toggleNotifPanel()" style="background:none;border:none;cursor:pointer;color:var(--text-muted)" aria-label="Fermer les notifications" title="Fermer les notifications">✕</button>
+  </div>
+  <div id="notif-list"></div>
+  <span id="notif-badge" style="display:none"></span>
+</div>
+
+<!-- OVERLAY RECHERCHE GLOBALE -->
+<div id="global-search-overlay" onclick="if(event.target===this)closeGlobalSearch()">
+  <div id="global-search-box">
+    <input id="global-search-input" class="form-control" placeholder="Rechercher clients, factures, produits…" oninput="runGlobalSearch(this.value)" onkeydown="handleSearchKey(event)" style="width:100%;padding:18px 20px;border:none;outline:none;font-size:1rem;background:transparent;color:var(--text);border-bottom:1px solid var(--border)">
+    <div id="global-search-results"></div>
+  </div>
+</div>
+
+<!-- FAB (mobile) -->
+<button id="fab-btn" onclick="fabAction()" aria-label="Action rapide" title="Action rapide" style="display:none;position:fixed;right:20px;z-index:300;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;font-size:1.5rem;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(30,111,217,0.4);border:none;cursor:pointer">+</button>
+
 
 <script>
 // SHA-256 natif (Web Crypto API) — sans dépendance externe
@@ -1912,14 +2066,15 @@ function toast(msg, type='info', dur=3500) {
 function openModal(title, body, footer='', size='') {
   const overlay = document.getElementById('modal-overlay');
   const box = document.getElementById('modal-box');
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = body;
-  document.getElementById('modal-footer').innerHTML = footer;
+  if (!overlay || !box) return;
+  const _mt = document.getElementById('modal-title'); if(_mt) _mt.textContent = title;
+  const _mb = document.getElementById('modal-body'); if(_mb) _mb.innerHTML = body;
+  const _mf = document.getElementById('modal-footer'); if(_mf) _mf.innerHTML = footer;
   box.className = 'modal' + (size ? ' modal-'+size : '');
   overlay.classList.add('open');
 }
 function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('open');
+  document.getElementById('modal-overlay')?.classList.remove('open');
 }
 function confirmModal(msg, cb) {
   openModal('Confirmation', `
@@ -1951,12 +2106,12 @@ function switchAuthTab(tab) {
   const fReg     = document.getElementById('form-register');
   if (btnLogin) {
     // Onglet Connexion
-    btnLogin.style.background  = tab==='login' ? '#fff' : 'transparent';
-    btnLogin.style.color       = tab==='login' ? '#0f172a' : '#64748b';
+    if (btnLogin) btnLogin.style.background  = tab==='login' ? '#fff' : 'transparent';
+    if (btnLogin) btnLogin.style.color       = tab==='login' ? '#0f172a' : '#64748b';
     btnLogin.style.boxShadow   = tab==='login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
     // Onglet Inscription
-    btnReg.style.background    = tab==='register' ? '#fff' : 'transparent';
-    btnReg.style.color         = tab==='register' ? '#0f172a' : '#64748b';
+    if (btnReg) btnReg.style.background    = tab==='register' ? '#fff' : 'transparent';
+    if (btnReg) btnReg.style.color         = tab==='register' ? '#0f172a' : '#64748b';
     btnReg.style.boxShadow     = tab==='register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
   }
   if (fLogin) fLogin.style.display = tab==='login' ? '' : 'none';
@@ -1978,7 +2133,7 @@ function selectMetier(el) {
     el.style.borderColor = profil.couleur;
     el.style.background  = profil.couleur + '18';
   }
-  document.getElementById('reg-metier').value = el.dataset.metier;
+  const _rm = document.getElementById('reg-metier'); if(_rm) _rm.value = el.dataset.metier;
   // v12: Afficher le warning de verrouillage
   const warning = document.getElementById('metier-warning');
   const wLabel  = document.getElementById('metier-warning-label');
@@ -1989,8 +2144,8 @@ function selectMetier(el) {
 }
 
 function doLogin() {
-  const email = document.getElementById('login-email').value.trim().toLowerCase();
-  const pass  = document.getElementById('login-password') ? document.getElementById('login-password').value : document.getElementById('login-pwd').value;
+  const email = document.getElementById('login-email')?.value.trim().toLowerCase();
+  const pass  = document.getElementById('login-password') ? document.getElementById('login-password')?.value : document.getElementById('login-pwd')?.value;
   if (!email || !pass) { toast('Email et mot de passe requis','warning'); return; }
   const users = getAllUsers();
   // Migration: si aucun utilisateur multi-compte, créer depuis ancien système
@@ -2030,8 +2185,8 @@ function doLogin() {
 
 function doRegister() {
   const nom    = document.getElementById('reg-nom')?.value.trim() || document.getElementById('reg-name')?.value.trim();
-  const email  = document.getElementById('reg-email').value.trim().toLowerCase();
-  const pass   = document.getElementById('reg-password') ? document.getElementById('reg-password').value : document.getElementById('reg-pwd').value;
+  const email  = document.getElementById('reg-email')?.value.trim().toLowerCase();
+  const pass   = document.getElementById('reg-password') ? document.getElementById('reg-password')?.value : document.getElementById('reg-pwd')?.value;
   const metier = document.getElementById('reg-metier')?.value || 'boutique';
   if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
   if (pass.length < 4) { toast('Mot de passe trop court (min 4 car.)','warning'); return; }
@@ -2163,7 +2318,7 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-'+page);
   if (navEl) navEl.classList.add('active');
-  document.getElementById('topbar-page-name').textContent = PAGE_NAMES[page] || page;
+  const _tpn = document.getElementById('topbar-page-name'); if(_tpn) _tpn.textContent = PAGE_NAMES[page] || page;
   closeSidebar();
   render();
 }
@@ -2185,6 +2340,7 @@ function closeSidebar() {
 ══════════════════════════════════════════════════════ */
 function render() {
   const c = document.getElementById('page-content');
+  if (!c) return;
   switch(App.page) {
     case 'dashboard': c.innerHTML = renderDashboardAdapte(); initCharts(); break;
     case 'clients': c.innerHTML = renderClients(); break;
@@ -2215,10 +2371,10 @@ function updateBadges() {
   const bd = document.getElementById('badge-devis');
   const bs = document.getElementById('badge-stock');
   const nd = document.getElementById('notif-dot');
-  bf.style.display = pendingF > 0 ? '' : 'none'; bf.textContent = pendingF;
-  bd.style.display = pendingD > 0 ? '' : 'none'; bd.textContent = pendingD;
-  bs.style.display = lowStock > 0 ? '' : 'none'; bs.textContent = lowStock;
-  nd.style.display = lowStock > 0 ? '' : 'none';
+  if (bf) { bf.style.display = pendingF > 0 ? '' : 'none'; bf.textContent = pendingF; }
+  if (bd) { bd.style.display = pendingD > 0 ? '' : 'none'; bd.textContent = pendingD; }
+  if (bs) { bs.style.display = lowStock > 0 ? '' : 'none'; bs.textContent = lowStock; }
+  if (nd) { nd.style.display = lowStock > 0 ? '' : 'none'; }
   const relancesCount = typeof getFacturesEnRetard === 'function' ? getFacturesEnRetard().length : 0;
   const br = document.getElementById('badge-relances');
   if (br) {
@@ -2549,17 +2705,17 @@ function editClient(id) {
       <button class="btn btn-primary" onclick="saveClient('${id||''}')">Enregistrer</button>`);
 }
 function saveClient(id) {
-  const nom = document.getElementById('c-nom').value.trim();
+  const nom = document.getElementById('c-nom')?.value.trim();
   if (!nom) { toast('Le nom est obligatoire','warning'); return; }
   const clients = Store.get('clients');
   const data = {
-    nom, email: document.getElementById('c-email').value.trim(),
-    telephone: document.getElementById('c-tel').value.trim(),
-    ninea: document.getElementById('c-ninea').value.trim(),
-    adresse: document.getElementById('c-adresse').value.trim(),
-    ville: document.getElementById('c-ville').value.trim(),
-    pays: document.getElementById('c-pays').value.trim() || 'Sénégal',
-    notes: document.getElementById('c-notes').value.trim(),
+    nom, email: document.getElementById('c-email')?.value.trim(),
+    telephone: document.getElementById('c-tel')?.value.trim(),
+    ninea: document.getElementById('c-ninea')?.value.trim(),
+    adresse: document.getElementById('c-adresse')?.value.trim(),
+    ville: document.getElementById('c-ville')?.value.trim(),
+    pays: document.getElementById('c-pays')?.value.trim() || 'Sénégal',
+    notes: document.getElementById('c-notes')?.value.trim(),
     segment: document.getElementById('c-segment')?.value || 'regulier',
     canal_acquisition: document.getElementById('c-canal')?.value || 'bouche_oreille',
     updatedAt: now()
@@ -2855,7 +3011,7 @@ function renderDocLines() {
       <input class="form-control" type="number" min="0" step="0.01" value="${l.quantite||1}" oninput="docLines[${i}].quantite=parseFloat(this.value)||0;updateDocTotaux()" placeholder="Qté">
       <input class="form-control" type="number" min="0" step="1" value="${l.prixHT||0}" oninput="docLines[${i}].prixHT=parseFloat(this.value)||0;updateDocTotaux()" placeholder="${isMainOeuvre?'Prix/unité':'P.U. HT'}">
       <input class="form-control" type="number" min="0" max="100" value="${l.tva||0}" oninput="docLines[${i}].tva=parseFloat(this.value)||0;updateDocTotaux()" placeholder="TVA%" ${tvaActive?'':'style="display:none"'}>
-      <button class="btn btn-icon" style="color:var(--danger)" onclick="removeDocLine(${i})" ${docLines.length<=1?'disabled':''}>
+      <button class="btn btn-icon" style="color:var(--danger)" onclick="removeDocLine(${i})" ${docLines.length<=1?'disabled':''} aria-label="Supprimer la ligne" title="Supprimer la ligne">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
@@ -2920,8 +3076,8 @@ function calcTotals(lignes) {
 }
 
 function saveDoc(type, id) {
-  const clientId = document.getElementById('doc-client').value;
-  const date = document.getElementById('doc-date').value;
+  const clientId = document.getElementById('doc-client')?.value;
+  const date = document.getElementById('doc-date')?.value;
   if (!clientId) { toast('Veuillez sélectionner un client','warning'); return; }
   if (!date) { toast('La date est obligatoire','warning'); return; }
   const clients = Store.get('clients');
@@ -2929,8 +3085,8 @@ function saveDoc(type, id) {
   const storeKey = type==='facture'?'factures':'devis';
   const docs = Store.get(storeKey);
   const totals = calcTotals(docLines);
-  const echeance = document.getElementById('doc-echeance').value;
-  const notes = document.getElementById('doc-notes').value;
+  const echeance = document.getElementById('doc-echeance')?.value;
+  const notes = document.getElementById('doc-notes')?.value;
   const tvaActive = document.getElementById('doc-tva-active')?.checked !== false;
   const data = {
     clientId, clientNom: client?.nom||'', date, echeance: echeance||null,
@@ -3134,22 +3290,22 @@ function editProduit(id) {
   if (!hasQty) toggleStockFields();
 }
 function toggleStockFields() {
-  const checked = document.getElementById('p-hasstock').checked;
-  document.getElementById('p-stock-fields').style.display = checked?'':'none';
-  document.getElementById('p-seuil-field').style.display = checked?'':'none';
+  const checked = document.getElementById('p-hasstock')?.checked;
+  const _psf = document.getElementById('p-stock-fields'); if(_psf) _psf.style.display = checked?'':'none';
+  const _psh = document.getElementById('p-seuil-field'); if(_psh) _psh.style.display = checked?'':'none';
 }
 function saveProduit(id) {
-  const nom = document.getElementById('p-nom').value.trim();
-  const prix = parseFloat(document.getElementById('p-prix').value)||0;
+  const nom = document.getElementById('p-nom')?.value.trim();
+  const prix = parseFloat(document.getElementById('p-prix')?.value)||0;
   if (!nom) { toast('Le nom est obligatoire','warning'); return; }
-  const hasStock = document.getElementById('p-hasstock').checked;
+  const hasStock = document.getElementById('p-hasstock')?.checked;
   const produits = Store.get('produits');
   const data = {
-    nom, reference: document.getElementById('p-ref').value.trim(),
-    prix, unite: document.getElementById('p-unite').value.trim()||'pièce',
-    description: document.getElementById('p-desc').value.trim(),
-    quantite: hasStock ? (parseInt(document.getElementById('p-qty').value)||0) : undefined,
-    seuil: hasStock ? (parseInt(document.getElementById('p-seuil').value)||5) : undefined,
+    nom, reference: document.getElementById('p-ref')?.value.trim(),
+    prix, unite: document.getElementById('p-unite')?.value.trim()||'pièce',
+    description: document.getElementById('p-desc')?.value.trim(),
+    quantite: hasStock ? (parseInt(document.getElementById('p-qty')?.value)||0) : undefined,
+    seuil: hasStock ? (parseInt(document.getElementById('p-seuil')?.value)||5) : undefined,
     updatedAt: now()
   };
   if (id) {
@@ -3198,10 +3354,10 @@ function openMouvement() {
       <button class="btn btn-primary" onclick="saveMouvement()">Enregistrer</button>`);
 }
 function saveMouvement() {
-  const produitId = document.getElementById('mvt-produit').value;
-  const type = document.getElementById('mvt-type').value;
-  const qty = parseInt(document.getElementById('mvt-qty').value)||0;
-  const motif = document.getElementById('mvt-motif').value.trim();
+  const produitId = document.getElementById('mvt-produit')?.value;
+  const type = document.getElementById('mvt-type')?.value;
+  const qty = parseInt(document.getElementById('mvt-qty')?.value)||0;
+  const motif = document.getElementById('mvt-motif')?.value.trim();
   if (!produitId||qty<=0) { toast('Sélectionnez un produit et une quantité','warning'); return; }
   const produits = Store.get('produits');
   const pi = produits.findIndex(p=>p.id===produitId);
@@ -3236,7 +3392,7 @@ function openProduitPicker() {
 }
 function filterProduitPicker(q) {
   const produits = Store.get('produits').filter(p=>!q||p.nom.toLowerCase().includes(q.toLowerCase()));
-  document.getElementById('produit-picker-list').innerHTML = produits.map(p => `
+  const _ppl = document.getElementById('produit-picker-list'); if(_ppl) _ppl.innerHTML = produits.map(p => `
     <div class="product-select-item" onclick="addProduitToDoc('${p.id}')">
       <div>
         <div class="prod-name">${esc(p.nom)}</div>
@@ -3291,7 +3447,7 @@ function renderParametres() {
               ${co.logo ? `<img src="${co.logo}" alt="Logo">` : `<svg width="24" height="24" fill="none" stroke="var(--text-light)" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>`}
             </div>
             <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="loadLogo(this)">
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('logo-input').click()">Choisir un logo</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('logo-input')?.click()">Choisir un logo</button>
             ${co.logo ? `<button class="btn btn-sm" style="color:var(--danger)" onclick="removeLogo()">Supprimer</button>` : ''}
           </div>
         </div>
@@ -3334,7 +3490,7 @@ function renderParametres() {
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Exporter les données
           </button>
-          <button class="btn btn-outline" onclick="document.getElementById('import-input').click()">
+          <button class="btn btn-outline" onclick="document.getElementById('import-input')?.click()">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Importer les données
           </button>
@@ -3357,16 +3513,16 @@ function renderParametres() {
 }
 function saveCompany() {
   const co = {
-    nom: document.getElementById('co-nom').value.trim(),
-    ninea: document.getElementById('co-ninea').value.trim(),
-    tvaNum: document.getElementById('co-tva').value.trim(),
-    telephone: document.getElementById('co-tel').value.trim(),
-    email: document.getElementById('co-email').value.trim(),
-    website: document.getElementById('co-web').value.trim(),
-    adresse: document.getElementById('co-adresse').value.trim(),
-    ville: document.getElementById('co-ville').value.trim(),
-    pays: document.getElementById('co-pays').value.trim(),
-    conditions: document.getElementById('co-cond').value.trim(),
+    nom: document.getElementById('co-nom')?.value.trim(),
+    ninea: document.getElementById('co-ninea')?.value.trim(),
+    tvaNum: document.getElementById('co-tva')?.value.trim(),
+    telephone: document.getElementById('co-tel')?.value.trim(),
+    email: document.getElementById('co-email')?.value.trim(),
+    website: document.getElementById('co-web')?.value.trim(),
+    adresse: document.getElementById('co-adresse')?.value.trim(),
+    ville: document.getElementById('co-ville')?.value.trim(),
+    pays: document.getElementById('co-pays')?.value.trim(),
+    conditions: document.getElementById('co-cond')?.value.trim(),
     logo: Store.getObj('company',{}).logo
   };
   Store.set('company', co);
@@ -3379,7 +3535,7 @@ function loadLogo(input) {
     const co = Store.getObj('company',{});
     co.logo = e.target.result;
     Store.set('company', co);
-    document.getElementById('logo-preview').innerHTML = `<img src="${e.target.result}" alt="Logo">`;
+    const _lp = document.getElementById('logo-preview'); if(_lp) _lp.innerHTML = `<img src="${e.target.result}" alt="Logo">`;
     toast('Logo chargé','success');
   };
   reader.readAsDataURL(file);
@@ -3617,7 +3773,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal();
   if ((e.ctrlKey||e.metaKey) && e.key==='k') {
     e.preventDefault();
-    document.getElementById('global-search').focus();
+    document.getElementById('global-search')?.focus();
   }
 });
 
@@ -3798,11 +3954,12 @@ function applyProfil() {
   Object.entries(renames).forEach(([id, label]) => {
     const el = document.getElementById(id);
     if (!el) return;
-    const textNode = [...el.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
-    if (!textNode) {
-      el.querySelectorAll('span:not(.nav-badge)').forEach(s => { if (!s.classList.contains('nav-badge')) s.textContent = label; });
+    const navLabel = el.querySelector('.nav-label');
+    if (navLabel) {
+      navLabel.textContent = label;
     } else {
-      textNode.textContent = ' ' + label + ' ';
+      const textNode = [...el.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+      if (textNode) textNode.textContent = ' ' + label + ' ';
     }
   });
 
@@ -4093,10 +4250,10 @@ function openPaiementModal(factureId) {
 }
 
 function savePaiement(factureId) {
-  const montant = parseFloat(document.getElementById('pay-montant').value);
-  const mode    = document.getElementById('pay-mode').value;
-  const date    = document.getElementById('pay-date').value;
-  const notes   = document.getElementById('pay-notes').value.trim();
+  const montant = parseFloat(document.getElementById('pay-montant')?.value);
+  const mode    = document.getElementById('pay-mode')?.value;
+  const date    = document.getElementById('pay-date')?.value;
+  const notes   = document.getElementById('pay-notes')?.value.trim();
   if (!montant || montant <= 0) { toast('Montant invalide','warning'); return; }
   const factures = Store.get('factures',[]);
   const idx = factures.findIndex(f=>f.id===factureId);
@@ -4248,8 +4405,8 @@ function renderTxnTable() {
             ${t.type==='recette'?'+':'-'}${formatMontant(t.montant)}
           </td>
           <td>
-            <button class="btn-icon" data-tooltip="Modifier" onclick="openTransactionModal('${t.id}')">✏️</button>
-            <button class="btn-icon" data-tooltip="Supprimer" onclick="deleteTransaction('${t.id}')">🗑</button>
+            <button class="btn-icon" data-tooltip="Modifier" onclick="openTransactionModal('${t.id}')" aria-label="Modifier" title="Modifier">✏️</button>
+            <button class="btn-icon" data-tooltip="Supprimer" onclick="deleteTransaction('${t.id}')" aria-label="Supprimer" title="Supprimer">🗑</button>
           </td>
         </tr>`).join('')}
       </tbody>
@@ -4293,11 +4450,11 @@ function openTransactionModal(id = null) {
 }
 
 function saveTransaction(id) {
-  const type        = document.getElementById('txn-type').value;
-  const montant     = parseFloat(document.getElementById('txn-montant').value);
-  const categorie   = document.getElementById('txn-cat').value;
-  const date        = document.getElementById('txn-date').value;
-  const description = document.getElementById('txn-desc').value.trim();
+  const type        = document.getElementById('txn-type')?.value;
+  const montant     = parseFloat(document.getElementById('txn-montant')?.value);
+  const categorie   = document.getElementById('txn-cat')?.value;
+  const date        = document.getElementById('txn-date')?.value;
+  const description = document.getElementById('txn-desc')?.value.trim();
   if (!montant || montant <= 0 || !date) { toast('Montant et date obligatoires','warning'); return; }
   const txns = Store.get('transactions', []);
   if (id) {
@@ -5159,8 +5316,8 @@ function previewCSV(input, type) {
         ${preview.map(r=>`<tr>${headers.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}
         </tbody></table></div>`;
       if (errors.length) html += `<div style="color:var(--danger);font-size:0.82rem;margin-top:8px">${errors.join('<br>')}</div>`;
-      document.getElementById('csv-preview').innerHTML = html;
-    } catch(err) { document.getElementById('csv-preview').innerHTML = `<div style="color:var(--danger)">Fichier invalide : ${err.message}</div>`; }
+      const _cp1 = document.getElementById('csv-preview'); if(_cp1) _cp1.innerHTML = html;
+    } catch(err) { const _cp2 = document.getElementById('csv-preview'); if(_cp2) _cp2.innerHTML = `<div style="color:var(--danger)">Fichier invalide : ${err.message}</div>`; }
   };
   reader.readAsText(file, 'UTF-8');
 }
@@ -5537,7 +5694,7 @@ const ModuleBTP = {
         <div class="form-group"><label class="form-label">Coût estimé (FCFA)</label>
           <input type="number" class="form-control" id="ph-cout-estime" value="0"></div>
         <div class="form-group"><label class="form-label">Avancement (%)</label>
-          <input type="range" class="form-control" id="ph-avancement" min="0" max="100" value="0" oninput="document.getElementById('ph-avancement-val').textContent=this.value+'%'">
+          <input type="range" class="form-control" id="ph-avancement" min="0" max="100" value="0" oninput="document.getElementById('ph-avancement-val') && (document.getElementById('ph-avancement-val').textContent=this.value+'%')">
           <span id="ph-avancement-val">0%</span></div>
       </div>
     `, `
@@ -6249,7 +6406,7 @@ function updateTvaFromPays(pays) {
 <!-- ══ MODAL PUB / SPLASH ══ -->
 <div id="pub-overlay" style="
   display:none;position:fixed;inset:0;z-index:99999;
-  background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);
+  background:rgba(0,0,0,0.72);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
   align-items:center;justify-content:center;padding:16px">
   <div id="pub-box" style="
     background:var(--surface);border-radius:20px;
