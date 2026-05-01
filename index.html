@@ -688,6 +688,44 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* ══ AUTH SCREEN RESPONSIVE ══ */
+#auth-screen {
+  animation: authFadeIn 0.4s ease;
+}
+@keyframes authFadeIn {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* Mobile : une seule colonne */
+@media (max-width: 767px) {
+  #auth-left  { display: none !important; }
+  #auth-right {
+    padding: 28px 20px 40px !important;
+    align-items: flex-start !important;
+  }
+  #auth-right > div {
+    max-width: 100% !important;
+    padding-top: 16px;
+  }
+  #auth-right h2 { font-size: 1.5rem !important; }
+  #auth-right .form-control { font-size: 16px !important; } /* prevent iOS zoom */
+  #metier-grid { grid-template-columns: repeat(3,1fr) !important; }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  #auth-left  { flex: 0 0 40% !important; padding: 40px 32px !important; }
+  #auth-right { padding: 40px 32px !important; }
+  #metier-grid { grid-template-columns: repeat(3,1fr) !important; }
+}
+
+/* Desktop large */
+@media (min-width: 1280px) {
+  #auth-left  { flex: 0 0 46% !important; padding: 64px 60px !important; }
+  #auth-right { padding: 64px 60px !important; }
+}
+
 /* ══ RELANCES MOBILE ══ */
 @media (max-width: 767px) {
   /* Modal footer sticky sur mobile */
@@ -1354,335 +1392,184 @@ table { border-collapse: collapse; }
 <!-- ══ AUTH ══ -->
 <div id="auth-screen" style="position:fixed;inset:0;z-index:1000;font-family:var(--font-ui);display:flex;overflow:hidden">
 
-  <!-- ══ PANNEAU GAUCHE — Branding ══ -->
-  <div id="auth-left" style="flex:0 0 46%;background:linear-gradient(160deg,#0f172a 0%,#1a3f8a 55%,#1e6fd9 100%);
-    display:flex;flex-direction:column;justify-content:center;align-items:center;padding:48px 40px;
+  <!-- ══ PANNEAU GAUCHE — Branding riche ══ -->
+  <div id="auth-left" style="flex:0 0 48%;background:linear-gradient(160deg,#0f172a 0%,#1a3f8a 55%,#1e6fd9 100%);
+    display:flex;flex-direction:column;justify-content:space-between;padding:52px 48px;
     position:relative;overflow:hidden">
 
-    <!-- Décorations cercles -->
-    <div style="position:absolute;top:-80px;right:-80px;width:280px;height:280px;
+    <!-- Décorations géométriques -->
+    <div style="position:absolute;top:-100px;right:-100px;width:340px;height:340px;
       border-radius:50%;background:rgba(255,255,255,0.04);pointer-events:none"></div>
-    <div style="position:absolute;bottom:-60px;left:-60px;width:220px;height:220px;
-      border-radius:50%;background:rgba(30,111,217,0.18);pointer-events:none"></div>
-    <div style="position:absolute;top:50%;left:-40px;width:160px;height:160px;
+    <div style="position:absolute;bottom:-80px;left:-80px;width:280px;height:280px;
+      border-radius:50%;background:rgba(30,111,217,0.15);pointer-events:none"></div>
+    <div style="position:absolute;top:50%;left:-60px;width:180px;height:180px;
       border-radius:50%;background:rgba(255,255,255,0.03);pointer-events:none"></div>
 
     <!-- Logo -->
-    <div style="position:relative;z-index:1;text-align:center;width:100%;max-width:320px">
-      <div style="display:inline-flex;align-items:center;justify-content:center;
-        width:72px;height:72px;background:rgba(255,255,255,0.12);border-radius:20px;
-        margin-bottom:28px;border:1.5px solid rgba(255,255,255,0.15)">
-        <span style="font-family:'Fraunces',serif;font-size:32px;color:#fff;font-weight:700">D</span>
-      </div>
-      <div style="font-family:'Fraunces',serif;font-size:2.6rem;color:#fff;font-weight:700;line-height:1;margin-bottom:8px">DoliPro</div>
-      <div style="font-size:1rem;color:rgba(255,255,255,0.55);margin-bottom:48px;font-weight:400">Manager v10</div>
-
-      <!-- Points forts -->
-      <div class="auth-features" style="display:flex;flex-direction:column;gap:18px;text-align:left">
-        <div style="display:flex;align-items:flex-start;gap:14px">
-          <div style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,0.1);
-            border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">📄</div>
-          <div>
-            <div style="color:#fff;font-weight:600;font-size:0.92rem">Factures & Devis PDF</div>
-            <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:2px">Professionnels en 30 secondes</div>
-          </div>
+    <div style="position:relative;z-index:1">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:48px">
+        <div style="width:48px;height:48px;background:rgba(255,255,255,0.12);border-radius:14px;
+          display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.2)">
+          <span style="font-size:1.5rem">📊</span>
         </div>
-        <div style="display:flex;align-items:flex-start;gap:14px">
-          <div style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,0.1);
-            border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">📊</div>
-          <div>
-            <div style="color:#fff;font-weight:600;font-size:0.92rem">Comptabilité simplifiée</div>
-            <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:2px">Recettes, dépenses, bénéfice</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:flex-start;gap:14px">
-          <div style="width:36px;height:36px;flex-shrink:0;background:rgba(255,255,255,0.1);
-            border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem">🌍</div>
-          <div>
-            <div style="color:#fff;font-weight:600;font-size:0.92rem">30 métiers couverts</div>
-            <div style="color:rgba(255,255,255,0.5);font-size:0.8rem;margin-top:2px">BTP, Commerce, Tech, Services…</div>
-          </div>
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:1.7rem;color:#fff;font-weight:700;line-height:1">DoliPro</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:0.75rem;letter-spacing:0.05em;margin-top:2px">GESTION INTELLIGENTE</div>
         </div>
       </div>
 
-      <!-- Badge pays -->
-      <div style="margin-top:48px;display:inline-flex;align-items:center;gap:8px;
-        background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);
-        border-radius:20px;padding:6px 14px">
-        <span style="font-size:0.9rem">🇸🇳</span>
-        <span style="color:rgba(255,255,255,0.6);font-size:0.78rem">Conçu pour l'Afrique de l'Ouest</span>
+      <h2 style="font-family:'Fraunces',serif;font-size:2.2rem;color:#fff;font-weight:700;line-height:1.25;margin-bottom:16px">
+        Gérez votre business<br><span style="color:#60a5fa">comme un pro.</span>
+      </h2>
+      <p style="color:rgba(255,255,255,0.65);font-size:0.95rem;line-height:1.6;max-width:340px">
+        Factures, clients, stock, comptabilité — tout en un seul endroit. Adapté à votre métier, disponible partout.
+      </p>
+    </div>
+
+    <!-- Features list -->
+    <div style="position:relative;z-index:1">
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:36px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">✅</div>
+          <div style="color:rgba(255,255,255,0.85);font-size:0.88rem">Factures & devis PDF professionnels</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">✅</div>
+          <div style="color:rgba(255,255,255,0.85);font-size:0.88rem">30 métiers — interface adaptée automatiquement</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">✅</div>
+          <div style="color:rgba(255,255,255,0.85);font-size:0.88rem">Relances WhatsApp & email en 1 clic</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">✅</div>
+          <div style="color:rgba(255,255,255,0.85);font-size:0.88rem">Sous-comptes employés avec permissions</div>
+        </div>
+      </div>
+
+      <!-- Stats sociales -->
+      <div style="display:flex;gap:24px;padding:20px 24px;background:rgba(255,255,255,0.07);border-radius:16px;border:1px solid rgba(255,255,255,0.1)">
+        <div style="text-align:center">
+          <div style="font-family:'Fraunces',serif;font-size:1.6rem;color:#fff;font-weight:700">500+</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:0.72rem;margin-top:2px">Utilisateurs</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,0.12)"></div>
+        <div style="text-align:center">
+          <div style="font-family:'Fraunces',serif;font-size:1.6rem;color:#fff;font-weight:700">30</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:0.72rem;margin-top:2px">Métiers</div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,0.12)"></div>
+        <div style="text-align:center">
+          <div style="font-family:'Fraunces',serif;font-size:1.6rem;color:#fff;font-weight:700">100%</div>
+          <div style="color:rgba(255,255,255,0.5);font-size:0.72rem;margin-top:2px">Sénégal</div>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ══ PANNEAU DROIT — Formulaires ══ -->
-  <div id="auth-right" style="flex:1;background:#f8fafc;overflow-y:auto;-webkit-overflow-scrolling:touch;
-    display:flex;align-items:center;justify-content:center;padding:40px 32px">
+  <div id="auth-right" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:var(--bg);display:flex;align-items:center;justify-content:center;padding:48px 40px">
 
-    <div style="width:100%;max-width:400px">
+    <div style="width:100%;max-width:480px">
 
-      <!-- Onglets -->
-      <div style="display:flex;background:#e2e8f0;border-radius:12px;padding:4px;margin-bottom:28px">
+      <!-- Tabs -->
+      <div style="display:flex;background:var(--surface);border-radius:14px;padding:4px;margin-bottom:32px;border:1px solid var(--border)">
         <button id="tab-login" onclick="switchAuthTab('login')"
-          style="flex:1;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;
-          background:#fff;color:#0f172a;border:none;cursor:pointer;transition:0.2s;
-          box-shadow:0 1px 4px rgba(0,0,0,0.08)">
-          Connexion
-        </button>
+          style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.92rem;
+          background:var(--primary);color:#fff;transition:0.2s;border:none;cursor:pointer">Connexion</button>
         <button id="tab-register" onclick="switchAuthTab('register')"
-          style="flex:1;padding:10px 16px;border-radius:9px;font-weight:600;font-size:0.9rem;
-          background:transparent;color:#64748b;border:none;cursor:pointer;transition:0.2s">
-          Créer un compte
-        </button>
+          style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:0.92rem;
+          background:transparent;color:var(--text-muted);transition:0.2s;border:none;cursor:pointer">Créer un compte</button>
       </div>
 
       <!-- ── Formulaire Connexion ── -->
-      <div id="form-login" style="background:#fff;border-radius:20px;padding:32px;
-        box-shadow:0 4px 24px rgba(0,0,0,0.07);border:1px solid #e2e8f0">
+      <div id="form-login">
+        <h2 style="font-family:'Fraunces',serif;font-size:1.8rem;color:var(--text);font-weight:700;margin-bottom:6px">Bon retour 👋</h2>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:28px">Connectez-vous à votre espace DoliPro</p>
 
-        <div style="margin-bottom:24px">
-          <h2 style="font-family:'Fraunces',serif;font-size:1.6rem;color:#0f172a;font-weight:700;margin-bottom:4px">Bon retour 👋</h2>
-          <p style="font-size:0.85rem;color:#64748b">Connectez-vous à votre espace DoliPro</p>
-        </div>
-
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Email</label>
+        <div class="form-group" style="margin-bottom:18px">
+          <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse email</label>
           <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com" value="admin@dolipro.sn"
-            onkeydown="if(event.key==='Enter')doLogin()"
-            style="border-radius:10px;padding:12px 14px;font-size:0.95rem">
+            onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()"
+            style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
         </div>
 
-        <div style="margin-bottom:24px">
-          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Mot de passe</label>
-          <input id="login-password" type="password" class="form-control" placeholder="••••••••" value="admin123"
-            onkeydown="if(event.key==='Enter')doLogin()"
-            style="border-radius:10px;padding:12px 14px;font-size:0.95rem">
+        <div class="form-group" style="margin-bottom:24px">
+          <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Mot de passe</label>
+          <div style="position:relative">
+            <input id="login-password" type="password" class="form-control" placeholder="••••••••" value="admin123"
+              onkeydown="if(event.key==='Enter')doLogin()"
+              style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
+            <button onclick="togglePwdVisibility('login-password',this)" type="button"
+              style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">👁</button>
+          </div>
         </div>
 
         <button onclick="doLogin()" class="btn btn-primary"
-          style="width:100%;padding:13px;font-size:0.98rem;border-radius:12px;
-          background:linear-gradient(135deg,#1e6fd9,#1a3f8a);box-shadow:0 4px 14px rgba(30,111,217,0.35)">
+          style="width:100%;padding:15px;font-size:1rem;font-weight:700;border-radius:12px;letter-spacing:0.02em">
           Se connecter →
         </button>
 
-        <p style="text-align:center;margin-top:18px;font-size:0.85rem;color:#64748b">
-          Pas encore de compte ?
-          <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:600">Créer gratuitement</a>
-        </p>
-
-        <div style="margin-top:20px;padding:12px 14px;background:#f0f4ff;border-radius:10px;
-          border:1px solid #c7d7f5;font-size:0.8rem;color:#475569;text-align:center">
-          💡 Démo : <strong style="color:#1e6fd9">admin@dolipro.sn</strong> / <strong style="color:#1e6fd9">admin123</strong>
+        <div style="margin-top:20px;padding:14px 16px;background:var(--surface);border-radius:12px;
+          font-size:0.82rem;color:var(--text-muted);text-align:center;border:1px solid var(--border)">
+          💡 Démo : <strong style="color:var(--primary)">admin@dolipro.sn</strong> / <strong style="color:var(--primary)">admin123</strong>
         </div>
+
+        <p style="text-align:center;margin-top:20px;font-size:0.85rem;color:var(--text-muted)">
+          Pas encore de compte ?
+          <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:700">Créer gratuitement →</a>
+        </p>
       </div>
 
       <!-- ── Formulaire Inscription ── -->
-      <div id="form-register" style="display:none;background:#fff;border-radius:20px;padding:32px;
-        box-shadow:0 4px 24px rgba(0,0,0,0.07);border:1px solid #e2e8f0">
+      <div id="form-register" style="display:none">
+        <h2 style="font-family:'Fraunces',serif;font-size:1.8rem;color:var(--text);font-weight:700;margin-bottom:6px">Commencer gratuitement 🚀</h2>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:28px">Créez votre espace DoliPro en 1 minute</p>
 
-        <div style="margin-bottom:24px">
-          <h2 style="font-family:'Fraunces',serif;font-size:1.6rem;color:#0f172a;font-weight:700;margin-bottom:4px">Créer mon compte</h2>
-          <p style="font-size:0.85rem;color:#64748b">Gratuit, sans carte bancaire requise</p>
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Nom complet *</label>
+          <input id="reg-nom" class="form-control" placeholder="Jean Diallo" style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
         </div>
 
-        <div style="margin-bottom:14px">
-          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Nom complet *</label>
-          <input id="reg-nom" class="form-control" placeholder="Jean Diallo" style="border-radius:10px;padding:12px 14px">
+        <div class="form-group" style="margin-bottom:16px">
+          <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse email *</label>
+          <input id="reg-email" type="email" class="form-control" placeholder="vous@exemple.com" style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
         </div>
 
-        <div style="margin-bottom:14px">
-          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Email *</label>
-          <input id="reg-email" type="email" class="form-control" placeholder="vous@exemple.com" style="border-radius:10px;padding:12px 14px">
-        </div>
-
-        <div style="margin-bottom:16px">
-          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:6px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Mot de passe *</label>
-          <input id="reg-password" type="password" class="form-control" placeholder="Minimum 4 caractères" style="border-radius:10px;padding:12px 14px">
-        </div>
-
-        <div style="margin-bottom:22px">
-          <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:8px;color:#374151;text-transform:uppercase;letter-spacing:0.04em">Votre métier *</label>
-          <input type="hidden" id="reg-metier" value="boutique">
-          <div id="metier-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;
-            max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px">
-            <!-- rempli par JS -->
+        <div class="form-group" style="margin-bottom:20px">
+          <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Mot de passe *</label>
+          <div style="position:relative">
+            <input id="reg-password" type="password" class="form-control" placeholder="Minimum 4 caractères"
+              style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
+            <button onclick="togglePwdVisibility('reg-password',this)" type="button"
+              style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">👁</button>
           </div>
-          <div style="text-align:center;font-size:0.73rem;color:#94a3b8;margin-top:6px">↕ Faire défiler pour voir les 30 métiers</div>
         </div>
 
-        <div id="metier-warning" style="display:none;background:#fef3c7;border:1px solid #f59e0b;
-          border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:0.82rem;color:#92400e">
-          ⚠️ <strong>Attention :</strong> Le métier choisi <strong id="metier-warning-label"></strong>
-          ne pourra <u>pas être modifié</u> après la création du compte.
-          Il définit vos modules, terminologies et tableau de bord.
+        <div class="form-group" style="margin-bottom:24px">
+          <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:10px;display:block">Votre métier * <span style="font-size:0.75rem;color:var(--text-muted);font-weight:400">(adapte votre interface)</span></label>
+          <input type="hidden" id="reg-metier" value="boutique">
+          <div id="metier-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:4px"></div>
+          <div style="text-align:center;font-size:0.72rem;color:#94a3b8;margin-top:6px">↕ Défiler pour voir les 30 métiers</div>
         </div>
 
         <button onclick="doRegister()" class="btn btn-primary"
-          style="width:100%;padding:13px;font-size:0.98rem;border-radius:12px;
-          background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 14px rgba(22,163,74,0.3)">
-          Créer mon compte gratuitement →
+          style="width:100%;padding:15px;font-size:1rem;font-weight:700;border-radius:12px;letter-spacing:0.02em">
+          Créer mon compte gratuit →
         </button>
 
-        <p style="text-align:center;margin-top:18px;font-size:0.85rem;color:#64748b">
+        <p style="text-align:center;margin-top:20px;font-size:0.85rem;color:var(--text-muted)">
           Déjà un compte ?
-          <a href="#" onclick="switchAuthTab('login')" style="color:var(--primary);font-weight:600">Se connecter</a>
+          <a href="#" onclick="switchAuthTab('login')" style="color:var(--primary);font-weight:700">Se connecter →</a>
         </p>
       </div>
 
     </div>
   </div>
+
 </div>
 
-<!-- ══ SIDEBAR OVERLAY ══ -->
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
-
-<!-- ══ APP ══ -->
-<div id="app">
-  <!-- SIDEBAR -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-      <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro<span>Manager v12.0</span></div>
-    </div>
-    <div class="sidebar-nav">
-      <p class="nav-section-label">Principal</p>
-      <div class="nav-item" id="nav-dashboard" onclick="navigate('dashboard')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        Tableau de bord
-      </div>
-      <p class="nav-section-label">Commercial</p>
-      <div class="nav-item" id="nav-clients" onclick="navigate('clients')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Clients
-      </div>
-      <div class="nav-item" id="nav-factures" onclick="navigate('factures')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-        Factures
-        <span class="nav-badge" id="badge-factures" style="display:none"></span>
-      </div>
-      <div class="nav-item" id="nav-devis" onclick="navigate('devis')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="12" y1="9" x2="8" y2="9"/></svg>
-        Devis
-        <span class="nav-badge" id="badge-devis" style="display:none"></span>
-      </div>
-      <!-- Nav BTP — visible selon métier -->
-      <div class="nav-item nav-btp-only" id="nav-chantiers" onclick="navigate('chantiers')" style="display:none">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-        Chantiers
-      </div>
-      <p class="nav-section-label">Inventaire</p>
-      <div class="nav-item" id="nav-stock" onclick="navigate('stock')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-        Stock & Catalogue
-        <span class="nav-badge" id="badge-stock" style="display:none"></span>
-      </div>
-      <p class="nav-section-label">Gestion</p>
-      <div class="nav-item" id="nav-comptabilite" onclick="navigate('comptabilite')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-        Comptabilité
-      </div>
-      <div class="nav-item" id="nav-relances" onclick="navigate('relances')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        Relances
-        <span class="nav-badge" id="badge-relances" style="display:none">0</span>
-      </div>
-      <div class="nav-item" id="nav-paie" onclick="navigate('paie')" style="display:none">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Paie & Employés
-      </div>
-      <div class="nav-item" id="nav-rapports" onclick="navigate('rapports')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        Rapports
-      </div>
-      <p class="nav-section-label">Système</p>
-      <div class="nav-item" id="nav-parametres" onclick="navigate('parametres')">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
-        Paramètres
-      </div>
-    </div>
-    <div class="sidebar-footer">
-      <div id="ws-switcher-container"></div>
-      <div class="sidebar-user" onclick="doLogout()">
-        <div class="user-avatar" id="user-avatar-nav">U</div>
-        <div class="user-info">
-          <div class="user-name" id="user-name-nav">Utilisateur</div>
-          <div class="user-role" id="user-role-nav">Administrateur</div>
-        </div>
-        <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-      </div>
-    </div>
-  </nav>
-
-  <!-- MAIN -->
-  <div class="main-wrap">
-    <div class="topbar">
-      <button class="topbar-btn topbar-menu-btn" onclick="openSidebar()">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <div class="topbar-search" onclick="openGlobalSearch()" style="cursor:pointer">
-        <span class="search-icon">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        </span>
-        <span style="font-size:0.875rem;color:var(--text-muted)">Recherche globale… <kbd style="font-size:0.72rem;background:var(--border);padding:2px 5px;border-radius:4px">Ctrl+K</kbd></span>
-      </div>
-      <div class="topbar-right">
-        <span id="topbar-role-badge"></span>
-        <button class="topbar-btn" title="Notifications" onclick="toggleNotifPanel()" style="position:relative">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span id="notif-badge" style="display:none;position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;border:2px solid var(--surface)"></span>
-          <span class="notif-dot" id="notif-dot" style="display:none"></span>
-        </button>
-        <div class="topbar-btn" title="Exporter données" onclick="exportData()">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        </div>
-        <button id="dark-toggle-btn" class="topbar-btn" onclick="toggleDarkMode()" title="Mode sombre">🌙</button>
-        <span id="save-indicator" style="font-size:0.75rem;color:var(--success);margin-right:8px;display:none"></span>
-        <div style="width:1px;height:24px;background:var(--border);"></div>
-        <div style="font-size:0.8rem;font-weight:600;color:var(--text-muted);white-space:nowrap" id="topbar-page-name">Tableau de bord</div>
-      </div>
-    </div>
-    <div class="page-content" id="page-content"></div>
-  </div>
-</div>
-
-<!-- ══ PANNEAU NOTIFICATIONS v11 ══ -->
-<div class="notif-panel" id="notif-panel">
-  <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-    <div style="font-weight:700;font-size:0.95rem">Notifications</div>
-    <button onclick="clearAllNotifs()" style="font-size:0.78rem;color:var(--primary);background:none;border:none;cursor:pointer;font-family:inherit">Tout effacer</button>
-  </div>
-  <div id="notif-list" style="padding:8px 0"></div>
-</div>
-
-<!-- ══ OVERLAY RECHERCHE GLOBALE v11 ══ -->
-<div id="global-search-overlay" onclick="if(event.target===this)closeGlobalSearch()">
-  <div id="global-search-box">
-    <input id="global-search-input" type="text" placeholder="Rechercher un client, facture, devis, produit…" oninput="runGlobalSearch(this.value)" onkeydown="handleSearchKey(event)">
-    <div id="global-search-results">
-      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.88rem">Tapez pour rechercher…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══ FAB ══ -->
-<button id="fab-btn" onclick="executeFab()" title="Nouvelle action">+</button>
-
-<!-- ══ TOAST CONTAINER ══ -->
-<div id="toast-container"></div>
-
-<!-- ══ MODAL CONTENEUR ══ -->
-<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal" id="modal-box">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-title">Titre</div>
-      <button class="modal-close" onclick="closeModal()">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer" id="modal-footer"></div>
-  </div>
-</div>
 
 <script>
 // SHA-256 natif (Web Crypto API) — sans dépendance externe
@@ -2037,6 +1924,13 @@ function confirmAction(titre, desc, cb) {
 /* ══════════════════════════════════════════════════════
    AUTH — MULTI-UTILISATEUR
 ══════════════════════════════════════════════════════ */
+function togglePwdVisibility(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
 function switchAuthTab(tab) {
   const btnLogin = document.getElementById('tab-login');
   const btnReg   = document.getElementById('tab-register');
@@ -2214,6 +2108,14 @@ function startApp() {
   updateUserNav();
   applyProfil();
   loadUserTheme();
+  // Sous-compte : appliquer les restrictions rôle + métier admin
+  const _currentUser = getCurrentUser() || App.user;
+  if (_currentUser?.isSubAccount) {
+    // Récupérer le métier de l'admin parent
+    const _parentUser = getAllUsers().find(u => u.id === _currentUser.parentUserId);
+    if (_parentUser) _currentUser._adminMetier = _parentUser.metier;
+    applyRoleSidebar(_currentUser);
+  }
   navigate('dashboard');
   updateBadges();
   const si = document.getElementById('save-indicator');
@@ -6960,9 +6862,25 @@ function renderSousComptes() {
 }
 
 function openCreerSousCompte() {
-  openModal('Nouveau sous-compte employé', `
+  const admin = getCurrentUser() || App.user;
+  const metier = admin?.metier || 'boutique';
+  const profil = PROFILS[metier] || PROFILS['boutique'];
+  const profilMods = profil?.modules || [];
+
+  // Décrire les modules accessibles par rôle ET par le profil métier
+  function describeRole(role) {
+    const base = ACCES_PAR_ROLE[role] || [];
+    const mods = role === 'admin' ? profilMods : base.filter(m => profilMods.includes(m));
+    const labels = { dashboard:'Tableau de bord', clients: profil?.terminologie?.client+'s'||'Clients',
+      factures: profil?.terminologie?.facture+'s'||'Factures', devis: profil?.terminologie?.devis||'Devis',
+      stock: profil?.terminologie?.stock||'Stock', comptabilite:'Comptabilité',
+      relances:'Relances', rapports:'Rapports', chantiers:'Chantiers', paie:'Paie' };
+    return mods.filter(m=>m!=='dashboard'&&m!=='parametres').map(m=>labels[m]||m).join(', ');
+  }
+
+  openModal('👤 Nouveau sous-compte employé', `
     <div style="background:var(--bg);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:0.82rem;color:var(--text-muted)">
-      ℹ️ L'employé pourra se connecter avec son email et mot de passe. Il accèdera aux données de votre espace avec les droits du rôle choisi.
+      ℹ️ Le sous-compte partagera les données de <strong>${esc(admin?.nom||'votre espace')}</strong> (métier : <strong>${profil?.label||metier}</strong>) avec les droits du rôle choisi.
     </div>
     <div class="form-group">
       <label class="form-label">Nom complet *</label>
@@ -6978,21 +6896,36 @@ function openCreerSousCompte() {
     </div>
     <div class="form-group">
       <label class="form-label">Rôle & permissions</label>
-      <select class="form-control" id="sc-role">
-        <option value="vendeur">Vendeur — Factures, Devis, Clients, Stock</option>
-        <option value="caissier">Caissier — Paiements uniquement</option>
-        <option value="comptable">Comptable — Lecture + Comptabilité</option>
-        <option value="admin">Administrateur — Accès complet</option>
+      <select class="form-control" id="sc-role" onchange="updateRoleDesc(this.value,'${metier}')">
+        <option value="vendeur">Vendeur — ${describeRole('vendeur')||'Ventes et clients'}</option>
+        <option value="caissier">Caissier — ${describeRole('caissier')||'Paiements uniquement'}</option>
+        <option value="comptable">Comptable — ${describeRole('comptable')||'Comptabilité et rapports'}</option>
+        <option value="admin">Administrateur — Accès complet (${profil?.label||metier})</option>
       </select>
-    </div>
-    <div style="background:#fef3c7;border-radius:8px;padding:10px 12px;font-size:0.8rem;color:#92400e;margin-top:4px">
-      ⚠️ Le sous-compte partagera <strong>toutes vos données</strong> selon les droits du rôle choisi.
+      <div id="role-desc-box" style="margin-top:8px;padding:8px 12px;background:var(--bg);border-radius:8px;font-size:0.78rem;color:var(--text-muted)">
+        <strong>Accès :</strong> ${describeRole('vendeur')}
+      </div>
     </div>
   `, `
     <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
     <button class="btn btn-primary" onclick="doCreerSousCompte()">Créer le sous-compte</button>
   `);
 }
+
+function updateRoleDesc(role, metier) {
+  const profil = PROFILS[metier] || PROFILS['boutique'];
+  const profilMods = profil?.modules || [];
+  const base = ACCES_PAR_ROLE[role] || [];
+  const mods = role === 'admin' ? profilMods : base.filter(m => profilMods.includes(m));
+  const labels = { dashboard:'Tableau de bord', clients: profil?.terminologie?.client+'s'||'Clients',
+    factures: profil?.terminologie?.facture+'s'||'Factures', devis: profil?.terminologie?.devis||'Devis',
+    stock: profil?.terminologie?.stock||'Stock', comptabilite:'Comptabilité',
+    relances:'Relances', rapports:'Rapports', chantiers:'Chantiers', paie:'Paie' };
+  const desc = mods.filter(m=>m!=='dashboard'&&m!=='parametres').map(m=>labels[m]||m).join(', ');
+  const box = document.getElementById('role-desc-box');
+  if (box) box.innerHTML = `<strong>Accès :</strong> ${desc || 'Accès limité'}`;
+}
+
 
 function doCreerSousCompte() {
   const nom      = document.getElementById('sc-nom')?.value?.trim();
@@ -7089,23 +7022,56 @@ const ACCES_PAR_ROLE = {
 
 function applyRoleSidebar(user) {
   if (!user) return;
-  const role = user.role || 'admin';
-  const acces = ACCES_PAR_ROLE[role] || ACCES_PAR_ROLE['admin'];
+  const role   = user.role || 'admin';
+  const metier = user.metier || (getCurrentUser()?.metier) || App.user?.metier || 'boutique';
+  const profil = PROFILS[metier] || PROFILS['boutique'];
+
+  // Modules autorisés par rôle
+  const roleModules = ACCES_PAR_ROLE[role] || ACCES_PAR_ROLE['admin'];
+
+  // Modules activés par le profil métier de l'admin
+  const profilModules = profil?.modules || roleModules;
+
+  // Intersection : le sous-compte ne voit que ce que son rôle ET le profil métier autorisent
+  const acces = role === 'admin'
+    ? profilModules  // admin voit tout ce que le métier permet
+    : roleModules.filter(m => profilModules.includes(m)); // sous-compte = intersection
+
   const allNavMods = ['dashboard','clients','factures','devis','stock','comptabilite','relances','rapports','parametres','chantiers','paie'];
   allNavMods.forEach(mod => {
     const el = document.getElementById('nav-' + mod);
     if (!el) return;
-    if (!acces.includes(mod)) el.style.display = 'none';
+    el.style.display = acces.includes(mod) ? '' : 'none';
   });
-  // Badge sous-compte dans topbar
+
+  // Appliquer la terminologie du profil admin sur les labels sidebar
+  if (profil?.terminologie) {
+    const t = profil.terminologie;
+    const renames = {
+      'nav-factures': (t.facture||'Facture') + 's',
+      'nav-devis':    t.devis    || 'Devis',
+      'nav-stock':    t.stock    || 'Stock',
+      'nav-clients':  (t.client  || 'Client') + 's',
+    };
+    Object.entries(renames).forEach(([id, label]) => {
+      const el = document.getElementById(id);
+      if (el) {
+        const span = el.querySelector('.nav-label') || el.querySelector('span:last-child');
+        if (span) span.textContent = label;
+      }
+    });
+  }
+
+  // Badge rôle dans topbar pour sous-comptes
   if (user.isSubAccount) {
     const roleBadgeEl = document.getElementById('topbar-role-badge');
     if (roleBadgeEl) {
       const roleLabels = {admin:'ADMIN',comptable:'COMPTABLE',vendeur:'VENDEUR',caissier:'CAISSIER'};
-      roleBadgeEl.innerHTML = `<span class="role-badge role-${role}">${roleLabels[role]||'ADMIN'}</span> <span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px">· Sous-compte</span>`;
+      roleBadgeEl.innerHTML = `<span class="role-badge role-${role}">${roleLabels[role]||role.toUpperCase()}</span><span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px">· ${profil?.label||metier}</span>`;
     }
   }
 }
+
 
 /* ══════════════════════════════════════════════════════
    V12 — CONNEXION SOUS-COMPTE (patch doLogin)
