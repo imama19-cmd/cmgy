@@ -688,6 +688,28 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* ══ RELANCES MOBILE ══ */
+@media (max-width: 767px) {
+  /* Modal footer sticky sur mobile */
+  .modal-footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .modal-footer .btn {
+    flex: 1;
+    min-width: 80px;
+    font-size: 0.82rem;
+    padding: 10px 6px;
+  }
+}
+
 /* ══ METIER CARD ══ */
 .metier-card { transition: all 0.15s ease; }
 .metier-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -4467,11 +4489,11 @@ function renderRelances() {
       <h1 class="page-title" style="font-family:var(--font-title)">Relances client</h1>
       <p class="page-subtitle">${enRetard.length} facture(s) en retard</p>
     </div>
-    <div class="card">
+    <div class="card" style="padding:0">
+      <div class="table-container" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
       <table class="table">
         <thead><tr>
-          <th>Facture</th><th>Client</th><th>Montant dû</th>
-          <th>Retard</th><th>Niveau suggéré</th><th>Actions</th>
+          <th>Facture</th><th>Client</th><th class="col-hide-mobile">Retard</th><th class="col-hide-mobile">Niveau suggéré</th><th>Montant dû</th><th>Actions</th>
         </tr></thead>
         <tbody>${enRetard.map(f => {
           const jours   = getJoursRetard(f);
@@ -4481,11 +4503,11 @@ function renderRelances() {
           return `<tr>
             <td><strong>${esc(f.numero)}</strong></td>
             <td>${esc(f.clientNom)}</td>
-            <td style="font-weight:700;color:var(--danger)">${formatMontant(restant)}</td>
-            <td><span class="badge-retard">${jours} jours</span></td>
-            <td><span style="color:${NIVEAUX_COLORS[niveau]||'#94a3b8'};font-weight:700">
+            <td class="col-hide-mobile"><span class="badge-retard">${jours} jours</span></td>
+            <td class="col-hide-mobile"><span style="color:${NIVEAUX_COLORS[niveau]||'#94a3b8'};font-weight:700">
               ${NIVEAUX_LABELS[niveau]||'—'}
             </span></td>
+            <td style="font-weight:700;color:var(--danger)">${formatMontant(restant)}</td>
             <td>
               <button class="btn btn-outline" style="font-size:0.8rem" onclick="openRelanceModal('${f.id}')">
                 Envoyer relance
@@ -4495,6 +4517,7 @@ function renderRelances() {
           </tr>`;
         }).join('')}</tbody>
       </table>
+      </div>
     </div>`;
 }
 
@@ -5861,12 +5884,13 @@ function openRelanceModal(factureId) {
     </div>
     <div class="form-group">
       <label class="form-label">Message</label>
-      <textarea class="form-control" id="relance-corps" rows="6">${fillTemplate(TEMPLATES_RELANCE.courtois.corps)}</textarea>
+      <textarea class="form-control" id="relance-corps" rows="4" style="resize:vertical;min-height:80px">${fillTemplate(TEMPLATES_RELANCE.courtois.corps)}</textarea>
     </div>
   `, `
     <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
     <button class="btn btn-outline" onclick="copyRelanceText()">📋 Copier</button>
-    <button class="btn btn-primary" onclick="envoyerRelanceMailto()">📧 Ouvrir dans Gmail / Outlook</button>
+    <button class="btn btn-outline" onclick="envoyerRelanceWhatsApp()" style="background:#25d366;color:#fff;border-color:#25d366">💬 WhatsApp</button>
+    <button class="btn btn-primary" onclick="envoyerRelanceMailto()">📧 Email</button>
   `);
 }
 
@@ -5899,9 +5923,24 @@ function envoyerRelanceMailto() {
   if (f) {
     ModuleSuiviClient.addNote(f.clientId, { type:'relance', resume:`Relance facture ${f.numero}`, montant: f.totalTTC });
   }
-  window.open(`mailto:${email}?subject=${sujet}&body=${corps}`, '_blank');
+  window.location.href = `mailto:${email}?subject=${sujet}&body=${corps}`;
   closeModal();
   toast('Email ouvert dans votre client mail', 'success');
+}
+
+function envoyerRelanceWhatsApp() {
+  const f = Store.get('factures',[]).find(x => x.id === App._relanceFactureId);
+  const corps = document.getElementById('relance-corps')?.value || '';
+  if (!corps) { toast('Message vide', 'error'); return; }
+  // Enregistrer dans l'historique client
+  if (f) {
+    ModuleSuiviClient.addNote(f.clientId, { type:'relance', resume:`Relance WhatsApp ${f.numero}`, montant: f.totalTTC });
+  }
+  const msg = encodeURIComponent(corps);
+  // wa.me fonctionne sur mobile ET desktop
+  window.location.href = `https://wa.me/?text=${msg}`;
+  closeModal();
+  toast('WhatsApp ouvert', 'success');
 }
 
 /* ══════════════════════════════════════════════════════
