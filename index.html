@@ -1667,6 +1667,8 @@ table { border-collapse: collapse; }
         </div>
       </div>
       <div id="topbar-role-badge"></div>
+      <!-- Widget plan abonnement -->
+      <div id="sidebar-plan-widget"></div>
       <button onclick="doLogout()" title="Déconnexion" aria-label="Déconnexion"
         style="margin-top:8px;width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;
         border-radius:9px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.6);
@@ -2010,30 +2012,50 @@ const PROFILS = {
 };
 
 const LIMITS_FREE = {
-  clients:10, factures:20, devis:10, produits:15, membres:1, rapports:false
+  clients:10, factures:20, devis:20, produits:15, membres:1, rapports:false
 };
 
 const PLANS = {
   free: {
     label: 'Gratuit', prix: 0, devise: 'FCFA',
     membres: 1, workspaces: 1,
-    limits: { clients:10, factures:20, devis:10, produits:15 },
+    limits: { clients:10, factures:20, devis:20, produits:15 },
+    logoQuota: 5, // logo sur les 5 premières factures et 5 premiers devis seulement
+    sousComptes: false, paie: false, chantiers: false,
+    expires: false,
     features: ['Factures & devis PDF','Gestion clients','Stock basique','Comptabilité simple'],
-    locked: ['Rapports avancés','Multi-utilisateurs','Export CSV','Support prioritaire']
+    locked: ['Rapports avancés','Multi-utilisateurs','Sous-comptes','Paie & Chantiers BTP']
   },
   standard: {
     label: 'Standard', prix: 5000, devise: 'FCFA/mois',
     membres: 1, workspaces: 1,
     limits: { clients:9999, factures:9999, devis:9999, produits:9999 },
-    features: ['Tout Gratuit +','Clients illimités','Rapports & exports CSV','Pas de filigrane PDF','Support email'],
-    locked: ['Multi-utilisateurs','Sous-comptes employés']
+    logoQuota: 9999,
+    sousComptes: false, paie: true, chantiers: true,
+    expires: true, dureeDays: 30,
+    features: ['Tout Gratuit +','Clients/factures/devis illimités','Logo sans restriction','Paie & Chantiers BTP','Rapports & exports CSV'],
+    locked: ['Sous-comptes employés']
   },
-  business: {
-    label: 'Business', prix: 25000, devise: 'FCFA/mois',
-    membres: 5, workspaces: 3,
+  entreprise: {
+    label: 'Entreprise', prix: 15000, devise: 'FCFA/mois',
+    membres: 10, workspaces: 5,
     limits: { clients:9999, factures:9999, devis:9999, produits:9999 },
-    features: ['Tout Standard +','5 sous-comptes employés','3 espaces de travail','Rapports avancés N/N-1','Support prioritaire WhatsApp'],
+    logoQuota: 9999,
+    sousComptes: true, paie: true, chantiers: true,
+    expires: true, dureeDays: 30,
+    features: ['Tout Standard +','Sous-comptes employés illimités','Multi-espaces de travail','Support prioritaire WhatsApp'],
     locked: []
+  },
+  // Alias rétrocompatibilité (anciens comptes "business" ou "premium" → standard)
+  business: {
+    label: 'Standard', prix: 5000, devise: 'FCFA/mois',
+    membres: 1, workspaces: 1,
+    limits: { clients:9999, factures:9999, devis:9999, produits:9999 },
+    logoQuota: 9999,
+    sousComptes: false, paie: true, chantiers: true,
+    expires: true, dureeDays: 30,
+    features: ['Tout Standard'],
+    locked: ['Sous-comptes']
   }
 };
 
@@ -2290,6 +2312,7 @@ function startApp() {
   if (si) si.style.display = '';
   startAutoSave();
   checkAbonnement();
+  updateSidebarPlanWidget();
   setTimeout(() => checkAlertesDemarrage(), 1500);
   setTimeout(() => showPubModal(), 1200);
 }
@@ -2301,7 +2324,7 @@ function updateUserNav() {
   if (nameEl) nameEl.textContent = n;
   const roleEl = document.getElementById('user-role-nav');
   const profil = getCurrentProfil();
-  if (roleEl) roleEl.textContent = profil.label + (user.plan === 'premium' ? ' ✦ Premium' : '');
+  if (roleEl) { const _pt = getUserPlanType(); roleEl.textContent = profil.label + (_pt !== 'free' ? ` ✦ ${PLANS[_pt]?.label||'Premium'}` : ''); }
   const av = document.getElementById('user-avatar-nav');
   if (av) { av.textContent = n[0].toUpperCase(); av.style.background = avatarColor(n); }
   // Workspace switcher
@@ -2314,6 +2337,37 @@ function updateUserNav() {
 ══════════════════════════════════════════════════════ */
 const PAGE_NAMES = { dashboard:'Tableau de bord', clients:'Clients', factures:'Factures', devis:'Devis', stock:'Stock & Catalogue', comptabilite:'Comptabilité', relances:'Relances client', rapports:'Rapports & Exports', parametres:'Paramètres', chantiers:'Chantiers BTP', paie:'Paie & Employés' };
 function navigate(page) {
+  // Vérifier expiration sur chaque navigation
+  if (isPlanExpired()) {
+    App.page = page;
+    showModalExpiration();
+    return;
+  }
+  // Vérifier accès modules restreints
+  const planType = getUserPlanType();
+  const plan = PLANS[planType] || PLANS.free;
+  if ((page === 'paie') && !plan.paie) {
+    openModal('🔒 Module non disponible',
+      `<div style="text-align:center;padding:16px 0">
+        <div style="font-size:3rem;margin-bottom:12px">🔒</div>
+        <p style="margin-bottom:12px">Le module <strong>Paie & Employés</strong> n'est pas disponible en version gratuite.</p>
+      </div>`,
+      `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
+       <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Voir les plans</button>`
+    );
+    return;
+  }
+  if ((page === 'chantiers') && !plan.chantiers) {
+    openModal('🔒 Module non disponible',
+      `<div style="text-align:center;padding:16px 0">
+        <div style="font-size:3rem;margin-bottom:12px">🔒</div>
+        <p style="margin-bottom:12px">Le module <strong>Chantiers BTP</strong> n'est pas disponible en version gratuite.</p>
+      </div>`,
+      `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
+       <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Voir les plans</button>`
+    );
+    return;
+  }
   App.page = page;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-'+page);
@@ -2707,6 +2761,8 @@ function editClient(id) {
 function saveClient(id) {
   const nom = document.getElementById('c-nom')?.value.trim();
   if (!nom) { toast('Le nom est obligatoire','warning'); return; }
+  // Vérification plan avant création
+  if (!id && !checkPlanLimit('client')) return;
   const clients = Store.get('clients');
   const data = {
     nom, email: document.getElementById('c-email')?.value.trim(),
@@ -3080,6 +3136,8 @@ function saveDoc(type, id) {
   const date = document.getElementById('doc-date')?.value;
   if (!clientId) { toast('Veuillez sélectionner un client','warning'); return; }
   if (!date) { toast('La date est obligatoire','warning'); return; }
+  // Vérification plan avant création (pas en modification)
+  if (!id && !checkPlanLimit(type === 'facture' ? 'facture' : 'devis')) return;
   const clients = Store.get('clients');
   const client = clients.find(c=>c.id===clientId);
   const storeKey = type==='facture'?'factures':'devis';
@@ -3144,6 +3202,8 @@ function convertDevisToFacture(devisId) {
   const devis = Store.get('devis');
   const d = devis.find(d=>d.id===devisId);
   if (!d) return;
+  // Vérification plan avant création de facture
+  if (!checkPlanLimit('facture')) return;
   const factures = Store.get('factures');
   const num = genNumero('facture');
   factures.push({
@@ -3638,7 +3698,7 @@ function printDoc(type, id) {
     <table style="width:100%;margin-bottom:40px">
       <tr>
         <td style="width:50%;vertical-align:top">
-          ${co.logo ? `<img src="${co.logo}" style="max-height:60px;max-width:160px;margin-bottom:12px;display:block">` : `<div style="width:48px;height:48px;background:${primaryColor};border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><span style="font-family:Fraunces,serif;font-size:24px;color:#fff;font-weight:700">D</span></div>`}
+          ${(co.logo && isLogoAllowed(type, doc.id)) ? `<img src="${co.logo}" style="max-height:60px;max-width:160px;margin-bottom:12px;display:block">` : `<div style="width:48px;height:48px;background:${primaryColor};border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:12px"><span style="font-family:Fraunces,serif;font-size:24px;color:#fff;font-weight:700">D</span></div>`}
           <div style="font-size:15px;font-weight:700;color:#0f172a">${co.nom||'DoliPro Manager'}</div>
           <div style="color:#64748b;font-size:12px;margin-top:4px;line-height:1.6">${co.adresse||''}<br>${co.ville||'Dakar'}, ${co.pays||'Sénégal'}<br>${co.telephone||''} ${co.email?'· '+co.email:''}</div>
           ${co.ninea ? `<div style="color:#64748b;font-size:11px;margin-top:6px">NINEA : ${co.ninea}${co.tvaNum?' · TVA : '+co.tvaNum:''}</div>` : ''}
@@ -3932,16 +3992,18 @@ function applyProfil() {
     if (el) el.style.display = profil.modules.includes(mod) ? '' : 'none';
   });
 
-  // 2b. Module BTP Chantiers — visible selon métier
+  // 2b. Module BTP Chantiers — visible selon métier ET plan
   const btpMetiers = ['entrepreneur_btp','electricien','plombier','menuisier','peintre','carreleur','soudeur','garagiste','architecte','btp'];
   const user = getCurrentUser() || App.user;
   const metier = user?.metier || '';
   const isBTP = btpMetiers.includes(metier);
+  const _planType = getUserPlanType();
+  const _plan = PLANS[_planType] || PLANS.free;
   const navChantiers = document.getElementById('nav-chantiers');
-  if (navChantiers) navChantiers.style.display = isBTP ? '' : 'none';
-  // Module Paie — visible pour tous en premium
+  if (navChantiers) navChantiers.style.display = (isBTP && _plan.chantiers) ? '' : 'none';
+  // Module Paie — visible selon plan
   const navPaie = document.getElementById('nav-paie');
-  if (navPaie) navPaie.style.display = ''; // v12: accessible pour tous
+  if (navPaie) navPaie.style.display = _plan.paie ? '' : 'none'; // caché en plan free
 
   // 3. Renommer les labels sidebar
   const t = profil.terminologie;
@@ -3970,7 +4032,7 @@ function applyProfil() {
     const av = document.getElementById('user-avatar-nav');
     if (av) { const n = user.nom || user.name || 'U'; av.textContent = n[0].toUpperCase(); av.style.background = avatarColor(n); }
     const roleEl = document.getElementById('user-role-nav');
-    if (roleEl) roleEl.textContent = profil.label + (user.plan === 'premium' ? ' ✦ Premium' : '');
+    if (roleEl) { const _pt2 = getUserPlanType(); roleEl.textContent = profil.label + (_pt2 !== 'free' ? ` ✦ ${PLANS[_pt2]?.label||'Premium'}` : ''); }
     // Badge rôle topbar (Chantier 4)
     const roleBadgeEl = document.getElementById('topbar-role-badge');
     if (roleBadgeEl) {
@@ -4007,13 +4069,13 @@ function renderDashboardAdapte() {
         <div style="opacity:0.85;font-size:0.9rem;margin-top:4px">${profil.description}</div>
         <div style="opacity:0.75;font-size:0.8rem;margin-top:2px">CA ce mois : ${fmt.fcfa(kpi.caMois||0)} · En attente : ${fmt.fcfa(kpi.enAttente||0)}</div>
       </div>
-      ${user?.plan !== 'premium' ? `
+      ${getUserPlanType() === 'free' ? `
         <button onclick="openPaymentModal()"
           style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);
           color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:0.85rem;cursor:pointer">
-          ✦ Passer Premium
+          ✦ Passer Standard
         </button>` : `<span style="background:rgba(255,255,255,0.2);padding:6px 14px;
-          border-radius:20px;font-weight:700;font-size:0.82rem">✦ ${PLANS[user?.planType||'standard']?.label||'Premium'}</span>`}
+          border-radius:20px;font-weight:700;font-size:0.82rem">✦ ${PLANS[getUserPlanType()]?.label||'Premium'}</span>`}
     </div>`;
   return banner + renderCompletudeBanner() + base;
 }
@@ -4022,43 +4084,39 @@ function renderDashboardAdapte() {
    PLAN FREE vs PREMIUM
 ══════════════════════════════════════════════════════ */
 function checkLimit(ressource) {
-  const user = getCurrentUser() || App.user;
-  if (user?.plan === 'premium') return true;
-  const limit = LIMITS_FREE[ressource];
-  if (limit === undefined) return true;
-  const count = Store.get(ressource, []).length;
-  if (count >= limit) {
-    openUpgradeModal(ressource);
-    return false;
-  }
-  return true;
+  // Déléguer à la nouvelle fonction centrale
+  const actionMap = { clients:'client', factures:'facture', devis:'devis', produits:'produit' };
+  const action = actionMap[ressource] || ressource;
+  return checkPlanLimit(action);
 }
 
 function openUpgradeModal(ressource = null) {
-  const msg = ressource ? `Vous avez atteint la limite de ${LIMITS_FREE[ressource]} ${ressource} en version gratuite.` : '';
-  openModal('✦ Passer en Premium', `
+  const msg = ressource ? `Vous avez atteint la limite de ${LIMITS_FREE[ressource]||''} ${ressource} en version gratuite.` : '';
+  openModal('✦ Passer à un plan payant', `
     <div style="text-align:center;padding:10px 0">
       <div style="font-size:3rem;margin-bottom:12px">🚀</div>
       <p style="font-size:1rem;font-weight:600;margin-bottom:8px">Débloquez tout le potentiel de DoliPro</p>
       ${msg ? `<p style="color:var(--danger);font-size:0.88rem;margin-bottom:16px">${esc(msg)}</p>` : ''}
     </div>
-    <div style="background:var(--bg);border-radius:var(--radius);padding:16px;margin-bottom:16px">
-      <div style="font-weight:700;margin-bottom:12px">✦ Plan Premium inclut :</div>
-      <div style="display:flex;flex-direction:column;gap:8px;font-size:0.9rem">
+    <div style="background:var(--bg);border-radius:var(--radius);padding:16px;margin-bottom:12px">
+      <div style="font-weight:700;margin-bottom:10px">⭐ Plan Standard — 5 000 FCFA/mois</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:0.88rem">
         <div>✅ Clients, factures, devis <strong>illimités</strong></div>
-        <div>✅ <strong>Multi-utilisateurs</strong> avec rôles (jusqu'à 10 membres)</div>
-        <div>✅ Export PDF professionnel avec logo</div>
-        <div>✅ Rapports avancés et tableaux de bord personnalisés</div>
-        <div>✅ Support prioritaire</div>
+        <div>✅ Logo sans restriction</div>
+        <div>✅ Paie & Chantiers BTP</div>
+        <div>✅ Rapports & exports CSV</div>
       </div>
     </div>
-    <div style="background:linear-gradient(135deg,var(--primary),#7c3aed);border-radius:var(--radius);
-      padding:16px;color:#fff;text-align:center">
-      <div style="font-size:1.8rem;font-weight:700">5 000 FCFA <span style="font-size:1rem;opacity:0.8">/ mois</span></div>
-      <div style="font-size:0.85rem;opacity:0.8;margin-top:4px">ou 45 000 FCFA / an (économisez 25%)</div>
+    <div style="background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:var(--radius);padding:14px;color:#fff">
+      <div style="font-weight:700;margin-bottom:8px">🏢 Plan Entreprise — 15 000 FCFA/mois</div>
+      <div style="display:flex;flex-direction:column;gap:5px;font-size:0.85rem;opacity:0.9">
+        <div>✅ Tout Standard +</div>
+        <div>✅ Sous-comptes employés</div>
+        <div>✅ Multi-espaces de travail</div>
+      </div>
     </div>`,
     `<button class="btn btn-outline" onclick="closeModal()">Plus tard</button>
-     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">💳 Choisir mon paiement</button>`
+     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">💳 Voir les plans</button>`
   );
 }
 
@@ -4904,17 +4962,254 @@ function downloadBackup() {
 /* ═══════════════════════════════════════════════════════
    V9 — ABONNEMENT : VÉRIFICATION & NOTIFICATIONS
 ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   SYSTÈME DE PLANS C2 — checkPlanLimit + expiration
+═══════════════════════════════════════════════════════ */
+
+/**
+ * Retourne le planType effectif de l'utilisateur courant.
+ * Les comptes "premium" sans planType sont considérés "standard".
+ */
+function getUserPlanType() {
+  const user = getCurrentUser() || App.user;
+  if (!user) return 'free';
+  // Plan free : jamais expiré
+  if (!user.plan || user.plan === 'free') return 'free';
+  // Plans payants : on lit planType (standard/entreprise/business)
+  return user.planType || 'standard';
+}
+
+/**
+ * Vérifie si l'abonnement payant est expiré.
+ * Plan free → jamais expiré.
+ */
+function isPlanExpired() {
+  const user = getCurrentUser() || App.user;
+  if (!user) return false;
+  const planType = getUserPlanType();
+  if (planType === 'free') return false;
+  const plan = PLANS[planType];
+  if (!plan || !plan.expires) return false;
+  const expField = user.premiumExpires || user.planExpires;
+  if (!expField) return false; // pas de date → pas de blocage (rétrocompat)
+  return new Date() > new Date(expField);
+}
+
+/**
+ * Ouvre le modal de blocage abonnement expiré (non fermable).
+ */
+function showModalExpiration() {
+  const planType = getUserPlanType();
+  const planLabel = PLANS[planType]?.label || 'payant';
+  // Forcer fermeture tout modal ouvert
+  const overlay = document.getElementById('modal-overlay');
+  if (overlay) overlay.classList.remove('open');
+  setTimeout(() => {
+    openModal('🔒 Abonnement expiré',
+      `<div style="text-align:center;padding:16px 0">
+        <div style="font-size:3.5rem;margin-bottom:16px">⏰</div>
+        <p style="font-size:1.05rem;font-weight:700;margin-bottom:10px">
+          Votre abonnement <strong>${planLabel}</strong> a expiré.
+        </p>
+        <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px">
+          Toutes les actions de création sont bloquées.<br>
+          Renouvelez pour continuer à utiliser DoliPro.
+        </p>
+      </div>`,
+      `<button class="btn btn-primary" style="width:100%;font-size:1rem;padding:13px" onclick="closeModal();openPaymentModal()">
+        🔄 Renouveler mon abonnement
+      </button>`,
+      'sm'
+    );
+    // Empêcher la fermeture du modal via la croix ou overlay
+    const modalOverlay = document.getElementById('modal-overlay');
+    if (modalOverlay) {
+      // Retirer le clic extérieur
+      const oldClose = modalOverlay.onclick;
+      modalOverlay.onclick = (e) => { if(e.target === modalOverlay) { /* bloquer */ } };
+      setTimeout(() => { modalOverlay.onclick = oldClose; }, 100);
+    }
+  }, 50);
+}
+
+/**
+ * Vérifie AVANT chaque action si l'utilisateur peut créer/modifier.
+ * action ∈ 'client' | 'facture' | 'devis' | 'souscompte' | 'paie' | 'chantier'
+ * Retourne true si autorisé, false sinon (et affiche le bon modal).
+ */
+function checkPlanLimit(action) {
+  const user = getCurrentUser() || App.user;
+  const planType = getUserPlanType();
+  const plan = PLANS[planType] || PLANS.free;
+
+  // 1. Vérifier expiration d'abord (bloque tout pour standard/entreprise)
+  if (isPlanExpired()) {
+    showModalExpiration();
+    return false;
+  }
+
+  // 2. Vérifications spécifiques par action
+  if (action === 'souscompte') {
+    if (!plan.sousComptes) {
+      openModal('🔒 Fonctionnalité non disponible',
+        `<div style="text-align:center;padding:16px 0">
+          <div style="font-size:3rem;margin-bottom:12px">🔒</div>
+          <p style="margin-bottom:12px">Les <strong>sous-comptes</strong> sont réservés au plan <strong>Entreprise</strong>.</p>
+          <p style="font-size:0.85rem;color:var(--text-muted)">15 000 FCFA/mois · Renouvelable tous les 30 jours</p>
+        </div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
+         <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Passer Entreprise</button>`
+      );
+      return false;
+    }
+  }
+
+  if (action === 'paie' || action === 'chantier') {
+    if (!plan.paie && !plan.chantiers) {
+      openModal('🔒 Fonctionnalité non disponible',
+        `<div style="text-align:center;padding:16px 0">
+          <div style="font-size:3rem;margin-bottom:12px">🔒</div>
+          <p style="margin-bottom:12px">Les modules <strong>Paie & Chantiers BTP</strong> ne sont pas disponibles en version gratuite.</p>
+          <p style="font-size:0.85rem;color:var(--text-muted)">Passez au plan Standard ou Entreprise.</p>
+        </div>`,
+        `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
+         <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Voir les plans</button>`
+      );
+      return false;
+    }
+  }
+
+  // 3. Limites quantitatives (plan free uniquement)
+  if (planType === 'free') {
+    const storeKeys = { client:'clients', facture:'factures', devis:'devis' };
+    const key = storeKeys[action];
+    if (key) {
+      const current = Store.get(key, []).length;
+      const limit = plan.limits[key] || plan.limits[action+'s'] || 9999;
+      if (current >= limit) {
+        const labels = { client:'clients', facture:'factures', devis:'devis' };
+        openModal('⚠️ Limite atteinte',
+          `<div style="text-align:center;padding:16px 0">
+            <div style="font-size:3rem;margin-bottom:12px">🚧</div>
+            <p style="font-size:1rem;font-weight:700;margin-bottom:8px">
+              Vous avez atteint la limite de <strong>${limit} ${labels[action]||action}</strong> en version gratuite.
+            </p>
+            <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
+              Passez au plan Standard (5 000 FCFA/mois) pour un accès illimité.
+            </p>
+          </div>`,
+          `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
+           <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Passer Standard</button>`
+        );
+        return false;
+      }
+    }
+  }
+
+  return true; // autorisé
+}
+
+/**
+ * Vérifie si le logo est autorisé pour ce document (plan free : 5 factures et 5 devis max).
+ * docType ∈ 'facture' | 'devis', docId = id du document (pour vérifier son rang).
+ */
+function isLogoAllowed(docType, docId) {
+  const planType = getUserPlanType();
+  const plan = PLANS[planType] || PLANS.free;
+  if (plan.logoQuota >= 9999) return true; // plans payants : toujours
+  // Plan free : logo autorisé sur les N premiers documents de ce type
+  const quota = plan.logoQuota || 5;
+  const storeKey = docType === 'facture' ? 'factures' : 'devis';
+  const docs = Store.get(storeKey, []);
+  // Trier par date de création (ordre chronologique)
+  const sorted = [...docs].sort((a, b) => new Date(a.createdAt||0) - new Date(b.createdAt||0));
+  const idx = sorted.findIndex(d => d.id === docId);
+  return idx < quota; // 0-indexed : les quota premiers
+}
+
 function checkAbonnement() {
   const user = getCurrentUser()||App.user;
-  if(!user||user.plan!=='premium'||!user.premiumExpires) return;
+  if(!user) return;
+  const planType = getUserPlanType();
+  if(planType === 'free') return; // plan gratuit : pas d'expiration
+
+  const expField = user.premiumExpires || user.planExpires;
+  if(!expField) return;
+
   const today=new Date(); today.setHours(0,0,0,0);
-  const exp=new Date(user.premiumExpires); exp.setHours(0,0,0,0);
+  const exp=new Date(expField); exp.setHours(0,0,0,0);
   const j=Math.round((exp-today)/86400000);
-  if(j<0){downgradePremiumToFree(user);return;}
+
+  if(j<0){
+    // Expiré : bloquer avec modal
+    showModalExpiration();
+    return;
+  }
+  // Alertes préventives
   if(j<=1&&!user.premiumNotified1j){_markN(user,'1j');setTimeout(()=>_notifExp(j),2000);}
   else if(j<=3&&!user.premiumNotified3j){_markN(user,'3j');setTimeout(()=>_notifExp(j),2000);}
   else if(j<=7&&!user.premiumNotified7j){_markN(user,'7j');setTimeout(()=>_notifExp(j),2000);}
+
+  // Mettre à jour le widget sidebar
+  updateSidebarPlanWidget();
 }
+
+/**
+ * Met à jour le widget plan dans la sidebar footer.
+ */
+function updateSidebarPlanWidget() {
+  const el = document.getElementById('sidebar-plan-widget');
+  if (!el) return;
+  const user = getCurrentUser() || App.user;
+  if (!user) { el.innerHTML = ''; return; }
+
+  const planType = getUserPlanType();
+  const plan = PLANS[planType] || PLANS.free;
+  const expField = user.premiumExpires || user.planExpires;
+
+  let expInfo = '';
+  let btnRenouveler = '';
+  let borderColor = 'rgba(255,255,255,0.15)';
+  let bgColor = 'rgba(255,255,255,0.07)';
+
+  if (planType !== 'free' && expField) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const exp = new Date(expField); exp.setHours(0,0,0,0);
+    const j = Math.round((exp - today) / 86400000);
+
+    if (j < 0) {
+      expInfo = `<div style="color:#f87171;font-size:0.72rem;margin-top:3px">⚠ Expiré — accès bloqué</div>`;
+      btnRenouveler = `<button onclick="openPaymentModal()" style="margin-top:7px;width:100%;padding:7px;border-radius:7px;background:#ef4444;color:#fff;border:none;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit">🔄 Renouveler maintenant</button>`;
+      borderColor = '#ef4444';
+      bgColor = 'rgba(239,68,68,0.12)';
+    } else if (j <= 7) {
+      expInfo = `<div style="color:#fbbf24;font-size:0.72rem;margin-top:3px">⏰ Expire dans ${j} jour${j>1?'s':''}</div>`;
+      btnRenouveler = `<button onclick="openPaymentModal()" style="margin-top:7px;width:100%;padding:7px;border-radius:7px;background:#f59e0b;color:#fff;border:none;font-size:0.78rem;font-weight:700;cursor:pointer;font-family:inherit">🔄 Renouveler</button>`;
+      borderColor = '#f59e0b';
+      bgColor = 'rgba(245,158,11,0.10)';
+    } else {
+      const dateStr = exp.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+      expInfo = `<div style="color:rgba(255,255,255,0.55);font-size:0.72rem;margin-top:3px">Valide jusqu'au ${dateStr}</div>`;
+    }
+  }
+
+  const planColors = { free:'#64748b', standard:'#1e6fd9', entreprise:'#7c3aed', business:'#1e6fd9' };
+  const planIcons  = { free:'🆓', standard:'⭐', entreprise:'🏢', business:'⭐' };
+  const color = planColors[planType] || '#1e6fd9';
+
+  el.innerHTML = `
+    <div style="border:1px solid ${borderColor};border-radius:10px;padding:10px 12px;background:${bgColor};margin-top:8px">
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:1.1rem">${planIcons[planType]||'⭐'}</span>
+        <div>
+          <div style="color:#fff;font-size:0.82rem;font-weight:700">Plan ${plan.label}</div>
+          ${expInfo}
+        </div>
+      </div>
+      ${btnRenouveler}
+    </div>`;
+}
+
 function _markN(user,niv) {
   const us=getAllUsers(); const i=us.findIndex(u=>u.id===user.id);
   if(i>=0){us[i]['premiumNotified'+niv]=true;saveAllUsers(us);}
@@ -4922,35 +5217,37 @@ function _markN(user,niv) {
 }
 function _notifExp(j) {
   const urg=j<=1;
+  const planType = getUserPlanType();
+  const planLabel = PLANS[planType]?.label || 'payant';
+  const prix = PLANS[planType]?.prix || 5000;
   openModal(
     urg?'⚠️ Abonnement expire demain !':'⏰ '+j+' jours restants',
     `<div style="text-align:center;padding:16px 0">
       <div style="font-size:3rem;margin-bottom:12px">${urg?'⚠️':'📅'}</div>
       <p style="font-size:1rem;margin-bottom:10px">
-        ${urg?'Votre abonnement Premium expire <strong>demain</strong>. Renouvelez maintenant.':'Votre abonnement expire dans <strong>'+j+' jours</strong>. Pensez à le renouveler.'}
+        ${urg?`Votre abonnement <strong>${planLabel}</strong> expire <strong>demain</strong>. Renouvelez maintenant.`:`Votre abonnement <strong>${planLabel}</strong> expire dans <strong>${j} jours</strong>. Pensez à le renouveler.`}
       </p>
       <p style="font-size:0.85rem;color:var(--text-muted)">
-        Sans renouvellement, votre compte repassera en version gratuite<br>
-        (limite 10 clients, 20 factures, rapports bloqués).
+        Sans renouvellement, toutes les actions seront bloquées.
       </p>
     </div>`,
     `<button class="btn btn-outline" onclick="closeModal()">Plus tard</button>
-     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">🔄 Renouveler maintenant</button>`
+     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">🔄 Renouveler — ${prix.toLocaleString('fr-FR')} FCFA/mois</button>`
   );
 }
 function downgradePremiumToFree(user) {
   const us=getAllUsers(); const i=us.findIndex(u=>u.id===user.id);
-  if(i>=0){us[i].plan='free';us[i].premiumExpires=null;saveAllUsers(us);}
-  if(App.user) App.user.plan='free';
-  applyProfil(); updateUserNav();
-  setTimeout(()=>openModal('Abonnement Premium terminé',
+  if(i>=0){us[i].plan='free';us[i].planType='free';us[i].premiumExpires=null;us[i].planExpires=null;saveAllUsers(us);}
+  if(App.user) {App.user.plan='free';App.user.planType='free';}
+  applyProfil(); updateUserNav(); updateSidebarPlanWidget();
+  setTimeout(()=>openModal('Abonnement terminé',
     `<div style="text-align:center;padding:16px 0">
       <div style="font-size:3rem;margin-bottom:12px">😔</div>
       <p style="margin-bottom:10px">Votre abonnement est arrivé à expiration.<br>Votre compte est maintenant en <strong>version gratuite</strong>.</p>
       <p style="font-size:0.85rem;color:var(--text-muted)">Vos données sont conservées. Renouvelez pour récupérer vos accès.</p>
     </div>`,
     `<button class="btn btn-outline" onclick="closeModal()">Continuer en gratuit</button>
-     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Renouveler — 5 000 FCFA/mois</button>`
+     <button class="btn btn-primary" onclick="closeModal();openPaymentModal()">✦ Renouveler</button>`
   ), 800);
 }
 
@@ -4959,9 +5256,28 @@ function downgradePremiumToFree(user) {
 ═══════════════════════════════════════════════════════ */
 function renderBanniereGratuit() {
   const user=getCurrentUser()||App.user;
-  if(user?.plan==='premium') return '';
+  const planType = getUserPlanType();
+  // Plans payants non expirés → pas de bannière
+  if(planType !== 'free' && !isPlanExpired()) return '';
+  // Plan payant expiré → bannière rouge d'urgence
+  if(planType !== 'free' && isPlanExpired()) {
+    return `<div style="background:var(--danger-light);border:1.5px solid var(--danger);border-radius:var(--radius);
+      padding:9px 14px;margin-bottom:14px;display:flex;align-items:center;
+      justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div style="font-size:0.84rem">
+        <strong>⚠️ Abonnement expiré — accès bloqué</strong>
+        <span style="color:var(--text-muted);margin-left:6px">Renouvelez pour continuer à créer des documents.</span>
+      </div>
+      <button onclick="openPaymentModal()" style="background:var(--danger);color:#fff;border:none;
+        border-radius:8px;padding:6px 14px;font-weight:700;font-size:0.8rem;
+        cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit">
+        🔄 Renouveler
+      </button>
+    </div>`;
+  }
+  // Plan free : afficher les quotas
   const nC=Store.get('clients',[]).length, nF=Store.get('factures',[]).length, nD=Store.get('devis',[]).length;
-  const pct=Math.max(Math.round(nC/LIMITS_FREE.clients*100),Math.round(nF/LIMITS_FREE.factures*100));
+  const pct=Math.max(Math.round(nC/LIMITS_FREE.clients*100),Math.round(nF/LIMITS_FREE.factures*100),Math.round(nD/LIMITS_FREE.devis*100));
   const lv=pct>=90?'danger':pct>=70?'warning':'info';
   const col={danger:{bg:'var(--danger-light)',border:'var(--danger)',msg:'⚠ Limite presque atteinte !'},
              warning:{bg:'var(--warning-light)',border:'var(--warning)',msg:'Version gratuite — limite proche'},
@@ -4972,13 +5288,13 @@ function renderBanniereGratuit() {
     <div style="font-size:0.84rem">
       <strong>${col.msg}</strong>
       <span style="color:var(--text-muted);margin-left:6px">
-        Clients ${nC}/${LIMITS_FREE.clients} · Factures ${nF}/${LIMITS_FREE.factures} · Devis ${nD}/${LIMITS_FREE.devis}
+        Clients ${nC}/${LIMITS_FREE.clients} · Factures ${nF}/${LIMITS_FREE.factures} · Devis ${nD}/${LIMITS_FREE.devis} · Logo sur 5 premiers docs
       </span>
     </div>
     <button onclick="openPaymentModal()" style="background:var(--primary);color:#fff;border:none;
       border-radius:8px;padding:6px 14px;font-weight:700;font-size:0.8rem;
       cursor:pointer;white-space:nowrap;flex-shrink:0;font-family:inherit">
-      ✦ Passer Premium
+      ✦ Passer Standard
     </button>
   </div>`;
 }
@@ -6537,12 +6853,12 @@ function updateTvaFromPays(pays) {
             <div style="font-size:0.72rem;margin-top:6px;background:var(--primary);color:#fff;border-radius:20px;padding:2px 8px">Standard</div>
           </div>
 
-          <!-- Business -->
-          <div id="plan-business" onclick="selectPlan('business')" style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;text-align:center;transition:0.15s;position:relative">
-            <div style="position:absolute;top:-10px;right:8px;background:#f59e0b;color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:700">Équipe</div>
-            <div style="font-weight:700;font-size:0.95rem">25 000 FCFA</div>
+          <!-- Entreprise -->
+          <div id="plan-entreprise" onclick="selectPlan('entreprise')" style="padding:14px;border-radius:12px;border:2px solid var(--border);background:var(--bg);cursor:pointer;text-align:center;transition:0.15s;position:relative">
+            <div style="position:absolute;top:-10px;right:8px;background:#7c3aed;color:#fff;font-size:0.68rem;padding:2px 8px;border-radius:20px;font-weight:700">Équipe</div>
+            <div style="font-weight:700;font-size:0.95rem">15 000 FCFA</div>
             <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">/ mois</div>
-            <div style="font-size:0.72rem;margin-top:6px;color:var(--text-muted)">5 utilisateurs</div>
+            <div style="font-size:0.72rem;margin-top:6px;color:var(--text-muted)">Sous-comptes inclus</div>
           </div>
 
         </div>
@@ -6696,8 +7012,8 @@ function closePaymentModal() {
 
 function selectPlan(plan) {
   _selectedPlan = plan;
-  const montants = { free:0, standard:5000, business:25000 };
-  ['free','standard','business'].forEach(p => {
+  const montants = { free:0, standard:5000, entreprise:15000, business:15000 };
+  ['free','standard','entreprise','business'].forEach(p => {
     const el = document.getElementById('plan-'+p);
     if (!el) return;
     el.style.borderColor = p===plan ? 'var(--primary)' : 'var(--border)';
@@ -6963,7 +7279,7 @@ function checkRetourPaiement() {
 
 function activatePremiumFromPayment() {
   const planConfig = PLANS[_selectedPlan] || PLANS.standard;
-  const duree = (_selectedPlan === 'business' || _selectedPlan === 'standard') ? 30 : 0;
+  const duree = planConfig.expires ? (planConfig.dureeDays || 30) : 0;
   const exp = duree > 0 ? (() => { const d=new Date(); d.setDate(d.getDate()+duree); return d.toISOString().split('T')[0]; })() : null;
 
   const users = getAllUsers();
@@ -6974,6 +7290,7 @@ function activatePremiumFromPayment() {
     users[idx].plan           = _selectedPlan === 'free' ? 'free' : 'premium';
     users[idx].planType       = _selectedPlan;
     users[idx].premiumExpires = exp;
+    users[idx].planExpires    = exp;
     users[idx].premiumSince   = fmt.dateISO();
     users[idx].maxMembres     = planConfig.membres;
     users[idx].premiumNotified7j = false;
@@ -6984,6 +7301,7 @@ function activatePremiumFromPayment() {
       App.user.plan = _selectedPlan === 'free' ? 'free' : 'premium';
       App.user.planType = _selectedPlan;
       App.user.premiumExpires = exp;
+      App.user.planExpires = exp;
     }
   }
   if (_selectedPlan !== 'free') {
@@ -6994,7 +7312,7 @@ function activatePremiumFromPayment() {
     toast('Compte gratuit configuré.', 'info');
   }
   closePaymentModal();
-  applyProfil(); updateUserNav(); render();
+  applyProfil(); updateUserNav(); updateSidebarPlanWidget(); render();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -7005,6 +7323,24 @@ const MAX_SOUS_COMPTES = 5;
 function renderSousComptes() {
   const user = getCurrentUser() || App.user;
   if (user?.isSubAccount) return '';
+  // Vérification plan entreprise pour les sous-comptes
+  const planType = getUserPlanType();
+  const plan = PLANS[planType] || PLANS.free;
+  if (!plan.sousComptes) {
+    return `
+    <div class="settings-section">
+      <div class="settings-section-title">👥 Sous-comptes employés</div>
+      <div class="card"><div class="card-body" style="text-align:center;padding:32px 20px">
+        <div style="font-size:3rem;margin-bottom:12px">🔒</div>
+        <p style="font-weight:700;margin-bottom:8px">Fonctionnalité réservée au plan Entreprise</p>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px">
+          Les sous-comptes permettent de créer des accès pour vos employés.<br>
+          Disponible à partir du plan <strong>Entreprise — 15 000 FCFA/mois</strong>.
+        </p>
+        <button class="btn btn-primary" onclick="openPaymentModal()">✦ Passer Entreprise</button>
+      </div></div>
+    </div>`;
+  }
   const allUsers = getAllUsers();
   const sousComptes = allUsers.filter(u => u.parentUserId === user.id);
 
@@ -7044,6 +7380,8 @@ function renderSousComptes() {
 }
 
 function openCreerSousCompte() {
+  // Vérification plan avant d'ouvrir
+  if (!checkPlanLimit('souscompte')) return;
   const admin = getCurrentUser() || App.user;
   const metier = admin?.metier || 'boutique';
   const profil = PROFILS[metier] || PROFILS['boutique'];
