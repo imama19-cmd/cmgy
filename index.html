@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>DoliPro Manager v12</title>
+<title>DoliPro Manager v14 — Backend Only</title>
 <meta name="theme-color" content="#1e6fd9">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1382,6 +1382,37 @@ table { border-collapse: collapse; }
 .presence-cell.conge   { background: #fef3c7; color: #92400e; border-color: var(--warning); }
 
 </style>
+
+<!-- ══ Supabase JS (Realtime pour confirmation paiement) ══ -->
+<!-- Chargé uniquement si BACKEND_ENABLED = true -->
+<script>
+// Injection du client Supabase pour Realtime (paiements)
+// Sera initialisé dans initPaymentRealtime() après login
+(function() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadSupabaseIfNeeded);
+  } else {
+    loadSupabaseIfNeeded();
+  }
+  function loadSupabaseIfNeeded() {
+    // Attendre que API_CONFIG soit défini
+    setTimeout(() => {
+      if (typeof API_CONFIG === 'undefined' || !API_CONFIG.BACKEND_ENABLED) return;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+      s.onload = () => {
+        window._supabaseClient = window.supabase.createClient(
+          API_CONFIG.SUPABASE_URL,
+          API_CONFIG.SUPABASE_ANON_KEY
+        );
+        console.log('[Supabase Realtime] Client initialisé');
+      };
+      document.head.appendChild(s);
+    }, 500);
+  }
+})();
+</script>
+
 </head>
 <body>
 
@@ -1568,6 +1599,14 @@ table { border-collapse: collapse; }
 
 
 <!-- ══ TOAST CONTAINER (global, toujours présent) ══ -->
+<!-- ══ BADGE HORS-LIGNE (v13 Universal) ══ -->
+<div id="connectivity-badge" style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;display:none;pointer-events:none"></div>
+
+<!-- ══ BADGE PLATEFORME (debug, caché en prod) ══ -->
+<div id="platform-badge" style="position:fixed;bottom:80px;right:16px;z-index:9000;display:none;
+  background:rgba(0,0,0,0.6);color:#fff;font-size:0.65rem;padding:4px 8px;border-radius:20px;
+  font-family:monospace;pointer-events:none"></div>
+
 <div id="toast-container" style="position:fixed;bottom:24px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none"></div>
 
 <!-- ══ MODAL OVERLAY (global) ══ -->
@@ -1591,7 +1630,7 @@ table { border-collapse: collapse; }
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">D</div>
-      <div class="sidebar-brand">DoliPro <span>Manager v12</span></div>
+      <div class="sidebar-brand">DoliPro <span>Manager v14</span></div>
     </div>
     <nav class="sidebar-nav" id="sidebar-nav">
       <div id="ws-switcher-container"></div>
@@ -1765,9 +1804,8 @@ async function sha256(message) {
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const fmt = {
   fcfa: n => {
-    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
-    const prefs = user ? JSON.parse(localStorage.getItem(`dolipro_user_${user.id}_prefs`) || '{}') : {};
-    const devise = prefs.devise || 'FCFA';
+    // v14 : préférences en mémoire (Session._prefs), plus de localStorage
+    const devise = Session._prefs?.devise || 'FCFA';
     return Number(n||0).toLocaleString('fr-FR') + ' ' + devise;
   },
   date: d => d ? new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}) : '',
@@ -1778,44 +1816,483 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6
 const now = () => new Date().toISOString();
 
 /* ══════════════════════════════════════════════════════
-   STORAGE
+   DOLIPRO v14 — BACKEND ONLY (ZÉRO localStorage)
+   ══════════════════════════════════════════════════════
+   Sécurité maximale :
+   - AUCUNE donnée métier dans le navigateur
+   - Toutes les opérations passent par l'API Supabase/Hono
+   - JWT stocké en mémoire uniquement (sessionStorage pour persistance login)
+   - Sans réseau → écran de blocage immédiat
+   - Session persistante jusqu'à déconnexion manuelle
 ══════════════════════════════════════════════════════ */
-const Store = {
-  _wsId: null,
-  get(key, def=[]) { try { const k = this._wsId ? `dolipro_ws_${this._wsId}_${key}` : 'dolipro_'+key; const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch(e) { return def; } },
-  set(key, val) { try { const k = this._wsId ? `dolipro_ws_${this._wsId}_${key}` : 'dolipro_'+key; localStorage.setItem(k, JSON.stringify(val)); } catch(e) { toast('Erreur stockage local','error'); } },
-  getObj(key, def={}) { try { const k = this._wsId ? `dolipro_ws_${this._wsId}_${key}` : 'dolipro_'+key; const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch(e) { return def; } }
+
+/* ── 1. CONFIGURATION BACKEND ──────────────────────── */
+const API_CONFIG = {
+  // 🔧 REMPLACEZ PAR VOS VRAIES VALEURS SUPABASE
+  SUPABASE_URL:      'https://VOTRE_PROJET.supabase.co',
+  SUPABASE_ANON_KEY: 'VOTRE_ANON_KEY',
+  // URL de votre backend Hono déployé (Railway/Render)
+  API_BASE:          'https://api.dolipro.com',
+  // false = mode démo (données en mémoire) | true = backend réel
+  BACKEND_ENABLED:   false
 };
 
-/* ══════════════════════════════════════════════════════
-   STORE MULTI-WORKSPACE
-══════════════════════════════════════════════════════ */
+/* ── 2. DÉTECTION PLATEFORME (Web / iOS / Android) ─── */
+const Platform = {
+  isAndroid: () => !!(window.AndroidBridge),
+  isIOS:     () => !!(window.webkit?.messageHandlers?.bridge),
+  isWeb:     () => !window.AndroidBridge && !window.webkit?.messageHandlers?.bridge,
+  name:      () => window.AndroidBridge ? 'android' : window.webkit?.messageHandlers?.bridge ? 'ios' : 'web',
+  call(action, payload) {
+    const msg = JSON.stringify({ action, payload });
+    if (window.AndroidBridge) try { window.AndroidBridge.handleMessage(msg); } catch(e) {}
+    else if (window.webkit?.messageHandlers?.bridge) try { window.webkit.messageHandlers.bridge.postMessage(msg); } catch(e) {}
+  }
+};
+window.DoliProBridge = {
+  onMessage(jsonStr) {
+    try {
+      const { action, data } = JSON.parse(jsonStr);
+      if (action === 'AUTH_TOKEN') { Session._jwt = data.token; Session._user = data.user; }
+      if (action === 'PURCHASE_OK') activatePremiumFromPayment(null);
+    } catch(e) {}
+  }
+};
+
+/* ── 3. VÉRIFICATEUR DE CONNECTIVITÉ (mode strict) ─── */
+const Network = {
+  _blocked: false,
+  check() {
+    if (!navigator.onLine) { this._showOffline(); return false; }
+    this._hideOffline(); return true;
+  },
+  _showOffline() {
+    if (this._blocked) return;
+    this._blocked = true;
+    // Masquer l'app
+    const app = document.getElementById('app');
+    const auth = document.getElementById('auth-screen');
+    if (app)  app.style.display  = 'none';
+    if (auth) auth.style.display = 'none';
+    // Afficher écran de blocage
+    let el = document.getElementById('offline-screen');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'offline-screen';
+      el.style.cssText = `position:fixed;inset:0;z-index:99999;display:flex;align-items:center;
+        justify-content:center;flex-direction:column;gap:20px;
+        background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+        font-family:'Plus Jakarta Sans',sans-serif;color:#fff;text-align:center;padding:32px`;
+      el.innerHTML = `
+        <div style="width:72px;height:72px;background:rgba(217,43,58,0.15);border-radius:50%;
+          display:flex;align-items:center;justify-content:center;font-size:2rem;
+          border:2px solid rgba(217,43,58,0.4)">📡</div>
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;margin-bottom:8px">
+            Connexion requise
+          </div>
+          <p style="color:rgba(255,255,255,0.6);font-size:0.95rem;max-width:340px;line-height:1.6">
+            DoliPro nécessite une connexion internet active.<br>
+            Vérifiez votre réseau et réessayez.
+          </p>
+        </div>
+        <button onclick="Network._retry()"
+          style="padding:14px 32px;background:#1e6fd9;border:none;color:#fff;border-radius:12px;
+          font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit">
+          🔄 Réessayer
+        </button>
+        <div style="font-size:0.75rem;color:rgba(255,255,255,0.3)">DoliPro Manager v14 · Mode sécurisé</div>
+      `;
+      document.body.appendChild(el);
+    }
+    el.style.display = 'flex';
+  },
+  _hideOffline() {
+    this._blocked = false;
+    const el = document.getElementById('offline-screen');
+    if (el) el.style.display = 'none';
+  },
+  _retry() {
+    if (navigator.onLine) {
+      this._hideOffline();
+      // Relancer la session
+      Session.restore();
+    } else {
+      const btn = document.querySelector('#offline-screen button');
+      if (btn) { btn.textContent = '❌ Toujours hors ligne…'; setTimeout(() => { btn.textContent = '🔄 Réessayer'; }, 2000); }
+    }
+  }
+};
+window.addEventListener('offline', () => Network._showOffline());
+window.addEventListener('online',  () => { Network._hideOffline(); Session.restore(); });
+
+/* ── 4. SESSION (mémoire + sessionStorage pour persistance onglet) ── */
+const Session = {
+  _jwt:   null,   // Token JWT en mémoire
+  _user:  null,   // Objet user en mémoire
+  _wsId:  null,   // workspace_id actif
+  _prefs: {},     // Préférences UI (thème, devise) — données non-sensibles
+
+  // Stocker la session (sessionStorage survit au reload, pas à la fermeture)
+  save(jwt, user, wsId) {
+    this._jwt  = jwt;
+    this._user = user;
+    this._wsId = wsId;
+    // sessionStorage : persiste tant que l'onglet/app est ouvert
+    // C'est le seul endroit autorisé pour stocker le JWT
+    try {
+      sessionStorage.setItem('dp_jwt',  jwt);
+      sessionStorage.setItem('dp_user', JSON.stringify(user));
+      sessionStorage.setItem('dp_wsid', wsId);
+    } catch(e) {}
+    // Notifier le bridge natif Android/iOS (stockage sécurisé natif)
+    Platform.call('SET_TOKEN', { token: jwt, user, wsId });
+    // Auto-refresh JWT avant expiration (50min)
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+    this._refreshTimer = setTimeout(() => this._refreshJWT(), 50 * 60 * 1000);
+  },
+
+  // Restaurer depuis sessionStorage (après reload de page)
+  restore() {
+    if (this._jwt) { startApp(); return; } // Déjà en mémoire
+    try {
+      const jwt  = sessionStorage.getItem('dp_jwt');
+      const user = JSON.parse(sessionStorage.getItem('dp_user') || 'null');
+      const wsId = sessionStorage.getItem('dp_wsid');
+      if (jwt && user && wsId) {
+        this._jwt  = jwt;
+        this._user = user;
+        this._wsId = wsId;
+        App.user = user;
+        startApp();
+        return;
+      }
+    } catch(e) {}
+    // Pas de session valide → écran de connexion
+    const authScreen = document.getElementById('auth-screen');
+    if (authScreen) authScreen.style.display = 'flex';
+    else renderAuth();
+  },
+
+  // Détruire la session (déconnexion)
+  clear() {
+    this._jwt   = null;
+    this._user  = null;
+    this._wsId  = null;
+    this._prefs = {};
+    try { sessionStorage.clear(); } catch(e) {}
+    Platform.call('CLEAR_TOKEN', {});
+    if (this._refreshTimer) clearTimeout(this._refreshTimer);
+  },
+
+  // Refresh JWT silencieux
+  async _refreshJWT() {
+    if (!API_CONFIG.BACKEND_ENABLED || !this._jwt) return;
+    try {
+      const r = await fetch(`${API_CONFIG.API_BASE}/api/auth/refresh`, {
+        method: 'POST',
+        headers: Api._headers()
+      });
+      if (r.ok) {
+        const { token } = await r.json();
+        this._jwt = token;
+        try { sessionStorage.setItem('dp_jwt', token); } catch(e) {}
+        Platform.call('SET_TOKEN', { token });
+        // Replanifier le prochain refresh
+        this._refreshTimer = setTimeout(() => this._refreshJWT(), 50 * 60 * 1000);
+      } else {
+        // Token expiré → déconnecter
+        this.clear();
+        renderAuth();
+      }
+    } catch(e) { /* Offline, sera résolu quand réseau revient */ }
+  },
+
+  _refreshTimer: null,
+
+  // Accès rapide
+  get token() { return this._jwt; },
+  get user()  { return this._user || App.user; },
+  get wsId()  { return this._wsId; }
+};
+
+/* ── 5. STORE — BACKEND ONLY (ZÉRO localStorage) ──── */
+// Le Store n'est plus une couche de stockage locale.
+// C'est un cache mémoire de session qui reflète ce que l'API retourne.
+// AUCUNE donnée ne persiste entre les sessions (sécurité maximale).
+const _memCache = {};  // Cache mémoire intra-session
+
+const Store = {
+  _wsId: null,
+
+  // Lecture depuis le cache mémoire (alimenté par les appels API)
+  get(key, def = []) {
+    const k = this._wsId ? `${this._wsId}_${key}` : key;
+    return _memCache[k] !== undefined ? _memCache[k] : def;
+  },
+
+  // Écriture dans le cache mémoire + envoi immédiat à l'API
+  set(key, val) {
+    const k = this._wsId ? `${this._wsId}_${key}` : key;
+    _memCache[k] = val;
+    // Sync backend asynchrone (non-bloquante)
+    if (API_CONFIG.BACKEND_ENABLED) {
+      Api._syncKey(key, val, this._wsId).catch(() => {});
+    }
+  },
+
+  getObj(key, def = {}) {
+    const k = this._wsId ? `${this._wsId}_${key}` : key;
+    const v = _memCache[k];
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : def;
+  },
+
+  // Charger toutes les données depuis l'API au login
+  async loadFromApi(wsId) {
+    if (!API_CONFIG.BACKEND_ENABLED) {
+      // Mode démo : données de démonstration en mémoire
+      this._loadDemoData(wsId);
+      return;
+    }
+    const tables = ['clients','factures','devis','produits','transactions','employes','chantiers','company','settings'];
+    const results = await Promise.allSettled(
+      tables.map(t => Api.get(`/api/${t === 'company' ? 'workspaces/current' : t}`))
+    );
+    tables.forEach((t, i) => {
+      if (results[i].status === 'fulfilled' && results[i].value) {
+        const k = `${wsId}_${t}`;
+        _memCache[k] = results[i].value;
+      }
+    });
+  },
+
+  // Données démo en mémoire (backend non configuré)
+  _loadDemoData(wsId) {
+    const k = (key) => `${wsId}_${key}`;
+    _memCache[k('clients')]      = [];
+    _memCache[k('factures')]     = [];
+    _memCache[k('devis')]        = [];
+    _memCache[k('produits')]     = [];
+    _memCache[k('transactions')] = [];
+    _memCache[k('employes')]     = [];
+    _memCache[k('chantiers')]    = [];
+    _memCache[k('company')]      = { nom: 'DoliPro Démo', metier: 'boutique' };
+    _memCache[k('settings')]     = { pays: 'senegal', tvaDefaut: 18 };
+    _memCache[k('relances')]     = [];
+  }
+};
+
 const WS = {
-  get: (wsId, key, def = []) => { try { return JSON.parse(localStorage.getItem(`dolipro_ws_${wsId}_${key}`)) ?? def; } catch { return def; } },
-  set: (wsId, key, val) => localStorage.setItem(`dolipro_ws_${wsId}_${key}`, JSON.stringify(val)),
-  getObj: (wsId, key, def = {}) => { try { return JSON.parse(localStorage.getItem(`dolipro_ws_${wsId}_${key}`)) ?? def; } catch { return def; } }
+  get: (wsId, key, def = []) => {
+    const k = `${wsId}_${key}`;
+    return _memCache[k] !== undefined ? _memCache[k] : def;
+  },
+  set: (wsId, key, val) => {
+    _memCache[`${wsId}_${key}`] = val;
+    if (API_CONFIG.BACKEND_ENABLED) Api._syncKey(key, val, wsId).catch(() => {});
+  },
+  getObj: (wsId, key, def = {}) => {
+    const v = _memCache[`${wsId}_${key}`];
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : def;
+  }
 };
 
 function patchStoreForWorkspace(wsId) {
   Store._wsId = wsId;
+  Session._wsId = wsId;
 }
 
+/* ── 6. API REST HELPER ─────────────────────────────── */
+const Api = {
+  _headers() {
+    const h = {
+      'Content-Type': 'application/json',
+      'apikey': API_CONFIG.SUPABASE_ANON_KEY
+    };
+    if (Session._jwt) h['Authorization'] = `Bearer ${Session._jwt}`;
+    return h;
+  },
+
+  async get(path) {
+    if (!Network.check()) throw new Error('OFFLINE');
+    const r = await fetch(`${API_CONFIG.API_BASE}${path}`, { headers: this._headers() });
+    if (r.status === 401) { Session.clear(); renderAuth(); throw new Error('UNAUTHORIZED'); }
+    if (!r.ok) throw new Error(`API_ERROR:${r.status}`);
+    return r.json();
+  },
+
+  async post(path, body) {
+    if (!Network.check()) throw new Error('OFFLINE');
+    const r = await fetch(`${API_CONFIG.API_BASE}${path}`, {
+      method: 'POST', headers: this._headers(), body: JSON.stringify(body)
+    });
+    if (r.status === 401) { Session.clear(); renderAuth(); throw new Error('UNAUTHORIZED'); }
+    if (!r.ok) throw new Error(`API_ERROR:${r.status}`);
+    return r.json();
+  },
+
+  async put(path, body) {
+    if (!Network.check()) throw new Error('OFFLINE');
+    const r = await fetch(`${API_CONFIG.API_BASE}${path}`, {
+      method: 'PUT', headers: this._headers(), body: JSON.stringify(body)
+    });
+    if (r.status === 401) { Session.clear(); renderAuth(); throw new Error('UNAUTHORIZED'); }
+    if (!r.ok) throw new Error(`API_ERROR:${r.status}`);
+    return r.json();
+  },
+
+  async delete(path) {
+    if (!Network.check()) throw new Error('OFFLINE');
+    const r = await fetch(`${API_CONFIG.API_BASE}${path}`, {
+      method: 'DELETE', headers: this._headers()
+    });
+    if (r.status === 401) { Session.clear(); renderAuth(); throw new Error('UNAUTHORIZED'); }
+    return r.ok;
+  },
+
+  // Login → retourne { jwt, user, workspace }
+  async login(email, password) {
+    if (!Network.check()) return null;
+    if (!API_CONFIG.BACKEND_ENABLED) return this._demoLogin(email, password);
+    try {
+      const r = await fetch(`${API_CONFIG.API_BASE}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  },
+
+  // Login démo (backend non configuré)
+  _demoLogin(email, password) {
+    const DEMO_ACCOUNTS = [
+      { email: 'admin@dolipro.sn', password: 'admin123', nom: 'Admin DoliPro', role: 'admin', metier: 'boutique' }
+    ];
+    const account = DEMO_ACCOUNTS.find(a => a.email === email && a.password === password);
+    if (!account) return null;
+    const userId = 'demo_usr_001';
+    const wsId   = 'demo_ws_001';
+    return {
+      token: 'demo_jwt_token_' + Date.now(),
+      user: { id: userId, nom: account.nom, email, role: account.role, metier: account.metier, workspaceId: wsId, plan: 'free' },
+      workspace: { id: wsId, nom: 'Espace Démo DoliPro', plan: 'free' }
+    };
+  },
+
+  // Register
+  async register(nom, email, password, metier) {
+    if (!Network.check()) return null;
+    if (!API_CONFIG.BACKEND_ENABLED) {
+      // Démo : simuler création compte
+      const userId = 'usr_' + Date.now().toString(36);
+      const wsId   = 'ws_'  + Date.now().toString(36);
+      return {
+        token: 'demo_jwt_' + Date.now(),
+        user: { id: userId, nom, email, role: 'admin', metier, workspaceId: wsId, plan: 'free' },
+        workspace: { id: wsId, nom: nom + ' — Espace', plan: 'free' }
+      };
+    }
+    try {
+      const r = await fetch(`${API_CONFIG.API_BASE}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom, email, password, metier })
+      });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch { return null; }
+  },
+
+  // Sync un Store.set vers la bonne table API
+  async _syncKey(key, val, wsId) {
+    const tableMap = {
+      clients: '/api/clients/batch', factures: '/api/factures/batch',
+      devis: '/api/devis/batch', produits: '/api/produits/batch',
+      transactions: '/api/transactions/batch', employes: '/api/employes/batch',
+      chantiers: '/api/chantiers/batch', company: '/api/workspaces/current',
+      settings: '/api/workspaces/settings'
+    };
+    const path = tableMap[key];
+    if (!path || !Session._jwt) return;
+    try {
+      await fetch(`${API_CONFIG.API_BASE}${path}`, {
+        method: 'PUT',
+        headers: this._headers(),
+        body: JSON.stringify(Array.isArray(val) ? { items: val, workspace_id: wsId } : val)
+      });
+    } catch(e) { /* Silencieux — l'utilisateur a déjà son état en mémoire */ }
+  },
+
+  // Paiement Wave (universel Web + Android)
+  async initiateWavePayment(planType) {
+    if (!API_CONFIG.BACKEND_ENABLED) return null;
+    return this.post('/api/payments/wave/initiate', {
+      plan_type: planType,
+      success_url: window.location.href + '?pay=ok&plan=' + planType,
+      error_url: window.location.href + '?pay=fail'
+    }).catch(() => null);
+  },
+
+  // Génération PDF sécurisée
+  async openPDF(type, id) {
+    if (!Session._jwt) { toast('Connexion requise', 'error'); return; }
+    if (!API_CONFIG.BACKEND_ENABLED) {
+      toast('PDF disponible avec le backend activé', 'info');
+      return;
+    }
+    const url = `${API_CONFIG.API_BASE}/api/pdf/${type}/${id}`;
+    if (Platform.isAndroid() || Platform.isIOS()) {
+      Platform.call('DOWNLOAD_PDF', { url, token: Session._jwt, filename: `${type}_${id}.pdf` });
+    } else {
+      window.open(`${url}?token=${Session._jwt}`, '_blank');
+    }
+  }
+};
+
+/* ── 7. FONCTIONS AUTH RÉÉCRITES SANS localStorage ── */
 function getAllUsers() {
-  try { return JSON.parse(localStorage.getItem('dolipro_users')) || []; }
-  catch { return []; }
+  // v14 : pas d'utilisateurs stockés localement
+  // Retourne un tableau vide — l'auth est gérée par le backend
+  return [];
 }
-function saveAllUsers(users) {
-  localStorage.setItem('dolipro_users', JSON.stringify(users));
+
+function saveAllUsers() {
+  // v14 : no-op — les users sont gérés par Supabase Auth
 }
+
 function getCurrentUser() {
-  const session = JSON.parse(localStorage.getItem('dolipro_session') || 'null');
-  if (!session) return null;
-  return getAllUsers().find(u => u.id === session.userId) || null;
+  return Session._user || App.user || null;
 }
+
 function getCurrentWorkspaceId() {
-  const session = JSON.parse(localStorage.getItem('dolipro_session') || 'null');
-  return session?.workspaceId || null;
+  return Session._wsId || null;
 }
+
+/* ── 8. PRÉFÉRENCES UI (sessionStorage uniquement) ─── */
+// Les seules données autorisées à persister localement sont
+// les préférences non-sensibles (thème, devise affichage)
+const Prefs = {
+  get(key, def) {
+    try {
+      const p = JSON.parse(sessionStorage.getItem('dp_prefs') || '{}');
+      return p[key] !== undefined ? p[key] : def;
+    } catch { return def; }
+  },
+  set(key, val) {
+    try {
+      const p = JSON.parse(sessionStorage.getItem('dp_prefs') || '{}');
+      p[key] = val;
+      sessionStorage.setItem('dp_prefs', JSON.stringify(p));
+      Session._prefs = p;
+    } catch {}
+  },
+  load() {
+    try { Session._prefs = JSON.parse(sessionStorage.getItem('dp_prefs') || '{}'); } catch {}
+  }
+};
+
 
 /* ═══════════════════════════════════════════════════════
    PROFILS MÉTIER v9 — 30 métiers
@@ -2165,68 +2642,66 @@ function selectMetier(el) {
   }
 }
 
-function doLogin() {
+/* ══ v14 : AUTH BACKEND ONLY ════════════════════════ */
+
+async function doLogin() {
+  if (!Network.check()) return;
   const email = document.getElementById('login-email')?.value.trim().toLowerCase();
-  const pass  = document.getElementById('login-password') ? document.getElementById('login-password')?.value : document.getElementById('login-pwd')?.value;
+  const pass  = (document.getElementById('login-password') || document.getElementById('login-pwd'))?.value;
   if (!email || !pass) { toast('Email et mot de passe requis','warning'); return; }
-  const users = getAllUsers();
-  // Migration: si aucun utilisateur multi-compte, créer depuis ancien système
-  if (!users.length) {
-    const legacyUsers = JSON.parse(localStorage.getItem('dolipro_users') || '[]');
-    if (!legacyUsers.length) {
-      // Créer compte démo
-      const userId = 'usr_' + uid();
-      const wsId   = 'ws_'  + uid();
-      const demoUser = { id: userId, nom: 'Admin DoliPro', email: 'admin@dolipro.sn',
-        passwordHash: btoa(unescape(encodeURIComponent('admin123'))),
-        metier: 'prestataire', plan: 'free', workspaceId: wsId, createdAt: now() };
-      const demoWs = { id: wsId, nom: 'DoliPro — Espace', ownerId: userId, plan: 'free',
-        membres: [{ userId, role: 'admin' }] };
-      saveAllUsers([demoUser]);
-      localStorage.setItem(`dolipro_ws_${wsId}_meta`, JSON.stringify(demoWs));
-      patchStoreForWorkspace(wsId);
-      seedDemoData();
-    }
-  }
-  const allUsers = getAllUsers();
-  const user = allUsers.find(u => u.email === email);
-  if (!user) { toast('Compte introuvable','error'); return; }
-  const hash = btoa(unescape(encodeURIComponent(pass)));
-  if (user.passwordHash !== hash) { toast('Mot de passe incorrect','error'); return; }
-  const wsId = user.workspaceId;
-  localStorage.setItem('dolipro_session', JSON.stringify({ userId: user.id, workspaceId: wsId, role: 'admin', loginAt: now() }));
-  patchStoreForWorkspace(wsId);
+
+  const btn = document.querySelector('#form-login .btn-primary');
+  if (btn) { btn.textContent = '⏳ Connexion…'; btn.disabled = true; }
+
+  const result = await Api.login(email, pass);
+
+  if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
+
+  if (!result) { toast('Email ou mot de passe incorrect','error'); return; }
+
+  const { token, user, workspace } = result;
+
+  // Stocker session (sessionStorage uniquement — zéro localStorage)
+  Session.save(token, user, workspace.id);
+  patchStoreForWorkspace(workspace.id);
   App.user = user;
-  // v12: Mise à jour lastLoginAt
-  const _allUsers = getAllUsers();
-  const _uidx = _allUsers.findIndex(u => u.id === user.id);
-  if (_uidx >= 0) { _allUsers[_uidx].lastLoginAt = new Date().toISOString(); saveAllUsers(_allUsers); }
-  toast(`Bon retour, ${user.nom.split(' ')[0]} !`, 'success');
+
+  // Charger les données depuis l'API
+  await Store.loadFromApi(workspace.id);
+  Prefs.load();
+
+  toast(`Bon retour, ${user.nom.split(' ')[0]} ! 👋`, 'success');
   startApp();
 }
 
-function doRegister() {
-  const nom    = document.getElementById('reg-nom')?.value.trim() || document.getElementById('reg-name')?.value.trim();
+async function doRegister() {
+  if (!Network.check()) return;
+  const nom    = (document.getElementById('reg-nom') || document.getElementById('reg-name'))?.value.trim();
   const email  = document.getElementById('reg-email')?.value.trim().toLowerCase();
-  const pass   = document.getElementById('reg-password') ? document.getElementById('reg-password')?.value : document.getElementById('reg-pwd')?.value;
+  const pass   = (document.getElementById('reg-password') || document.getElementById('reg-pwd'))?.value;
   const metier = document.getElementById('reg-metier')?.value || 'boutique';
+
   if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
-  if (pass.length < 4) { toast('Mot de passe trop court (min 4 car.)','warning'); return; }
-  const users = getAllUsers();
-  if (users.find(u => u.email === email)) { toast('Email déjà utilisé','warning'); return; }
-  const userId = 'usr_' + uid();
-  const wsId   = 'ws_'  + uid();
-  const newUser = { id: userId, nom, email, passwordHash: btoa(unescape(encodeURIComponent(pass))),
-    metier, plan: 'free', role: 'admin', workspaceId: wsId, createdAt: now(), metierLockedAt: now() };
-  const newWs = { id: wsId, nom: nom + ' — Espace', ownerId: userId, plan: 'free',
-    membres: [{ userId, role: 'admin' }] };
-  users.push(newUser);
-  saveAllUsers(users);
-  localStorage.setItem(`dolipro_ws_${wsId}_meta`, JSON.stringify(newWs));
-  patchStoreForWorkspace(wsId);
-  seedDemoDataForMetier(metier, wsId);
-  localStorage.setItem('dolipro_session', JSON.stringify({ userId, workspaceId: wsId, role: 'admin', loginAt: now() }));
-  App.user = newUser;
+  if (pass.length < 8) { toast('Mot de passe trop court (min 8 caractères)','warning'); return; }
+
+  const btn = document.querySelector('#form-register .btn-primary');
+  if (btn) { btn.textContent = '⏳ Création…'; btn.disabled = true; }
+
+  const result = await Api.register(nom, email, pass, metier);
+
+  if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+
+  if (!result) { toast('Erreur lors de la création du compte','error'); return; }
+
+  const { token, user, workspace } = result;
+
+  Session.save(token, user, workspace.id);
+  patchStoreForWorkspace(workspace.id);
+  App.user = user;
+
+  await Store.loadFromApi(workspace.id);
+  Prefs.load();
+
   toast(`Bienvenue ${nom} ! 🎉`, 'success');
   launchConfetti();
   startApp();
@@ -2234,31 +2709,18 @@ function doRegister() {
 }
 
 function doLogout() {
-  localStorage.removeItem('dolipro_session');
+  Session.clear();
   Store._wsId = null;
   App.user = null;
+  // Vider le cache mémoire (sécurité)
+  Object.keys(_memCache).forEach(k => delete _memCache[k]);
   renderAuth();
 }
 
 function checkSession() {
-  const session = JSON.parse(localStorage.getItem('dolipro_session') || 'null');
-  if (session) {
-    const user = getAllUsers().find(u => u.id === session.userId);
-    if (user) {
-      patchStoreForWorkspace(session.workspaceId);
-      App.user = user;
-      startApp();
-      return;
-    }
-    localStorage.removeItem('dolipro_session');
-  }
-  // No valid session — show auth screen
-  const authScreen = document.getElementById('auth-screen');
-  if (authScreen) {
-    authScreen.style.display = 'flex';
-  } else {
-    renderAuth();
-  }
+  if (!Network.check()) return; // Bloqué si hors ligne
+  Prefs.load();
+  Session.restore(); // Tente de restaurer depuis sessionStorage
 }
 
 function renderAuth() {
@@ -2315,6 +2777,8 @@ function startApp() {
   updateSidebarPlanWidget();
   setTimeout(() => checkAlertesDemarrage(), 1500);
   setTimeout(() => showPubModal(), 1200);
+  // v14 : écoute Realtime pour confirmation paiement instantanée
+  initPaymentRealtime();
 }
 function updateUserNav() {
   const user = getCurrentUser() || App.user;
@@ -4152,7 +4616,7 @@ function renderWorkspaceSwitcher() {
   const myWorkspaces = [
     { id: user.workspaceId, nom: 'Mon espace personnel', role: 'admin' },
     ...(user.workspaces || []).map(w => {
-      const wsMeta = JSON.parse(localStorage.getItem(`dolipro_ws_${w.wsId}_meta`) || '{}');
+      const wsMeta = WS.getObj(w.wsId, 'meta', {});
       return { id: w.wsId, nom: wsMeta.nom || 'Espace partagé', role: w.role };
     })
   ];
@@ -4170,9 +4634,8 @@ function renderWorkspaceSwitcher() {
 }
 
 function switchWorkspace(newWsId) {
-  const session = JSON.parse(localStorage.getItem('dolipro_session') || '{}');
-  session.workspaceId = newWsId;
-  localStorage.setItem('dolipro_session', JSON.stringify(session));
+  Session._wsId = newWsId;
+  try { sessionStorage.setItem('dp_wsid', newWsId); } catch(e) {}
   patchStoreForWorkspace(newWsId);
   toast('Espace changé','info');
   navigate('dashboard');
@@ -4837,6 +5300,8 @@ window.addEventListener('error', (e) => {
 });
 
 window.addEventListener('DOMContentLoaded', () => {
+  /* ── v14 Backend-Only Init ── */
+  Prefs.load();
   checkRetourPaiement();
   // Build metier grid in register form
   const grid = document.getElementById('metier-grid');
@@ -4875,9 +5340,7 @@ function toggleDarkMode() {
   document.documentElement.setAttribute('data-theme', newTheme);
   const user = getCurrentUser();
   if (user) {
-    const prefs = JSON.parse(localStorage.getItem(`dolipro_user_${user.id}_prefs`) || '{}');
-    prefs.theme = newTheme;
-    localStorage.setItem(`dolipro_user_${user.id}_prefs`, JSON.stringify(prefs));
+    Prefs.set('theme', newTheme);
   }
   const btn = document.getElementById('dark-toggle-btn');
   if (btn) btn.textContent = newTheme === 'dark' ? '☀️' : '🌙';
@@ -4886,8 +5349,7 @@ function toggleDarkMode() {
 function loadUserTheme() {
   const user = getCurrentUser();
   if (!user) return;
-  const prefs = JSON.parse(localStorage.getItem(`dolipro_user_${user.id}_prefs`) || '{}');
-  if (prefs.theme === 'dark') {
+  if (Prefs.get('theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
     const btn = document.getElementById('dark-toggle-btn');
     if (btn) btn.textContent = '☀️';
@@ -4922,7 +5384,7 @@ function autoSaveToLocalBackup() {
     settings:     Store.getObj('settings', {}),
   };
   try {
-    localStorage.setItem(`dolipro_backup_${wsId}`, JSON.stringify(backup));
+    // v14 : pas de backup localStorage — données sur Supabase
     updateSaveIndicator('saved');
   } catch(e) {
     updateSaveIndicator('error');
@@ -4945,9 +5407,14 @@ function updateSaveIndicator(status) {
 function downloadBackup() {
   const wsId = getCurrentWorkspaceId();
   if (!wsId) return;
-  const backup = localStorage.getItem(`dolipro_backup_${wsId}`);
-  if (!backup) { autoSaveToLocalBackup(); }
-  const data = localStorage.getItem(`dolipro_backup_${wsId}`);
+  // v14 : export depuis le cache mémoire
+  const data = JSON.stringify({
+    savedAt: new Date().toISOString(), wsId,
+    clients: Store.get('clients',[]), factures: Store.get('factures',[]),
+    devis: Store.get('devis',[]), produits: Store.get('produits',[]),
+    transactions: Store.get('transactions',[]), company: Store.getObj('company',{})
+  });
+  const backup = data;
   const blob = new Blob([data], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -5471,7 +5938,7 @@ function renderCompletudeBanner() {
 function renderPreferences() {
   const user   = getCurrentUser();
   if (!user) return '';
-  const prefs  = JSON.parse(localStorage.getItem(`dolipro_user_${user.id}_prefs`) || '{}');
+  const prefs  = Session._prefs || {};
   const profil = getCurrentProfil();
 
   return `
@@ -5530,11 +5997,8 @@ function renderPreferences() {
 }
 
 function saveUserPref(key, value) {
-  const user  = getCurrentUser();
-  if (!user) return;
-  const prefs = JSON.parse(localStorage.getItem(`dolipro_user_${user.id}_prefs`) || '{}');
-  prefs[key]  = value;
-  localStorage.setItem(`dolipro_user_${user.id}_prefs`, JSON.stringify(prefs));
+  // v14 : sessionStorage uniquement via Prefs
+  Prefs.set(key, value);
   if (key === 'devise') { toast('Devise mise à jour','success'); render(); }
   if (key === 'theme')  { toast('Thème mis à jour','success'); }
 }
@@ -7170,14 +7634,14 @@ function updatePayBtn() {
   const btn = document.getElementById('pay-btn');
   if (!btn) return;
   if (_selectedPlan === 'free') { btn.textContent = '✓ Continuer en version gratuite'; return; }
-  const montants = { standard: '5 000 FCFA', business: '25 000 FCFA' };
+  const montants = { standard: '5 000 FCFA', business: '15 000 FCFA' };
   const methods = { wave:'Wave', orange:'Orange Money', card:'Carte bancaire', paydunya:'PayDunya' };
   btn.textContent = `💳 Payer ${montants[_selectedPlan]||'5 000 FCFA'} via ${methods[_selectedMethod]}`;
 }
 
 function processPayment() {
   // Plan gratuit : activation directe
-  if (_selectedPlan === 'free') { activatePremiumFromPayment(); return; }
+  if (_selectedPlan === 'free') { activatePremiumFromPayment(null); return; }
 
   // Validation selon le mode de paiement
   if (_selectedMethod === 'card') {
@@ -7204,115 +7668,193 @@ function processPayment() {
 }
 
 async function _launchWave() {
-  const montants = { free:0, standard:5000, business:25000 };
+  const montants = { free:0, standard:5000, entreprise:15000 };
   const m = montants[_selectedPlan] || 5000;
-  if (m === 0) { activatePremiumFromPayment(); return; }
+  if (m === 0) { activatePremiumFromPayment(null); return; }
   const btn = document.getElementById('pay-btn');
   if(btn){btn.textContent='⏳ Connexion Wave…';btn.disabled=true;}
-  try {
-    // PRODUCTION: décommentez et remplacez WAVE_SECRET_KEY_ICI
-    // const r = await fetch('https://api.wave.com/v1/checkout/sessions',{
-    //   method:'POST',headers:{'Authorization':'Bearer WAVE_SECRET_KEY_ICI','Content-Type':'application/json'},
-    //   body:JSON.stringify({amount:m,currency:'XOF',
-    //     error_url:location.href+'?pay=fail',
-    //     success_url:location.href+'?pay=ok&plan='+_selectedPlan,
-    //     client_reference:(getCurrentUser()||{}).id||'guest'})
-    // });
-    // const d=await r.json();
-    // if(d.wave_launch_url){localStorage.setItem('dp_plan',_selectedPlan);location.href=d.wave_launch_url;return;}
-    throw new Error('demo');
-  } catch(e) {
-    toast('Wave — Mode démonstration activé','warning');
-    setTimeout(()=>{ activatePremiumFromPayment(); },1500);
-    if(btn){btn.disabled=false;}
+
+  // ── v13 : Utilise l'API backend universel (Web + Android + iOS) ──
+  if (API_CONFIG.BACKEND_ENABLED) {
+    try {
+      const result = await Api.initiateWavePayment(_selectedPlan);
+      if (result?.wave_launch_url) {
+        // Sur Android : Chrome Custom Tab (plus fluide que WebView)
+        if (Platform.isAndroid()) {
+          Platform.call('OPEN_URL', { url: result.wave_launch_url });
+          // Écouter le retour via Deep Link (configuré dans AndroidManifest)
+          return;
+        }
+        // Web/iOS Safari : redirection directe
+        sessionStorage.setItem('dp_plan', _selectedPlan);
+        location.href = result.wave_launch_url;
+        return;
+      }
+    } catch(e) { /* Fallback mode démo */ }
   }
+  // Mode démonstration (backend non configuré)
+  toast('Wave — Mode démonstration activé','warning');
+  setTimeout(()=>{ activatePremiumFromPayment(null); },1500);
+  if(btn){btn.disabled=false;}
 }
 
 async function _launchPayDunya() {
-  const montants = { free:0, standard:5000, business:25000 };
+  const montants = { free:0, standard:5000, entreprise:15000 };
   const m = montants[_selectedPlan] || 5000;
-  if (m === 0) { activatePremiumFromPayment(); return; }
+  if (m === 0) { activatePremiumFromPayment(null); return; }
   const btn = document.getElementById('pay-btn');
-  if(btn){btn.textContent='⏳ Connexion PayDunya…';btn.disabled=true;}
-  try {
-    // PRODUCTION: décommentez et remplacez les clés PayDunya
-    // const r = await fetch('https://app.paydunya.com/api/v1/checkout-invoice/create',{
-    //   method:'POST',
-    //   headers:{'PAYDUNYA-MASTER-KEY':'MK','PAYDUNYA-PRIVATE-KEY':'PK','PAYDUNYA-TOKEN':'TK','Content-Type':'application/json'},
-    //   body:JSON.stringify({invoice:{total_amount:m,description:'DoliPro '+PLANS[_selectedPlan].label},
-    //     store:{name:'DoliPro Manager'},
-    //     actions:{cancel_url:location.href+'?pay=fail',return_url:location.href+'?pay=ok&plan='+_selectedPlan}})
-    // });
-    // const d=await r.json();
-    // if(d.response_code==='00'){localStorage.setItem('dp_plan',_selectedPlan);location.href=d.invoice_url;return;}
-    throw new Error('demo');
-  } catch(e) {
-    toast('PayDunya — Mode démonstration activé','warning');
-    setTimeout(()=>{ activatePremiumFromPayment(); },1500);
-    if(btn){btn.disabled=false;}
+  if(btn){btn.textContent='⏳ Connexion Orange Money…';btn.disabled=true;}
+
+  // ── v13 : Utilise l'API backend universel ──
+  if (API_CONFIG.BACKEND_ENABLED) {
+    try {
+      const result = await Api.post('/api/payments/orange/initiate', {
+        plan_type: _selectedPlan,
+        phone: document.getElementById('pay-phone')?.value,
+        success_url: window.location.href + '?pay=ok&plan=' + _selectedPlan,
+        error_url: window.location.href + '?pay=fail'
+      });
+      if (result?.payment_url) {
+        if (Platform.isAndroid()) {
+          Platform.call('OPEN_URL', { url: result.payment_url });
+          return;
+        }
+        sessionStorage.setItem('dp_plan', _selectedPlan);
+        location.href = result.payment_url;
+        return;
+      }
+    } catch(e) { /* Fallback mode démo */ }
   }
+  toast('Orange Money — Mode démonstration activé','warning');
+  setTimeout(()=>{ activatePremiumFromPayment(null); },1500);
+  if(btn){btn.disabled=false;}
 }
 
 function _launchCard() {
-  if (_selectedPlan === 'free') { activatePremiumFromPayment(); return; }
-  // PRODUCTION: Remplacez par vos Stripe Payment Links
-  // const links={standard:'https://buy.stripe.com/LIEN_STANDARD',business:'https://buy.stripe.com/LIEN_BUSINESS'};
-  // localStorage.setItem('dp_plan',_selectedPlan); location.href=links[_selectedPlan]; return;
+  if (_selectedPlan === 'free') { activatePremiumFromPayment(null); return; }
+  // ── v13 : Stripe Payment Links (Web) ou In-App Purchase (Mobile natif) ──
+  if (Platform.isAndroid()) {
+    // Sur Android : déclencher le flux Google Play Billing ou Stripe via le bridge
+    Platform.call('IN_APP_PURCHASE', { plan: _selectedPlan, price: _selectedPlan === 'standard' ? 5000 : 15000 });
+    // Le bridge natif rappellera DoliProBridge.onMessage avec action="PURCHASE_OK"
+    return;
+  }
+  if (Platform.isIOS()) {
+    Platform.call('IN_APP_PURCHASE', { plan: _selectedPlan });
+    return;
+  }
+  // Web : Stripe Payment Link
+  // const links={standard:'https://buy.stripe.com/LIEN_STANDARD',entreprise:'https://buy.stripe.com/LIEN_ENTREPRISE'};
+  // sessionStorage.setItem('dp_plan',_selectedPlan); location.href=links[_selectedPlan]; return;
   toast('Carte bancaire — Mode démonstration activé','warning');
-  setTimeout(()=>{ activatePremiumFromPayment(); },1800);
+  setTimeout(()=>{ activatePremiumFromPayment(null); },1800);
 }
 
-function checkRetourPaiement() {
-  const p = new URLSearchParams(location.search);
-  const stat = p.get('pay');
-  const plan = p.get('plan') || localStorage.getItem('dp_plan');
-  if (stat==='ok' && plan && PLANS[plan]) {
-    localStorage.removeItem('dp_plan');
-    history.replaceState({},'',location.pathname);
-    _selectedPlan = plan;
-    setTimeout(()=>activatePremiumFromPayment(), 600);
-  } else if (stat==='fail') {
-    history.replaceState({},'',location.pathname);
-    setTimeout(()=>toast('Paiement annulé. Réessayez.','danger'), 500);
+// ── v14 : Retour paiement Wave/OM ─────────────────────
+// Appelé au chargement de la page si Wave/OM redirige
+// vers ?pay=ok&session_id=XXX&plan=standard
+async function checkRetourPaiement() {
+  const p       = new URLSearchParams(location.search);
+  const stat     = p.get('pay');
+  const plan     = p.get('plan') || sessionStorage.getItem('dp_plan');
+  const sessionId = p.get('session_id');
+
+  if (stat === 'fail') {
+    history.replaceState({}, '', location.pathname);
+    setTimeout(() => toast('Paiement annulé ou échoué. Réessayez.', 'danger'), 500);
+    return;
+  }
+
+  if (stat !== 'ok' || !plan) return;
+
+  history.replaceState({}, '', location.pathname);
+  sessionStorage.removeItem('dp_plan');
+  _selectedPlan = plan;
+
+  // Vérifier le statut réel via l'API (ne pas faire confiance à l'URL seule)
+  if (API_CONFIG.BACKEND_ENABLED && sessionId) {
+    toast('⏳ Vérification du paiement en cours…', 'info');
+    let attempts = 0;
+    const check = async () => {
+      attempts++;
+      const result = await Api.get(`/api/payments/status/${sessionId}`).catch(() => null);
+      if (result?.statut === 'completed') {
+        // Paiement confirmé par le backend
+        await activatePremiumFromPayment(result);
+      } else if (attempts < 8) {
+        // Webhook pas encore reçu → réessayer dans 2 secondes
+        setTimeout(check, 2000);
+      } else {
+        toast('Paiement reçu. Activation en cours, rechargez dans quelques secondes.', 'warning');
+      }
+    };
+    setTimeout(check, 1500);
+  } else {
+    // Mode démo : activation directe
+    setTimeout(() => activatePremiumFromPayment(null), 600);
   }
 }
 
-function activatePremiumFromPayment() {
-  const planConfig = PLANS[_selectedPlan] || PLANS.standard;
-  const duree = planConfig.expires ? (planConfig.dureeDays || 30) : 0;
-  const exp = duree > 0 ? (() => { const d=new Date(); d.setDate(d.getDate()+duree); return d.toISOString().split('T')[0]; })() : null;
+// ── v14 : Activation plan (depuis backend confirmé) ───
+async function activatePremiumFromPayment(paymentResult) {
+  const planKey    = _selectedPlan || paymentResult?.plan || 'standard';
+  const planConfig = PLANS[planKey] || PLANS.standard;
 
-  const users = getAllUsers();
-  const user  = getCurrentUser() || App.user;
-  if (!user) return;
-  const idx = users.findIndex(u => u.id === user.id);
-  if (idx >= 0) {
-    users[idx].plan           = _selectedPlan === 'free' ? 'free' : 'premium';
-    users[idx].planType       = _selectedPlan;
-    users[idx].premiumExpires = exp;
-    users[idx].planExpires    = exp;
-    users[idx].premiumSince   = fmt.dateISO();
-    users[idx].maxMembres     = planConfig.membres;
-    users[idx].premiumNotified7j = false;
-    users[idx].premiumNotified3j = false;
-    users[idx].premiumNotified1j = false;
-    saveAllUsers(users);
-    if (App.user) {
-      App.user.plan = _selectedPlan === 'free' ? 'free' : 'premium';
-      App.user.planType = _selectedPlan;
-      App.user.premiumExpires = exp;
-      App.user.planExpires = exp;
-    }
+  // Mettre à jour la session en mémoire
+  if (Session._user) {
+    Session._user.plan     = planKey;
+    Session._user.planType = planKey;
   }
-  if (_selectedPlan !== 'free') {
+  if (App.user) {
+    App.user.plan     = planKey;
+    App.user.planType = planKey;
+  }
+
+  // Mettre à jour sessionStorage
+  try {
+    const u = JSON.parse(sessionStorage.getItem('dp_user') || '{}');
+    u.plan = planKey;
+    sessionStorage.setItem('dp_user', JSON.stringify(u));
+  } catch(e) {}
+
+  if (planKey !== 'free') {
     if (typeof launchConfetti === 'function') launchConfetti();
-    const expDate = exp ? fmt.date(exp) : '30 jours';
-    toast(`🎉 Plan ${planConfig.label} activé ! Valable jusqu'au ${expDate}`, 'success');
+    const finPeriode = paymentResult?.workspace?.plan_expires_at;
+    const dateExp    = finPeriode ? fmt.date(finPeriode.split('T')[0]) : '30 jours';
+    toast(`🎉 Plan ${planConfig.label} activé ! Valable jusqu'au ${dateExp}`, 'success');
   } else {
     toast('Compte gratuit configuré.', 'info');
   }
+
   closePaymentModal();
-  applyProfil(); updateUserNav(); updateSidebarPlanWidget(); render();
+  applyProfil();
+  updateUserNav();
+  updateSidebarPlanWidget();
+  render();
+}
+
+// ── v14 : Écoute Realtime Supabase (activation instantanée) ──
+// Quand le webhook Wave/OM est reçu par Supabase Edge Function,
+// le frontend est notifié en temps réel sans polling
+function initPaymentRealtime() {
+  if (!API_CONFIG.BACKEND_ENABLED) return;
+  const wsId = Session._wsId;
+  if (!wsId) return;
+
+  // Import Supabase client depuis le CDN (chargé dans le HTML si BACKEND_ENABLED)
+  if (typeof window._supabaseClient === 'undefined') return;
+
+  window._supabaseClient
+    .channel(`payment:${wsId}`)
+    .on('broadcast', { event: 'payment_completed' }, ({ payload }) => {
+      console.log('[Realtime] Paiement confirmé:', payload);
+      _selectedPlan = payload.plan;
+      activatePremiumFromPayment({ plan: payload.plan, workspace: {
+        plan: payload.plan,
+        plan_expires_at: payload.fin_periode
+      }});
+    })
+    .subscribe();
 }
 
 /* ══════════════════════════════════════════════════════
