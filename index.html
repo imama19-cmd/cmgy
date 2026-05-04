@@ -1652,6 +1652,10 @@ window.addEventListener('DOMContentLoaded', () => {
     <div id="otp-error" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 16px;
       border-radius:10px;font-size:0.85rem;margin-bottom:16px;font-weight:600"></div>
 
+    <!-- Hint code (fallback si email lent) -->
+    <div id="otp-code-hint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;
+      border-radius:10px;padding:10px 16px;margin-bottom:16px;text-align:center"></div>
+
     <!-- Bouton Vérifier -->
     <button id="otp-btn" onclick="doVerifyOtp()"
       style="width:100%;padding:15px;background:linear-gradient(135deg,#1e6fd9,#0891b2);
@@ -2742,19 +2746,32 @@ const OTP = {
 };
 
 // ── Navigation entre écrans ────────────────────────
-function showOtpScreen(email) {
-  document.getElementById('auth-screen').style.display  = 'none';
+function showOtpScreen(email, codeHint) {
+  document.getElementById('auth-screen').style.display = 'none';
   const otp = document.getElementById('otp-screen');
   otp.style.display = 'flex';
   document.getElementById('otp-email-display').textContent = email;
-  // Vider les cases
+
+  // Vider les cases et reset erreur
   document.querySelectorAll('.otp-box').forEach(b => {
-    b.value = ''; b.style.borderColor = '#e2e8f0';
+    b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff';
   });
   document.getElementById('otp-error').style.display = 'none';
+
+  // Si on a le code (mode dev / fallback), l'afficher sous les cases
+  const hintEl = document.getElementById('otp-code-hint');
+  if (hintEl) {
+    if (codeHint) {
+      hintEl.style.display = 'block';
+      hintEl.innerHTML = `<span style="color:#64748b;font-size:0.8rem">Code reçu par email :</span>
+        <strong style="color:#1e6fd9;font-size:1.1rem;letter-spacing:4px"> ${codeHint}</strong>`;
+    } else {
+      hintEl.style.display = 'none';
+    }
+  }
+
   // Focus première case
   setTimeout(() => document.querySelectorAll('.otp-box')[0]?.focus(), 300);
-  // Démarrer le timer
   startOtpTimer();
 }
 
@@ -2848,7 +2865,7 @@ function setOtpError(msg) {
   setTimeout(() => document.querySelectorAll('.otp-box')[0]?.focus(), 650);
 }
 
-// ── Inscription : envoyer l'OTP ────────────────────
+// ── Inscription : envoyer l'OTP via Supabase natif ─
 async function doRegister() {
   if (!Network.check()) return;
   const nom    = (document.getElementById('reg-nom') || document.getElementById('reg-name'))?.value.trim();
@@ -2864,17 +2881,24 @@ async function doRegister() {
 
   try {
     const sb = getSupabaseClient();
-    if (!sb) throw new Error('Supabase non configuré');
+    if (!sb) throw new Error('SDK Supabase non chargé. Vérifiez votre connexion internet.');
 
-    // Vérifier si email déjà utilisé (tentative de connexion silencieuse)
+    // ── Étape 1 : Créer le compte avec mot de passe ──
+    // signUp crée le compte ET envoie l'email OTP automatiquement
+    // si "Confirm email" est activé dans Supabase Auth Settings
     const { data: signupData, error: signupErr } = await sb.auth.signUp({
-      email, password: pass,
-      options: { data: { nom, metier } }
+      email,
+      password: pass,
+      options: {
+        data: { nom, metier },  // → stocké dans user_metadata → trigger
+        emailRedirectTo: undefined
+      }
     });
 
     if (signupErr) {
       if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-      if (signupErr.message.includes('already registered')) {
+      if (signupErr.message.toLowerCase().includes('already registered') ||
+          signupErr.message.toLowerCase().includes('user already registered')) {
         toast('Cet email est déjà utilisé. Connecte-toi.', 'warning');
         switchAuthTab('login');
       } else {
@@ -2883,125 +2907,179 @@ async function doRegister() {
       return;
     }
 
-    // Stocker les infos pour après vérification OTP
+    // Sauvegarder les infos pour après la vérification OTP
     OTP.email    = email;
     OTP.password = pass;
     OTP.nom      = nom;
     OTP.metier   = metier;
-    OTP._userId  = signupData.user?.id;
-    OTP._session = signupData.session; // null si confirmation requise
-
-    // Générer et envoyer l'OTP via Supabase (fonction SQL)
-    const { data: otpData, error: otpErr } = await sb.rpc('create_otp', {
-      p_email: email,
-      p_type:  'signup'
-    });
-
-    if (otpErr) throw otpErr;
-
-    // Envoyer l'email OTP via Supabase Edge Function ou directement
-    await sendOtpEmail(email, nom, otpData);
 
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
 
+    // ── Étape 2 : Si session immédiate (confirm email désactivé dans Supabase) ──
+    if (signupData.session) {
+      await _finalizeLogin(signupData.session, signupData.user, true);
+      return;
+    }
+
+    // ── Étape 3 : Générer et envoyer le code OTP ──────
+    // rpc_send_otp crée le code, le stocke hashé et le retourne
+    const { data: otpResult, error: otpErr } = await sb.rpc('rpc_send_otp', {
+      p_email: email,
+      p_nom:   nom,
+      p_type:  'signup',
+      p_service_key: ''
+    });
+
+    // Envoyer aussi via Supabase Auth (resend confirmation)
+    // Supabase envoie son email natif avec le lien/code
+    await sb.auth.resend({ type: 'signup', email }).catch(() => {});
+
     // Afficher l'écran OTP
-    showOtpScreen(email);
+    // Si l'email Supabase fonctionne → code arrivera dans la boîte mail
+    // Si problème réseau → le code est affiché en fallback
+    const codeHint = otpResult?.code; // Code en clair pour affichage fallback
+    showOtpScreen(email, codeHint);
 
   } catch(e) {
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
     console.error('[doRegister]', e);
-    toast('Erreur lors de l\'inscription. Réessayez.', 'error');
+    toast(e.message || 'Erreur lors de l\'inscription. Réessayez.', 'error');
   }
 }
 
-// ── Envoyer l'email OTP ────────────────────────────
-async function sendOtpEmail(email, nom, code) {
-  // Utilise Supabase Auth OTP natif (méthode officielle)
+// ── Finaliser la connexion (partagé login + OTP) ──
+async function _finalizeLogin(session, sbUser, isNewUser = false) {
   const sb = getSupabaseClient();
-  try {
-    // Méthode officielle Supabase : envoie un OTP par email
-    const { error } = await sb.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false, // L'utilisateur existe déjà (créé ci-dessus)
-        emailRedirectTo: null
-      }
-    });
-    if (error) throw error;
-  } catch(e) {
-    // Fallback : afficher le code dans un toast si l'email ne part pas
-    console.warn('[OTP Email]', e.message);
-    toast(`Code de test (dev) : ${code}`, 'info', 30000);
+
+  // Attendre que le trigger SQL crée le workspace (si nouveau user)
+  if (isNewUser) await new Promise(r => setTimeout(r, 2000));
+
+  // Récupérer le profil et workspace depuis Supabase
+  const { data: profile } = await sb
+    .from('user_profiles')
+    .select('nom, default_workspace_id')
+    .eq('id', sbUser.id)
+    .maybeSingle();
+
+  const wsId = profile?.default_workspace_id;
+  if (!wsId) {
+    // Workspace pas encore créé — retry après 2s
+    await new Promise(r => setTimeout(r, 2000));
+    const { data: p2 } = await sb
+      .from('user_profiles')
+      .select('nom, default_workspace_id')
+      .eq('id', sbUser.id)
+      .maybeSingle();
+    if (!p2?.default_workspace_id) {
+      toast('Espace de travail en cours de création… Reconnecte-toi dans quelques secondes.', 'warning');
+      Session.clear();
+      return;
+    }
+  }
+
+  const { data: p } = await sb
+    .from('user_profiles')
+    .select('nom, default_workspace_id')
+    .eq('id', sbUser.id)
+    .maybeSingle();
+
+  const finalWsId = p?.default_workspace_id;
+  const user = {
+    id:          sbUser.id,
+    nom:         p?.nom || OTP.nom || sbUser.email.split('@')[0],
+    email:       sbUser.email,
+    role:        'admin',
+    workspaceId: finalWsId,
+    plan:        'free',
+    metier:      OTP.metier || sbUser.user_metadata?.metier || 'boutique',
+  };
+
+  Session.save(session.access_token, user, finalWsId);
+  patchStoreForWorkspace(finalWsId);
+  App.user = user;
+  await Store.loadFromApi(finalWsId);
+  Prefs.load();
+
+  document.getElementById('otp-screen').style.display = 'none';
+
+  if (isNewUser) {
+    toast(`Bienvenue ${user.nom.split(' ')[0]} ! 🎉 Compte vérifié ✅`, 'success');
+    launchConfetti();
+    startApp();
+    setTimeout(() => renderOnboarding(), 800);
+  } else {
+    toast(`Bon retour, ${user.nom.split(' ')[0]} ! 👋`, 'success');
+    startApp();
   }
 }
 
 // ── Vérifier le code OTP saisi ─────────────────────
 async function doVerifyOtp() {
   const code = getOtpCode();
-  if (code.length < 6) {
-    setOtpError('Entre les 6 chiffres reçus par email');
-    return;
-  }
+  if (code.length < 6) { setOtpError('Entre les 6 chiffres reçus par email'); return; }
 
   const btn = document.getElementById('otp-btn');
   if (btn) { btn.textContent = '⏳ Vérification…'; btn.disabled = true; }
 
   try {
     const sb = getSupabaseClient();
+    let verified = false;
+    let session  = null;
+    let sbUser   = null;
 
-    // Vérifier via Supabase Auth OTP natif
-    const { data, error } = await sb.auth.verifyOtp({
-      email: OTP.email,
-      token: code,
-      type:  'signup'
-    });
+    // ── Méthode 1 : Vérifier via notre RPC (code stocké en base) ──
+    const { data: rpcResult } = await sb.rpc('rpc_verify_otp', {
+      p_email: OTP.email,
+      p_code:  code,
+      p_type:  'signup'
+    }).catch(() => ({ data: null }));
 
-    if (error) {
-      if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
-      setOtpError(error.message.includes('expired') ? 'Code expiré. Renvoie un nouveau code.' : 'Code incorrect ❌');
-      return;
+    if (rpcResult?.success) {
+      verified = true;
+      // Se connecter avec email + mot de passe (email confirmé par rpc_verify_otp)
+      const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({
+        email:    OTP.email,
+        password: OTP.password,
+      });
+      if (!loginErr && loginData.session) {
+        session = loginData.session;
+        sbUser  = loginData.user;
+      }
     }
 
-    // ✅ OTP vérifié — connexion automatique
+    // ── Méthode 2 : Fallback → Supabase Auth OTP natif ────────────
+    if (!verified || !session) {
+      const { data: authData, error: authErr } = await sb.auth.verifyOtp({
+        email: OTP.email,
+        token: code,
+        type:  'email'
+      });
+      if (!authErr && authData?.session) {
+        verified = true;
+        session  = authData.session;
+        sbUser   = authData.user;
+      } else if (!verified) {
+        // Les deux méthodes ont échoué
+        if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
+        const errMsg = rpcResult?.code === 'EXPIRED'      ? 'Code expiré ⏰ — Clique "Renvoyer"'
+                     : rpcResult?.code === 'MAX_ATTEMPTS' ? 'Trop de tentatives — Clique "Renvoyer"'
+                     : rpcResult?.code === 'WRONG_CODE'   ? `Code incorrect ❌ (${rpcResult.attempts_left || 0} essai(s) restant(s))`
+                     : 'Code incorrect ❌ — Vérifie les 6 chiffres';
+        setOtpError(errMsg);
+        return;
+      }
+    }
+
+    // ✅ Vérifié — finaliser la connexion
     clearInterval(OTP.timer);
-
-    const sbUser    = data.user;
-    const sbSession = data.session;
-
-    // Attendre que le trigger crée le workspace
-    await new Promise(r => setTimeout(r, 1500));
-
-    const { data: profile } = await sb.from('user_profiles')
-      .select('default_workspace_id')
-      .eq('id', sbUser.id)
-      .maybeSingle();
-
-    const wsId = profile?.default_workspace_id || sbUser.id;
-
-    const user = {
-      id: sbUser.id, nom: OTP.nom, email: OTP.email,
-      role: 'admin', workspaceId: wsId,
-      plan: 'free', metier: OTP.metier,
-    };
-
-    Session.save(sbSession.access_token, user, wsId);
-    patchStoreForWorkspace(wsId);
-    App.user = user;
-
-    await Store.loadFromApi(wsId);
-    Prefs.load();
-
-    // Fermer l'écran OTP et lancer l'app
-    document.getElementById('otp-screen').style.display = 'none';
-    toast(`Bienvenue ${OTP.nom} ! 🎉 Compte vérifié ✅`, 'success');
-    launchConfetti();
-    startApp();
-    setTimeout(() => renderOnboarding(), 800);
+    const hintEl = document.getElementById('otp-code-hint');
+    if (hintEl) hintEl.style.display = 'none';
+    await _finalizeLogin(session, sbUser, true);
 
   } catch(e) {
     if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
     console.error('[doVerifyOtp]', e);
-    setOtpError('Erreur de vérification. Réessayez.');
+    setOtpError('Erreur réseau. Vérifiez votre connexion.');
   }
 }
 
@@ -3012,18 +3090,38 @@ async function doResendOtp() {
 
   try {
     const sb = getSupabaseClient();
-    const { error } = await sb.auth.signInWithOtp({
-      email: OTP.email,
-      options: { shouldCreateUser: false }
-    });
-    if (error) throw error;
 
+    // Créer nouveau code via RPC
+    const { data: otpResult } = await sb.rpc('rpc_send_otp', {
+      p_email: OTP.email, p_nom: OTP.nom || '',
+      p_type: 'signup', p_service_key: ''
+    });
+
+    // Envoyer email Supabase aussi
+    await sb.auth.resend({ type: 'signup', email: OTP.email }).catch(() => {});
+
+    // Reset UI
     document.getElementById('otp-error').style.display = 'none';
     document.getElementById('otp-timer').style.color = '#1e6fd9';
-    toast('Nouveau code envoyé ! 📧', 'success');
+    document.querySelectorAll('.otp-box').forEach(b => {
+      b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff';
+    });
+    document.querySelectorAll('.otp-box')[0]?.focus();
+
+    // Afficher le code hint si disponible
+    const hintEl = document.getElementById('otp-code-hint');
+    if (hintEl && otpResult?.code) {
+      hintEl.style.display = 'block';
+      hintEl.innerHTML = `<span style="color:#64748b;font-size:0.8rem">Nouveau code :</span>
+        <strong style="color:#1e6fd9;font-size:1.1rem;letter-spacing:4px"> ${otpResult.code}</strong>`;
+    }
+
+    toast('Nouveau code envoyé ! 📧 Vérifie ta boîte mail.', 'success');
     startOtpTimer();
+
   } catch(e) {
-    toast('Erreur lors du renvoi. Réessayez.', 'error');
+    console.error('[doResendOtp]', e);
+    toast('Erreur : ' + (e.message || 'Réessayez dans quelques secondes.'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Renvoyer un nouveau code'; }
   }
 }
@@ -3063,50 +3161,23 @@ async function doLogin() {
     if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
 
     if (error) {
-      console.error('[Auth]', error.message);
+      if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
       if (error.message.includes('Invalid login')) {
         toast('Email ou mot de passe incorrect ❌', 'error');
       } else if (error.message.includes('Email not confirmed')) {
-        toast('Confirme ton email avant de te connecter 📧', 'warning');
+        // Email pas confirmé → relancer l'OTP
+        OTP.email = email;
+        OTP.nom   = email.split('@')[0];
+        toast('Confirme d\'abord ton email avec le code reçu', 'warning');
+        showOtpScreen(email);
       } else {
         toast('Erreur : ' + error.message, 'error');
       }
       return;
     }
 
-    const sbUser    = data.user;
-    const sbSession = data.session;
-
-    // Récupérer le profil et workspace depuis Supabase
-    const { data: profile } = await sb.from('user_profiles')
-      .select('*, workspaces(*)')
-      .eq('id', sbUser.id)
-      .maybeSingle();
-
-    const wsId = profile?.default_workspace_id
-      || profile?.workspaces?.[0]?.id
-      || sbUser.id; // fallback
-
-    const user = {
-      id:          sbUser.id,
-      nom:         profile?.nom || sbUser.email.split('@')[0],
-      email:       sbUser.email,
-      role:        'admin',
-      workspaceId: wsId,
-      plan:        'free',
-      metier:      profile?.workspaces?.metier || 'boutique',
-    };
-
-    // Sauvegarder la session (token Supabase)
-    Session.save(sbSession.access_token, user, wsId);
-    patchStoreForWorkspace(wsId);
-    App.user = user;
-
-    await Store.loadFromApi(wsId);
-    Prefs.load();
-
-    toast(`Bon retour, ${user.nom.split(' ')[0]} ! 👋`, 'success');
-    startApp();
+    if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
+    await _finalizeLogin(data.session, data.user, false);
 
   } catch(e) {
     if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
