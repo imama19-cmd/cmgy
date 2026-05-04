@@ -1383,34 +1383,23 @@ table { border-collapse: collapse; }
 
 </style>
 
-<!-- ══ Supabase JS (Realtime pour confirmation paiement) ══ -->
-<!-- Chargé uniquement si BACKEND_ENABLED = true -->
+<!-- ══ Supabase JS SDK — Auth + Realtime ══ -->
+<!-- Chargé immédiatement pour que la connexion fonctionne -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-// Injection du client Supabase pour Realtime (paiements)
-// Sera initialisé dans initPaymentRealtime() après login
-(function() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadSupabaseIfNeeded);
-  } else {
-    loadSupabaseIfNeeded();
+// Initialiser le client Supabase dès que le SDK est chargé
+// Les credentials seront disponibles après que API_CONFIG soit défini (dans le JS principal)
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof window.supabase !== 'undefined'
+      && typeof API_CONFIG !== 'undefined'
+      && API_CONFIG.SUPABASE_URL !== 'https://VOTRE_PROJET.supabase.co') {
+    window._supabaseClient = window.supabase.createClient(
+      API_CONFIG.SUPABASE_URL,
+      API_CONFIG.SUPABASE_ANON_KEY
+    );
+    console.log('[Supabase] Client initialisé ✅');
   }
-  function loadSupabaseIfNeeded() {
-    // Attendre que API_CONFIG soit défini
-    setTimeout(() => {
-      if (typeof API_CONFIG === 'undefined' || !API_CONFIG.BACKEND_ENABLED) return;
-      const s = document.createElement('script');
-      s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-      s.onload = () => {
-        window._supabaseClient = window.supabase.createClient(
-          API_CONFIG.SUPABASE_URL,
-          API_CONFIG.SUPABASE_ANON_KEY
-        );
-        console.log('[Supabase Realtime] Client initialisé');
-      };
-      document.head.appendChild(s);
-    }, 500);
-  }
-})();
+});
 </script>
 
 </head>
@@ -1828,13 +1817,16 @@ const now = () => new Date().toISOString();
 
 /* ── 1. CONFIGURATION BACKEND ──────────────────────── */
 const API_CONFIG = {
-  // 🔧 REMPLACEZ PAR VOS VRAIES VALEURS SUPABASE
-  SUPABASE_URL:      'https://VOTRE_PROJET.supabase.co',
-  SUPABASE_ANON_KEY: 'VOTRE_ANON_KEY',
-  // URL de votre backend Hono déployé (Railway/Render)
+  // ✅ Credentials Supabase réels — projet Dolipro
+  SUPABASE_URL:      'https://hjohrckpbzqyabfusdfp.supabase.co',
+  // 🔧 REMPLACE PAR TA VRAIE ANON KEY  :
+  // Supabase → Settings → API → anon / public
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhqb2hyY2twYnpxeWFiZnVzZGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTAwNzcsImV4cCI6MjA5MzI4NjA3N30.Rs5cvFiRK_IJKrAatXMSMEr06iIwMbZ5_H4ZqTMfcXk',
+  // URL du backend Hono (Railway) — optionnel pour l'instant
   API_BASE:          'https://api.dolipro.com',
-  // false = mode démo (données en mémoire) | true = backend réel
-  BACKEND_ENABLED:   false
+  // true = auth Supabase réelle | false = mode démo local
+  BACKEND_ENABLED:   true,
+  SCHEMA_VERSION:    14
 };
 
 /* ── 2. DÉTECTION PLATEFORME (Web / iOS / Android) ─── */
@@ -2642,7 +2634,22 @@ function selectMetier(el) {
   }
 }
 
-/* ══ v14 : AUTH BACKEND ONLY ════════════════════════ */
+/* ══ v14 : AUTH DIRECTE SUPABASE (sans Railway) ══════
+   Connexion et inscription passent directement par
+   Supabase Auth — fonctionne immédiatement sans backend
+════════════════════════════════════════════════════ */
+
+// Client Supabase Auth — initialiser une seule fois
+let _sbClient = null;
+function getSupabaseClient() {
+  if (_sbClient) return _sbClient;
+  if (typeof window.supabase === 'undefined') return null;
+  _sbClient = window.supabase.createClient(
+    API_CONFIG.SUPABASE_URL,
+    API_CONFIG.SUPABASE_ANON_KEY
+  );
+  return _sbClient;
+}
 
 async function doLogin() {
   if (!Network.check()) return;
@@ -2653,25 +2660,66 @@ async function doLogin() {
   const btn = document.querySelector('#form-login .btn-primary');
   if (btn) { btn.textContent = '⏳ Connexion…'; btn.disabled = true; }
 
-  const result = await Api.login(email, pass);
+  try {
+    // ── Connexion directe Supabase Auth ──────────────
+    const sb = getSupabaseClient();
+    if (!sb) throw new Error('Client Supabase non initialisé');
 
-  if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
-  if (!result) { toast('Email ou mot de passe incorrect','error'); return; }
+    if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
 
-  const { token, user, workspace } = result;
+    if (error) {
+      console.error('[Auth]', error.message);
+      if (error.message.includes('Invalid login')) {
+        toast('Email ou mot de passe incorrect ❌', 'error');
+      } else if (error.message.includes('Email not confirmed')) {
+        toast('Confirme ton email avant de te connecter 📧', 'warning');
+      } else {
+        toast('Erreur : ' + error.message, 'error');
+      }
+      return;
+    }
 
-  // Stocker session (sessionStorage uniquement — zéro localStorage)
-  Session.save(token, user, workspace.id);
-  patchStoreForWorkspace(workspace.id);
-  App.user = user;
+    const sbUser    = data.user;
+    const sbSession = data.session;
 
-  // Charger les données depuis l'API
-  await Store.loadFromApi(workspace.id);
-  Prefs.load();
+    // Récupérer le profil et workspace depuis Supabase
+    const { data: profile } = await sb.from('user_profiles')
+      .select('*, workspaces(*)')
+      .eq('id', sbUser.id)
+      .maybeSingle();
 
-  toast(`Bon retour, ${user.nom.split(' ')[0]} ! 👋`, 'success');
-  startApp();
+    const wsId = profile?.default_workspace_id
+      || profile?.workspaces?.[0]?.id
+      || sbUser.id; // fallback
+
+    const user = {
+      id:          sbUser.id,
+      nom:         profile?.nom || sbUser.email.split('@')[0],
+      email:       sbUser.email,
+      role:        'admin',
+      workspaceId: wsId,
+      plan:        'free',
+      metier:      profile?.workspaces?.metier || 'boutique',
+    };
+
+    // Sauvegarder la session (token Supabase)
+    Session.save(sbSession.access_token, user, wsId);
+    patchStoreForWorkspace(wsId);
+    App.user = user;
+
+    await Store.loadFromApi(wsId);
+    Prefs.load();
+
+    toast(`Bon retour, ${user.nom.split(' ')[0]} ! 👋`, 'success');
+    startApp();
+
+  } catch(e) {
+    if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
+    console.error('[doLogin]', e);
+    toast('Erreur de connexion. Vérifiez votre réseau.', 'error');
+  }
 }
 
 async function doRegister() {
@@ -2682,30 +2730,82 @@ async function doRegister() {
   const metier = document.getElementById('reg-metier')?.value || 'boutique';
 
   if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
-  if (pass.length < 8) { toast('Mot de passe trop court (min 8 caractères)','warning'); return; }
+  if (pass.length < 6) { toast('Mot de passe trop court (min 6 caractères)','warning'); return; }
 
   const btn = document.querySelector('#form-register .btn-primary');
   if (btn) { btn.textContent = '⏳ Création…'; btn.disabled = true; }
 
-  const result = await Api.register(nom, email, pass, metier);
+  try {
+    // ── Inscription directe Supabase Auth ────────────
+    const sb = getSupabaseClient();
+    if (!sb) throw new Error('Client Supabase non initialisé');
 
-  if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: { nom, metier }  // → stocké dans raw_user_meta_data → trigger crée profil + workspace
+      }
+    });
 
-  if (!result) { toast('Erreur lors de la création du compte','error'); return; }
+    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
 
-  const { token, user, workspace } = result;
+    if (error) {
+      console.error('[Register]', error.message);
+      if (error.message.includes('already registered')) {
+        toast('Cet email est déjà utilisé. Connecte-toi.', 'warning');
+        switchAuthTab('login');
+      } else {
+        toast('Erreur : ' + error.message, 'error');
+      }
+      return;
+    }
 
-  Session.save(token, user, workspace.id);
-  patchStoreForWorkspace(workspace.id);
-  App.user = user;
+    // Supabase peut demander confirmation email
+    if (data.user && !data.session) {
+      toast(`📧 Un email de confirmation a été envoyé à ${email}. Clique sur le lien pour activer ton compte.`, 'info', 8000);
+      switchAuthTab('login');
+      return;
+    }
 
-  await Store.loadFromApi(workspace.id);
-  Prefs.load();
+    // Connexion directe (confirmation email désactivée)
+    if (data.session) {
+      const sbUser = data.user;
+      const wsId   = sbUser.id; // workspace créé par trigger
 
-  toast(`Bienvenue ${nom} ! 🎉`, 'success');
-  launchConfetti();
-  startApp();
-  setTimeout(() => renderOnboarding(), 800);
+      // Attendre que le trigger crée le workspace (max 2 secondes)
+      await new Promise(r => setTimeout(r, 1500));
+      const { data: profile } = await sb.from('user_profiles')
+        .select('default_workspace_id')
+        .eq('id', sbUser.id)
+        .maybeSingle();
+
+      const realWsId = profile?.default_workspace_id || wsId;
+
+      const user = {
+        id: sbUser.id, nom, email,
+        role: 'admin', workspaceId: realWsId,
+        plan: 'free', metier,
+      };
+
+      Session.save(data.session.access_token, user, realWsId);
+      patchStoreForWorkspace(realWsId);
+      App.user = user;
+
+      await Store.loadFromApi(realWsId);
+      Prefs.load();
+
+      toast(`Bienvenue ${nom} ! 🎉`, 'success');
+      launchConfetti();
+      startApp();
+      setTimeout(() => renderOnboarding(), 800);
+    }
+
+  } catch(e) {
+    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+    console.error('[doRegister]', e);
+    toast('Erreur lors de la création. Réessayez.', 'error');
+  }
 }
 
 function doLogout() {
@@ -7242,7 +7342,7 @@ function updateTvaFromPays(pays) {
             <div style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">1 utilisateur · illimité</div>
           </div>
           <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;padding:12px;text-align:center;border:1.5px solid #f59e0b">
-            <div style="font-weight:700;font-size:1rem;color:#92400e">25 000 FCFA</div>
+            <div style="font-weight:700;font-size:1rem;color:#92400e">15 000 FCFA</div>
             <div style="font-size:0.78rem;color:#78350f">Business / mois</div>
             <div style="font-size:0.75rem;margin-top:4px;color:#78350f">5 employés · multi-WS</div>
           </div>
