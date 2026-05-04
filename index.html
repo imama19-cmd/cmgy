@@ -1381,6 +1381,15 @@ table { border-collapse: collapse; }
 .presence-cell.absent  { background: #fee2e2; color: #991b1b; border-color: var(--danger); }
 .presence-cell.conge   { background: #fef3c7; color: #92400e; border-color: var(--warning); }
 
+/* Animation shake OTP */
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20%     { transform: translateX(-6px); }
+  40%     { transform: translateX(6px); }
+  60%     { transform: translateX(-4px); }
+  80%     { transform: translateX(4px); }
+}
+
 </style>
 
 <!-- ══ Supabase JS SDK — Auth + Realtime ══ -->
@@ -1586,8 +1595,91 @@ window.addEventListener('DOMContentLoaded', () => {
 
 </div>
 
+<!-- ══ ÉCRAN OTP — VÉRIFICATION CODE 6 CHIFFRES ══════════════════════ -->
+<div id="otp-screen" style="display:none;position:fixed;inset:0;z-index:3000;
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);
+  font-family:'Plus Jakarta Sans',sans-serif;align-items:center;justify-content:center">
 
-<!-- ══ TOAST CONTAINER (global, toujours présent) ══ -->
+  <div style="background:#fff;border-radius:24px;padding:48px 40px;max-width:440px;width:90%;
+    box-shadow:0 25px 60px rgba(0,0,0,0.3);text-align:center;position:relative">
+
+    <!-- Icône email -->
+    <div style="width:72px;height:72px;background:linear-gradient(135deg,#1e6fd9,#0891b2);
+      border-radius:50%;display:flex;align-items:center;justify-content:center;
+      margin:0 auto 24px;font-size:2rem;box-shadow:0 8px 24px rgba(30,111,217,0.3)">
+      📧
+    </div>
+
+    <h2 style="font-family:'Fraunces',serif;font-size:1.8rem;font-weight:700;color:#0f172a;margin-bottom:8px">
+      Vérification email
+    </h2>
+    <p style="color:#64748b;font-size:0.92rem;line-height:1.6;margin-bottom:8px">
+      Un code à 6 chiffres a été envoyé à
+    </p>
+    <p id="otp-email-display" style="color:#1e6fd9;font-weight:700;font-size:0.95rem;margin-bottom:32px">
+      —
+    </p>
+
+    <!-- Inputs OTP 6 cases -->
+    <div id="otp-inputs" style="display:flex;gap:10px;justify-content:center;margin-bottom:28px">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"
+        style="width:52px;height:60px;border:2px solid #e2e8f0;border-radius:14px;text-align:center;
+        font-size:1.6rem;font-weight:700;color:#0f172a;outline:none;transition:0.2s"
+        oninput="otpInput(this,0)" onkeydown="otpKeydown(event,0)" onfocus="this.style.borderColor='#1e6fd9'">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"
+        style="width:52px;height:60px;border:2px solid #e2e8f0;border-radius:14px;text-align:center;
+        font-size:1.6rem;font-weight:700;color:#0f172a;outline:none;transition:0.2s"
+        oninput="otpInput(this,1)" onkeydown="otpKeydown(event,1)" onfocus="this.style.borderColor='#1e6fd9'">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"
+        style="width:52px;height:60px;border:2px solid #e2e8f0;border-radius:14px;text-align:center;
+        font-size:1.6rem;font-weight:700;color:#0f172a;outline:none;transition:0.2s"
+        oninput="otpInput(this,2)" onkeydown="otpKeydown(event,2)" onfocus="this.style.borderColor='#1e6fd9'">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"
+        style="width:52px;height:60px;border:2px solid #e2e8f0;border-radius:14px;text-align:center;
+        font-size:1.6rem;font-weight:700;color:#0f172a;outline:none;transition:0.2s"
+        oninput="otpInput(this,3)" onkeydown="otpKeydown(event,3)" onfocus="this.style.borderColor='#1e6fd9'">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"
+        style="width:52px;height:60px;border:2px solid #e2e8f0;border-radius:14px;text-align:center;
+        font-size:1.6rem;font-weight:700;color:#0f172a;outline:none;transition:0.2s"
+        oninput="otpInput(this,4)" onkeydown="otpKeydown(event,4)" onfocus="this.style.borderColor='#1e6fd9'">
+      <input class="otp-box" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]"
+        style="width:52px;height:60px;border:2px solid #e2e8f0;border-radius:14px;text-align:center;
+        font-size:1.6rem;font-weight:700;color:#0f172a;outline:none;transition:0.2s"
+        oninput="otpInput(this,5)" onkeydown="otpKeydown(event,5)" onfocus="this.style.borderColor='#1e6fd9'">
+    </div>
+
+    <!-- Message erreur -->
+    <div id="otp-error" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 16px;
+      border-radius:10px;font-size:0.85rem;margin-bottom:16px;font-weight:600"></div>
+
+    <!-- Bouton Vérifier -->
+    <button id="otp-btn" onclick="doVerifyOtp()"
+      style="width:100%;padding:15px;background:linear-gradient(135deg,#1e6fd9,#0891b2);
+      color:#fff;border:none;border-radius:14px;font-size:1rem;font-weight:700;
+      cursor:pointer;transition:0.2s;margin-bottom:20px;
+      font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:0.02em">
+      ✅ Vérifier le code
+    </button>
+
+    <!-- Timer et renvoi -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap">
+      <span style="color:#94a3b8;font-size:0.85rem">Code valable</span>
+      <span id="otp-timer" style="background:#f1f5f9;color:#1e6fd9;font-weight:700;
+        padding:4px 12px;border-radius:20px;font-size:0.85rem">10:00</span>
+    </div>
+    <button id="otp-resend" onclick="doResendOtp()" disabled
+      style="margin-top:12px;background:none;border:none;color:#94a3b8;font-size:0.85rem;
+      cursor:not-allowed;font-family:inherit">
+      Renvoyer le code
+    </button>
+
+    <!-- Changer d'email -->
+    <p style="margin-top:20px;font-size:0.82rem;color:#94a3b8">
+      Mauvais email ?
+      <a href="#" onclick="showAuthScreen()" style="color:#1e6fd9;font-weight:700">Retour →</a>
+    </p>
+  </div>
+</div>
 <!-- ══ BADGE HORS-LIGNE (v13 Universal) ══ -->
 <div id="connectivity-badge" style="position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:9999;display:none;pointer-events:none"></div>
 
@@ -2634,16 +2726,316 @@ function selectMetier(el) {
   }
 }
 
-/* ══ v14 : AUTH DIRECTE SUPABASE (sans Railway) ══════
-   Connexion et inscription passent directement par
-   Supabase Auth — fonctionne immédiatement sans backend
+/* ══ v14 : SYSTÈME OTP COMPLET ═══════════════════════
+   Flux : inscription → OTP envoyé → écran 6 cases →
+          vérification Supabase → connexion automatique
 ════════════════════════════════════════════════════ */
 
-// Client Supabase Auth — initialiser une seule fois
+// État OTP global
+const OTP = {
+  email:    null,
+  password: null,
+  nom:      null,
+  metier:   null,
+  timer:    null,
+  seconds:  600,  // 10 minutes
+};
+
+// ── Navigation entre écrans ────────────────────────
+function showOtpScreen(email) {
+  document.getElementById('auth-screen').style.display  = 'none';
+  const otp = document.getElementById('otp-screen');
+  otp.style.display = 'flex';
+  document.getElementById('otp-email-display').textContent = email;
+  // Vider les cases
+  document.querySelectorAll('.otp-box').forEach(b => {
+    b.value = ''; b.style.borderColor = '#e2e8f0';
+  });
+  document.getElementById('otp-error').style.display = 'none';
+  // Focus première case
+  setTimeout(() => document.querySelectorAll('.otp-box')[0]?.focus(), 300);
+  // Démarrer le timer
+  startOtpTimer();
+}
+
+function showAuthScreen() {
+  clearInterval(OTP.timer);
+  document.getElementById('otp-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  switchAuthTab('register');
+}
+
+// ── Timer 10 minutes ───────────────────────────────
+function startOtpTimer() {
+  clearInterval(OTP.timer);
+  OTP.seconds = 600;
+  const timerEl  = document.getElementById('otp-timer');
+  const resendBtn = document.getElementById('otp-resend');
+  resendBtn.disabled = true;
+  resendBtn.style.color  = '#94a3b8';
+  resendBtn.style.cursor = 'not-allowed';
+
+  OTP.timer = setInterval(() => {
+    OTP.seconds--;
+    const m = Math.floor(OTP.seconds / 60);
+    const s = OTP.seconds % 60;
+    if (timerEl) timerEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+
+    if (OTP.seconds <= 0) {
+      clearInterval(OTP.timer);
+      if (timerEl) timerEl.textContent = 'Expiré';
+      if (timerEl) timerEl.style.color = '#ef4444';
+      resendBtn.disabled = false;
+      resendBtn.style.color  = '#1e6fd9';
+      resendBtn.style.cursor = 'pointer';
+      resendBtn.textContent  = '🔄 Renvoyer un nouveau code';
+    }
+  }, 1000);
+}
+
+// ── Navigation entre cases OTP ─────────────────────
+function otpInput(el, idx) {
+  // Accepter seulement les chiffres
+  el.value = el.value.replace(/[^0-9]/g, '');
+  if (el.value.length === 1) {
+    el.style.borderColor = '#1e6fd9';
+    el.style.background  = '#eff6ff';
+    // Passer à la case suivante
+    const boxes = document.querySelectorAll('.otp-box');
+    if (idx < 5) boxes[idx + 1].focus();
+    else doVerifyOtp(); // Soumission automatique quand la 6ème case est remplie
+  }
+}
+
+function otpKeydown(e, idx) {
+  const boxes = document.querySelectorAll('.otp-box');
+  if (e.key === 'Backspace' && !boxes[idx].value && idx > 0) {
+    boxes[idx - 1].focus();
+    boxes[idx - 1].value = '';
+    boxes[idx - 1].style.borderColor = '#e2e8f0';
+    boxes[idx - 1].style.background  = '#fff';
+  }
+  // Coller un code (ex: depuis SMS)
+  if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
+    navigator.clipboard.readText().then(text => {
+      const digits = text.replace(/\D/g,'').slice(0,6);
+      if (digits.length === 6) {
+        boxes.forEach((b,i) => {
+          b.value = digits[i] || '';
+          b.style.borderColor = digits[i] ? '#1e6fd9' : '#e2e8f0';
+          b.style.background  = digits[i] ? '#eff6ff' : '#fff';
+        });
+        doVerifyOtp();
+      }
+    }).catch(()=>{});
+  }
+}
+
+function getOtpCode() {
+  return Array.from(document.querySelectorAll('.otp-box')).map(b => b.value).join('');
+}
+
+function setOtpError(msg) {
+  const el = document.getElementById('otp-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+  // Secouer les cases
+  document.querySelectorAll('.otp-box').forEach(b => {
+    b.style.borderColor = '#ef4444';
+    b.style.animation   = 'shake 0.4s ease';
+    setTimeout(() => { b.style.animation = ''; b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff'; }, 600);
+  });
+  setTimeout(() => document.querySelectorAll('.otp-box')[0]?.focus(), 650);
+}
+
+// ── Inscription : envoyer l'OTP ────────────────────
+async function doRegister() {
+  if (!Network.check()) return;
+  const nom    = (document.getElementById('reg-nom') || document.getElementById('reg-name'))?.value.trim();
+  const email  = document.getElementById('reg-email')?.value.trim().toLowerCase();
+  const pass   = (document.getElementById('reg-password') || document.getElementById('reg-pwd'))?.value;
+  const metier = document.getElementById('reg-metier')?.value || 'boutique';
+
+  if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
+  if (pass.length < 6) { toast('Mot de passe trop court (min 6 caractères)','warning'); return; }
+
+  const btn = document.querySelector('#form-register .btn-primary');
+  if (btn) { btn.textContent = '⏳ Envoi du code…'; btn.disabled = true; }
+
+  try {
+    const sb = getSupabaseClient();
+    if (!sb) throw new Error('Supabase non configuré');
+
+    // Vérifier si email déjà utilisé (tentative de connexion silencieuse)
+    const { data: signupData, error: signupErr } = await sb.auth.signUp({
+      email, password: pass,
+      options: { data: { nom, metier } }
+    });
+
+    if (signupErr) {
+      if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+      if (signupErr.message.includes('already registered')) {
+        toast('Cet email est déjà utilisé. Connecte-toi.', 'warning');
+        switchAuthTab('login');
+      } else {
+        toast('Erreur : ' + signupErr.message, 'error');
+      }
+      return;
+    }
+
+    // Stocker les infos pour après vérification OTP
+    OTP.email    = email;
+    OTP.password = pass;
+    OTP.nom      = nom;
+    OTP.metier   = metier;
+    OTP._userId  = signupData.user?.id;
+    OTP._session = signupData.session; // null si confirmation requise
+
+    // Générer et envoyer l'OTP via Supabase (fonction SQL)
+    const { data: otpData, error: otpErr } = await sb.rpc('create_otp', {
+      p_email: email,
+      p_type:  'signup'
+    });
+
+    if (otpErr) throw otpErr;
+
+    // Envoyer l'email OTP via Supabase Edge Function ou directement
+    await sendOtpEmail(email, nom, otpData);
+
+    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+
+    // Afficher l'écran OTP
+    showOtpScreen(email);
+
+  } catch(e) {
+    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+    console.error('[doRegister]', e);
+    toast('Erreur lors de l\'inscription. Réessayez.', 'error');
+  }
+}
+
+// ── Envoyer l'email OTP ────────────────────────────
+async function sendOtpEmail(email, nom, code) {
+  // Utilise Supabase Auth OTP natif (méthode officielle)
+  const sb = getSupabaseClient();
+  try {
+    // Méthode officielle Supabase : envoie un OTP par email
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false, // L'utilisateur existe déjà (créé ci-dessus)
+        emailRedirectTo: null
+      }
+    });
+    if (error) throw error;
+  } catch(e) {
+    // Fallback : afficher le code dans un toast si l'email ne part pas
+    console.warn('[OTP Email]', e.message);
+    toast(`Code de test (dev) : ${code}`, 'info', 30000);
+  }
+}
+
+// ── Vérifier le code OTP saisi ─────────────────────
+async function doVerifyOtp() {
+  const code = getOtpCode();
+  if (code.length < 6) {
+    setOtpError('Entre les 6 chiffres reçus par email');
+    return;
+  }
+
+  const btn = document.getElementById('otp-btn');
+  if (btn) { btn.textContent = '⏳ Vérification…'; btn.disabled = true; }
+
+  try {
+    const sb = getSupabaseClient();
+
+    // Vérifier via Supabase Auth OTP natif
+    const { data, error } = await sb.auth.verifyOtp({
+      email: OTP.email,
+      token: code,
+      type:  'signup'
+    });
+
+    if (error) {
+      if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
+      setOtpError(error.message.includes('expired') ? 'Code expiré. Renvoie un nouveau code.' : 'Code incorrect ❌');
+      return;
+    }
+
+    // ✅ OTP vérifié — connexion automatique
+    clearInterval(OTP.timer);
+
+    const sbUser    = data.user;
+    const sbSession = data.session;
+
+    // Attendre que le trigger crée le workspace
+    await new Promise(r => setTimeout(r, 1500));
+
+    const { data: profile } = await sb.from('user_profiles')
+      .select('default_workspace_id')
+      .eq('id', sbUser.id)
+      .maybeSingle();
+
+    const wsId = profile?.default_workspace_id || sbUser.id;
+
+    const user = {
+      id: sbUser.id, nom: OTP.nom, email: OTP.email,
+      role: 'admin', workspaceId: wsId,
+      plan: 'free', metier: OTP.metier,
+    };
+
+    Session.save(sbSession.access_token, user, wsId);
+    patchStoreForWorkspace(wsId);
+    App.user = user;
+
+    await Store.loadFromApi(wsId);
+    Prefs.load();
+
+    // Fermer l'écran OTP et lancer l'app
+    document.getElementById('otp-screen').style.display = 'none';
+    toast(`Bienvenue ${OTP.nom} ! 🎉 Compte vérifié ✅`, 'success');
+    launchConfetti();
+    startApp();
+    setTimeout(() => renderOnboarding(), 800);
+
+  } catch(e) {
+    if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
+    console.error('[doVerifyOtp]', e);
+    setOtpError('Erreur de vérification. Réessayez.');
+  }
+}
+
+// ── Renvoyer un nouveau code ───────────────────────
+async function doResendOtp() {
+  const btn = document.getElementById('otp-resend');
+  if (btn) { btn.textContent = '⏳ Envoi…'; btn.disabled = true; }
+
+  try {
+    const sb = getSupabaseClient();
+    const { error } = await sb.auth.signInWithOtp({
+      email: OTP.email,
+      options: { shouldCreateUser: false }
+    });
+    if (error) throw error;
+
+    document.getElementById('otp-error').style.display = 'none';
+    document.getElementById('otp-timer').style.color = '#1e6fd9';
+    toast('Nouveau code envoyé ! 📧', 'success');
+    startOtpTimer();
+  } catch(e) {
+    toast('Erreur lors du renvoi. Réessayez.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Renvoyer un nouveau code'; }
+  }
+}
+
+// ── Client Supabase (partagé par toutes les fonctions auth) ──
 let _sbClient = null;
 function getSupabaseClient() {
   if (_sbClient) return _sbClient;
-  if (typeof window.supabase === 'undefined') return null;
+  if (typeof window.supabase === 'undefined') {
+    console.error('[Supabase] SDK non chargé — vérifie la balise script dans le <head>');
+    return null;
+  }
   _sbClient = window.supabase.createClient(
     API_CONFIG.SUPABASE_URL,
     API_CONFIG.SUPABASE_ANON_KEY
@@ -2651,6 +3043,7 @@ function getSupabaseClient() {
   return _sbClient;
 }
 
+// ── Connexion (email + mot de passe, sans OTP) ─────
 async function doLogin() {
   if (!Network.check()) return;
   const email = document.getElementById('login-email')?.value.trim().toLowerCase();
@@ -2719,92 +3112,6 @@ async function doLogin() {
     if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
     console.error('[doLogin]', e);
     toast('Erreur de connexion. Vérifiez votre réseau.', 'error');
-  }
-}
-
-async function doRegister() {
-  if (!Network.check()) return;
-  const nom    = (document.getElementById('reg-nom') || document.getElementById('reg-name'))?.value.trim();
-  const email  = document.getElementById('reg-email')?.value.trim().toLowerCase();
-  const pass   = (document.getElementById('reg-password') || document.getElementById('reg-pwd'))?.value;
-  const metier = document.getElementById('reg-metier')?.value || 'boutique';
-
-  if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
-  if (pass.length < 6) { toast('Mot de passe trop court (min 6 caractères)','warning'); return; }
-
-  const btn = document.querySelector('#form-register .btn-primary');
-  if (btn) { btn.textContent = '⏳ Création…'; btn.disabled = true; }
-
-  try {
-    // ── Inscription directe Supabase Auth ────────────
-    const sb = getSupabaseClient();
-    if (!sb) throw new Error('Client Supabase non initialisé');
-
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: { nom, metier }  // → stocké dans raw_user_meta_data → trigger crée profil + workspace
-      }
-    });
-
-    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-
-    if (error) {
-      console.error('[Register]', error.message);
-      if (error.message.includes('already registered')) {
-        toast('Cet email est déjà utilisé. Connecte-toi.', 'warning');
-        switchAuthTab('login');
-      } else {
-        toast('Erreur : ' + error.message, 'error');
-      }
-      return;
-    }
-
-    // Supabase peut demander confirmation email
-    if (data.user && !data.session) {
-      toast(`📧 Un email de confirmation a été envoyé à ${email}. Clique sur le lien pour activer ton compte.`, 'info', 8000);
-      switchAuthTab('login');
-      return;
-    }
-
-    // Connexion directe (confirmation email désactivée)
-    if (data.session) {
-      const sbUser = data.user;
-      const wsId   = sbUser.id; // workspace créé par trigger
-
-      // Attendre que le trigger crée le workspace (max 2 secondes)
-      await new Promise(r => setTimeout(r, 1500));
-      const { data: profile } = await sb.from('user_profiles')
-        .select('default_workspace_id')
-        .eq('id', sbUser.id)
-        .maybeSingle();
-
-      const realWsId = profile?.default_workspace_id || wsId;
-
-      const user = {
-        id: sbUser.id, nom, email,
-        role: 'admin', workspaceId: realWsId,
-        plan: 'free', metier,
-      };
-
-      Session.save(data.session.access_token, user, realWsId);
-      patchStoreForWorkspace(realWsId);
-      App.user = user;
-
-      await Store.loadFromApi(realWsId);
-      Prefs.load();
-
-      toast(`Bienvenue ${nom} ! 🎉`, 'success');
-      launchConfetti();
-      startApp();
-      setTimeout(() => renderOnboarding(), 800);
-    }
-
-  } catch(e) {
-    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-    console.error('[doRegister]', e);
-    toast('Erreur lors de la création. Réessayez.', 'error');
   }
 }
 
@@ -7342,7 +7649,7 @@ function updateTvaFromPays(pays) {
             <div style="font-size:0.75rem;margin-top:4px;color:var(--text-muted)">1 utilisateur · illimité</div>
           </div>
           <div style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-radius:10px;padding:12px;text-align:center;border:1.5px solid #f59e0b">
-            <div style="font-weight:700;font-size:1rem;color:#92400e">15 000 FCFA</div>
+            <div style="font-weight:700;font-size:1rem;color:#92400e">25 000 FCFA</div>
             <div style="font-size:0.78rem;color:#78350f">Business / mois</div>
             <div style="font-size:0.75rem;margin-top:4px;color:#78350f">5 employés · multi-WS</div>
           </div>
@@ -7734,7 +8041,7 @@ function updatePayBtn() {
   const btn = document.getElementById('pay-btn');
   if (!btn) return;
   if (_selectedPlan === 'free') { btn.textContent = '✓ Continuer en version gratuite'; return; }
-  const montants = { standard: '5 000 FCFA', business: '15 000 FCFA' };
+  const montants = { standard: '5 000 FCFA', business: '25 000 FCFA' };
   const methods = { wave:'Wave', orange:'Orange Money', card:'Carte bancaire', paydunya:'PayDunya' };
   btn.textContent = `💳 Payer ${montants[_selectedPlan]||'5 000 FCFA'} via ${methods[_selectedMethod]}`;
 }
