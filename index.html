@@ -1652,10 +1652,6 @@ window.addEventListener('DOMContentLoaded', () => {
     <div id="otp-error" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 16px;
       border-radius:10px;font-size:0.85rem;margin-bottom:16px;font-weight:600"></div>
 
-    <!-- Hint code (fallback si email lent) -->
-    <div id="otp-code-hint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;
-      border-radius:10px;padding:10px 16px;margin-bottom:16px;text-align:center"></div>
-
     <!-- Bouton Vérifier -->
     <button id="otp-btn" onclick="doVerifyOtp()"
       style="width:100%;padding:15px;background:linear-gradient(135deg,#1e6fd9,#0891b2);
@@ -2746,7 +2742,7 @@ const OTP = {
 };
 
 // ── Navigation entre écrans ────────────────────────
-function showOtpScreen(email, codeHint) {
+function showOtpScreen(email) {
   document.getElementById('auth-screen').style.display = 'none';
   const otp = document.getElementById('otp-screen');
   otp.style.display = 'flex';
@@ -2757,18 +2753,6 @@ function showOtpScreen(email, codeHint) {
     b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff';
   });
   document.getElementById('otp-error').style.display = 'none';
-
-  // Si on a le code (mode dev / fallback), l'afficher sous les cases
-  const hintEl = document.getElementById('otp-code-hint');
-  if (hintEl) {
-    if (codeHint) {
-      hintEl.style.display = 'block';
-      hintEl.innerHTML = `<span style="color:#64748b;font-size:0.8rem">Code reçu par email :</span>
-        <strong style="color:#1e6fd9;font-size:1.1rem;letter-spacing:4px"> ${codeHint}</strong>`;
-    } else {
-      hintEl.style.display = 'none';
-    }
-  }
 
   // Focus première case
   setTimeout(() => document.querySelectorAll('.otp-box')[0]?.focus(), 300);
@@ -2921,24 +2905,18 @@ async function doRegister() {
       return;
     }
 
-    // ── Étape 3 : Générer et envoyer le code OTP ──────
-    // rpc_send_otp crée le code, le stocke hashé et le retourne
-    const { data: otpResult, error: otpErr } = await sb.rpc('rpc_send_otp', {
-      p_email: email,
-      p_nom:   nom,
-      p_type:  'signup',
-      p_service_key: ''
-    });
+    // ── Étape 3 : Envoyer le code OTP via Edge Function ──
+    const fnUrl = `${API_CONFIG.SUPABASE_URL}/functions/v1/send-otp-email`
+    await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ email, nom, type: 'signup' })
+    }).catch(e => console.warn('[OTP send]', e))
 
-    // Envoyer aussi via Supabase Auth (resend confirmation)
-    // Supabase envoie son email natif avec le lien/code
-    await sb.auth.resend({ type: 'signup', email }).catch(() => {});
-
-    // Afficher l'écran OTP
-    // Si l'email Supabase fonctionne → code arrivera dans la boîte mail
-    // Si problème réseau → le code est affiché en fallback
-    const codeHint = otpResult?.code; // Code en clair pour affichage fallback
-    showOtpScreen(email, codeHint);
+    showOtpScreen(email);
 
   } catch(e) {
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
@@ -3072,8 +3050,6 @@ async function doVerifyOtp() {
 
     // ✅ Vérifié — finaliser la connexion
     clearInterval(OTP.timer);
-    const hintEl = document.getElementById('otp-code-hint');
-    if (hintEl) hintEl.style.display = 'none';
     await _finalizeLogin(session, sbUser, true);
 
   } catch(e) {
@@ -3089,16 +3065,21 @@ async function doResendOtp() {
   if (btn) { btn.textContent = '⏳ Envoi…'; btn.disabled = true; }
 
   try {
-    const sb = getSupabaseClient();
-
-    // Créer nouveau code via RPC
-    const { data: otpResult } = await sb.rpc('rpc_send_otp', {
-      p_email: OTP.email, p_nom: OTP.nom || '',
-      p_type: 'signup', p_service_key: ''
+    // Appeler la Edge Function pour générer + envoyer le nouveau code
+    const fnUrl = `${API_CONFIG.SUPABASE_URL}/functions/v1/send-otp-email`;
+    const res = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': API_CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ email: OTP.email, nom: OTP.nom || '', type: 'signup' })
     });
 
-    // Envoyer email Supabase aussi
-    await sb.auth.resend({ type: 'signup', email: OTP.email }).catch(() => {});
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Envoi échoué');
+    }
 
     // Reset UI
     document.getElementById('otp-error').style.display = 'none';
@@ -3107,21 +3088,12 @@ async function doResendOtp() {
       b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff';
     });
     document.querySelectorAll('.otp-box')[0]?.focus();
-
-    // Afficher le code hint si disponible
-    const hintEl = document.getElementById('otp-code-hint');
-    if (hintEl && otpResult?.code) {
-      hintEl.style.display = 'block';
-      hintEl.innerHTML = `<span style="color:#64748b;font-size:0.8rem">Nouveau code :</span>
-        <strong style="color:#1e6fd9;font-size:1.1rem;letter-spacing:4px"> ${otpResult.code}</strong>`;
-    }
-
     toast('Nouveau code envoyé ! 📧 Vérifie ta boîte mail.', 'success');
     startOtpTimer();
 
   } catch(e) {
     console.error('[doResendOtp]', e);
-    toast('Erreur : ' + (e.message || 'Réessayez dans quelques secondes.'), 'error');
+    toast('Erreur : ' + (e.message || 'Réessayez.'), 'error');
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Renvoyer un nouveau code'; }
   }
 }
