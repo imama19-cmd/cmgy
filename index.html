@@ -1652,6 +1652,10 @@ window.addEventListener('DOMContentLoaded', () => {
     <div id="otp-error" style="display:none;background:#fee2e2;color:#991b1b;padding:10px 16px;
       border-radius:10px;font-size:0.85rem;margin-bottom:16px;font-weight:600"></div>
 
+    <!-- Code dev (Resend non configuré) -->
+    <div id="otp-dev-code" style="display:none;background:#fef3c7;border:1px solid #fde68a;
+      border-radius:10px;padding:12px 16px;margin-bottom:16px;text-align:center"></div>
+
     <!-- Bouton Vérifier -->
     <button id="otp-btn" onclick="doVerifyOtp()"
       style="width:100%;padding:15px;background:linear-gradient(135deg,#1e6fd9,#0891b2);
@@ -2742,20 +2746,37 @@ const OTP = {
 };
 
 // ── Navigation entre écrans ────────────────────────
-function showOtpScreen(email) {
+function showOtpScreen(email, devCode) {
   document.getElementById('auth-screen').style.display = 'none';
   const otp = document.getElementById('otp-screen');
   otp.style.display = 'flex';
   document.getElementById('otp-email-display').textContent = email;
 
-  // Vider les cases et reset erreur
   document.querySelectorAll('.otp-box').forEach(b => {
     b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff';
   });
   document.getElementById('otp-error').style.display = 'none';
 
-  // Focus première case
-  setTimeout(() => document.querySelectorAll('.otp-box')[0]?.focus(), 300);
+  // Mode dev : Resend pas encore configuré → afficher le code directement
+  const devEl = document.getElementById('otp-dev-code');
+  if (devEl) {
+    if (devCode) {
+      devEl.style.display = 'block';
+      devEl.innerHTML = `<span style="font-size:0.8rem;color:#92400e">⚠️ Mode test (Resend non configuré) — Code :</span><br>
+        <strong style="font-size:1.6rem;letter-spacing:8px;color:#92400e;font-family:monospace">${devCode}</strong>`;
+      // Remplir automatiquement les cases
+      const boxes = document.querySelectorAll('.otp-box');
+      devCode.split('').forEach((d, i) => {
+        if (boxes[i]) { boxes[i].value = d; boxes[i].style.borderColor = '#f59e0b'; boxes[i].style.background = '#fef3c7'; }
+      });
+    } else {
+      devEl.style.display = 'none';
+    }
+  }
+
+  setTimeout(() => {
+    if (!devCode) document.querySelectorAll('.otp-box')[0]?.focus();
+  }, 300);
   startOtpTimer();
 }
 
@@ -2861,20 +2882,20 @@ async function doRegister() {
   if (pass.length < 6) { toast('Mot de passe trop court (min 6 caractères)','warning'); return; }
 
   const btn = document.querySelector('#form-register .btn-primary');
-  if (btn) { btn.textContent = '⏳ Envoi du code…'; btn.disabled = true; }
+  if (btn) { btn.textContent = '⏳ Création du compte…'; btn.disabled = true; }
 
   try {
     const sb = getSupabaseClient();
     if (!sb) throw new Error('Connexion impossible. Vérifiez internet.');
 
+    // Étape 1 : Créer le compte Supabase
     const { data, error } = await sb.auth.signUp({
       email, password: pass,
       options: { data: { nom, metier } }
     });
 
-    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-
     if (error) {
+      if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
       if (error.message.toLowerCase().includes('already registered')) {
         toast('Email déjà utilisé. Connecte-toi.', 'warning');
         switchAuthTab('login');
@@ -2884,20 +2905,31 @@ async function doRegister() {
       return;
     }
 
-    // Stocker pour après vérification
-    OTP.email    = email;
-    OTP.password = pass;
-    OTP.nom      = nom;
-    OTP.metier   = metier;
+    OTP.email = email; OTP.password = pass; OTP.nom = nom; OTP.metier = metier;
+    // Stocker la session si disponible (confirmation désactivée)
+    if (data.session) OTP._session = data.session;
+    if (data.user)    OTP._user    = data.user;
 
-    // Session immédiate = confirmation désactivée dans Supabase
-    if (data.session) {
-      await _finalizeLogin(data.session, data.user, true);
-      return;
-    }
+    // Toujours afficher l'écran OTP
+    if (btn) { btn.textContent = '⏳ Envoi du code…'; }
 
-    // Sinon → Supabase a envoyé l'email avec le code 6 chiffres
-    showOtpScreen(email);
+    let devCode = null;
+    try {
+      const fnRes = await fetch(
+        `${API_CONFIG.SUPABASE_URL}/functions/v1/send-otp-email`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'apikey': API_CONFIG.SUPABASE_ANON_KEY },
+          body: JSON.stringify({ email, nom })
+        }
+      );
+      const fnData = await fnRes.json().catch(() => ({}));
+      console.log('[OTP] Edge Function response:', fnData);
+      if (fnData.dev_code) devCode = fnData.dev_code;
+    } catch(e) { console.warn('[OTP send]', e); }
+
+    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+    showOtpScreen(email, devCode);
 
   } catch(e) {
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
@@ -2974,31 +3006,57 @@ async function doVerifyOtp() {
   try {
     const sb = getSupabaseClient();
 
-    // Vérifier via Supabase Auth natif (type 'signup' = confirmation email)
-    const { data, error } = await sb.auth.verifyOtp({
-      email: OTP.email,
-      token: code,
-      type:  'signup'
+    // Vérifier via notre RPC (table otp_codes)
+    const { data: result, error: rpcErr } = await sb.rpc('rpc_verify_otp', {
+      p_email: OTP.email,
+      p_code:  code,
+      p_type:  'signup'
     });
 
-    if (error) {
+    if (rpcErr) throw rpcErr;
+
+    if (!result?.success) {
       if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
-      if (error.message.includes('expired') || error.message.includes('Token has expired')) {
-        setOtpError('Code expiré ⏰ — Clique "Renvoyer le code" ci-dessous');
-      } else if (error.message.includes('invalid') || error.message.includes('Invalid')) {
-        setOtpError('Code incorrect ❌ — Vérifie les 6 chiffres');
-      } else {
-        setOtpError(error.message);
-      }
+      const msg = result?.code === 'EXPIRED'      ? 'Code expiré ⏰ — Clique "Renvoyer le code"'
+                : result?.code === 'MAX_ATTEMPTS' ? 'Trop de tentatives — Clique "Renvoyer le code"'
+                : `Code incorrect ❌ (${result?.attempts_left ?? '?'} essai(s) restant(s))`;
+      setOtpError(msg);
       return;
     }
 
-    // ✅ Code correct — connecté
+    // ✅ Code correct — se connecter
+    // Cas 1 : session déjà disponible (stockée lors du signUp)
+    if (OTP._session && OTP._user) {
+      const session = OTP._session;
+      const user    = OTP._user;
+      OTP._session  = null;
+      OTP._user     = null;
+      clearInterval(OTP.timer);
+      const devEl = document.getElementById('otp-dev-code');
+      if (devEl) devEl.style.display = 'none';
+      await _finalizeLogin(session, user, true);
+      return;
+    }
+
+    // Cas 2 : se connecter avec email + mot de passe
+    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({
+      email: OTP.email, password: OTP.password
+    });
+
+    if (loginErr) {
+      if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
+      setOtpError('Erreur de connexion. Réessayez.');
+      return;
+    }
+
     clearInterval(OTP.timer);
-    await _finalizeLogin(data.session, data.user, true);
+    const devEl = document.getElementById('otp-dev-code');
+    if (devEl) devEl.style.display = 'none';
+    await _finalizeLogin(loginData.session, loginData.user, true);
 
   } catch(e) {
     if (btn) { btn.textContent = '✅ Vérifier le code'; btn.disabled = false; }
+    console.error('[doVerifyOtp]', e);
     setOtpError('Erreur réseau. Vérifiez votre connexion.');
   }
 }
@@ -3009,22 +3067,39 @@ async function doResendOtp() {
   if (btn) { btn.textContent = '⏳ Envoi…'; btn.disabled = true; }
 
   try {
-    const sb = getSupabaseClient();
+    const fnRes = await fetch(
+      `${API_CONFIG.SUPABASE_URL}/functions/v1/send-otp-email`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': API_CONFIG.SUPABASE_ANON_KEY },
+        body: JSON.stringify({ email: OTP.email, nom: OTP.nom || '' })
+      }
+    );
 
-    const { error } = await sb.auth.resend({
-      type:  'signup',
-      email: OTP.email,
-    });
-
-    if (error) throw error;
+    const fnData = await fnRes.json().catch(() => ({}));
 
     document.getElementById('otp-error').style.display = 'none';
     document.getElementById('otp-timer').style.color = '#1e6fd9';
     document.querySelectorAll('.otp-box').forEach(b => {
       b.value = ''; b.style.borderColor = '#e2e8f0'; b.style.background = '#fff';
     });
-    document.querySelectorAll('.otp-box')[0]?.focus();
-    toast('Nouveau code envoyé 📧', 'success');
+
+    // Mode dev : afficher le nouveau code
+    const devEl = document.getElementById('otp-dev-code');
+    if (devEl && fnData.dev_code) {
+      devEl.style.display = 'block';
+      devEl.innerHTML = `<span style="font-size:0.8rem;color:#92400e">⚠️ Mode test — Nouveau code :</span><br>
+        <strong style="font-size:1.6rem;letter-spacing:8px;color:#92400e;font-family:monospace">${fnData.dev_code}</strong>`;
+      const boxes = document.querySelectorAll('.otp-box');
+      fnData.dev_code.split('').forEach((d, i) => {
+        if (boxes[i]) { boxes[i].value = d; boxes[i].style.borderColor = '#f59e0b'; boxes[i].style.background = '#fef3c7'; }
+      });
+    } else if (devEl) {
+      devEl.style.display = 'none';
+      document.querySelectorAll('.otp-box')[0]?.focus();
+      toast('Nouveau code envoyé 📧 Vérifie ta boîte mail.', 'success');
+    }
+
     startOtpTimer();
 
   } catch(e) {
