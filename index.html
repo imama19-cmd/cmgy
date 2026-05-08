@@ -2870,13 +2870,16 @@ async function doRegister() {
   try {
     const sb = getSupabaseClient();
 
+    // signUp → le trigger SQL confirme l'email automatiquement
+    // donc data.session est toujours disponible immédiatement
     const { data, error } = await sb.auth.signUp({
       email, password: pass,
       options: { data: { nom, metier } }
     });
 
+    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+
     if (error) {
-      if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
       if (error.message.toLowerCase().includes('already registered')) {
         toast('Email déjà utilisé — connecte-toi.', 'warning');
         switchAuthTab('login');
@@ -2888,17 +2891,21 @@ async function doRegister() {
 
     OTP.email = email; OTP.password = pass; OTP.nom = nom; OTP.metier = metier;
 
-    if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-
-    // Supabase retourne une session immédiatement si "Confirm email" est OFF
+    // Session immédiate grâce au trigger auto-confirmation
     if (data.session) {
       await _finalizeLogin(data.session, data.user, true);
       return;
     }
 
-    // "Confirm email" est ON → Supabase a envoyé un email OTP automatiquement
-    OTP._session = null;
-    OTP._user    = null;
+    // Fallback : si email pas encore confirmé (cas rare)
+    // Se connecter directement avec mot de passe
+    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (!loginErr && loginData.session) {
+      await _finalizeLogin(loginData.session, loginData.user, true);
+      return;
+    }
+
+    // Dernier recours : afficher OTP
     showOtpScreen(email);
 
   } catch(e) {
