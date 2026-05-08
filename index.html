@@ -2670,18 +2670,11 @@ async function doRegister() {
   const metier = document.getElementById('reg-metier')?.value || 'boutique';
 
   if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
-
-  // ── Validation email ──
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    toast('Adresse email invalide','warning'); return;
-  }
-
-  // ── Validation mot de passe fort ──
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Adresse email invalide','warning'); return; }
   if (pass.length < 8) { toast('Mot de passe minimum 8 caractères','warning'); return; }
   if (!/[0-9]/.test(pass)) { toast('Le mot de passe doit contenir au moins 1 chiffre','warning'); return; }
   if (!/[A-Z]/.test(pass)) { toast('Le mot de passe doit contenir au moins 1 majuscule','warning'); return; }
 
-  // ── Sanitize nom (anti XSS) ──
   const nomSafe = nom.replace(/[<>"'`]/g, '').substring(0, 100);
   if (!nomSafe) { toast('Nom invalide','warning'); return; }
 
@@ -2691,7 +2684,7 @@ async function doRegister() {
   try {
     const sb = getSupabaseClient();
 
-    // Créer le compte
+    // Étape 1 : Créer le compte
     const { data: signupData, error: signupErr } = await sb.auth.signUp({
       email, password: pass,
       options: { data: { nom: nomSafe, metier } }
@@ -2708,27 +2701,43 @@ async function doRegister() {
       return;
     }
 
-    // Session immédiate (trigger auto-confirme l'email)
-    if (signupData.session) {
-      if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-      await _finalizeLogin(signupData.session, signupData.user, true, nom, metier);
-      return;
-    }
+    // Étape 2 : Connexion immédiate
+    // (le trigger BEFORE INSERT a déjà confirmé l'email)
+    if (btn) { btn.textContent = '⏳ Connexion…'; }
 
-    // Si pas de session → se connecter directement
-    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({ email, password: pass });
+    // Attendre 500ms que le trigger et les fonctions SQL s'exécutent
+    await new Promise(r => setTimeout(r, 500));
+
+    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({
+      email, password: pass
+    });
 
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
 
-    if (loginErr) { toast('Compte créé. Connecte-toi maintenant.', 'success'); switchAuthTab('login'); return; }
+    if (loginErr) {
+      // Si encore "Email not confirmed" → forcer la confirmation via SQL
+      if (loginErr.message.includes('not confirmed')) {
+        // Dernier recours : utiliser la session du signUp si disponible
+        if (signupData?.session) {
+          await _finalizeLogin(signupData.session, signupData.user, true, nomSafe, metier);
+          return;
+        }
+        toast('Compte créé. Tu peux maintenant te connecter.', 'success');
+        switchAuthTab('login');
+        return;
+      }
+      toast(loginErr.message, 'error');
+      return;
+    }
 
-    await _finalizeLogin(loginData.session, loginData.user, true, nom, metier);
+    await _finalizeLogin(loginData.session, loginData.user, true, nomSafe, metier);
 
   } catch(e) {
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
     toast('Erreur réseau. Réessayez.', 'error');
   }
 }
+
 
 // ── CONNEXION ─────────────────────────────────────────
 async function doLogin() {
