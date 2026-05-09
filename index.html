@@ -2642,21 +2642,32 @@ function selectMetier(el) {
 }
 
 /* ══════════════════════════════════════════════════════
-   AUTH v14 — Inscription et connexion directes
-   Email + Mot de passe. Simple, rapide, fiable.
-   Aucun OTP, aucun email de confirmation.
-   Le trigger SQL confirme l'email automatiquement.
+   AUTH v14 DÉFINITIF
+   
+   FLUX INSCRIPTION :
+   signUp() → utiliser session retournée directement
+   → pas besoin de signInWithPassword après signUp
+   
+   FLUX CONNEXION :
+   signInWithPassword() → si email non confirmé →
+   renvoyer email confirmation + message clair
+   
+   SCALABLE : fonctionne pour des millions d'utilisateurs
+   via Supabase Auth natif
 ════════════════════════════════════════════════════════ */
 
 // Client Supabase singleton
 let _sbClient = null;
 function getSupabaseClient() {
   if (_sbClient) return _sbClient;
-  if (typeof window.supabase === 'undefined') return null;
+  if (typeof window.supabase === 'undefined') {
+    console.error('[DoliPro] SDK Supabase non chargé');
+    return null;
+  }
   _sbClient = window.supabase.createClient(
     API_CONFIG.SUPABASE_URL,
     API_CONFIG.SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }
+    { auth: { persistSession: false, autoRefreshToken: true } }
   );
   return _sbClient;
 }
@@ -2664,93 +2675,132 @@ function getSupabaseClient() {
 // ── INSCRIPTION ───────────────────────────────────────
 async function doRegister() {
   if (!Network.check()) return;
+
   const nom    = (document.getElementById('reg-nom') || document.getElementById('reg-name'))?.value.trim();
   const email  = document.getElementById('reg-email')?.value.trim().toLowerCase();
   const pass   = (document.getElementById('reg-password') || document.getElementById('reg-pwd'))?.value;
   const metier = document.getElementById('reg-metier')?.value || 'boutique';
 
-  if (!nom || !email || !pass) { toast('Tous les champs sont requis','warning'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Adresse email invalide','warning'); return; }
-  if (pass.length < 8) { toast('Mot de passe minimum 8 caractères','warning'); return; }
-  if (!/[0-9]/.test(pass)) { toast('Le mot de passe doit contenir au moins 1 chiffre','warning'); return; }
-  if (!/[A-Z]/.test(pass)) { toast('Le mot de passe doit contenir au moins 1 majuscule','warning'); return; }
+  // Validations
+  if (!nom || !email || !pass) { toast('Tous les champs sont requis', 'warning'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Adresse email invalide', 'warning'); return; }
+  if (pass.length < 8)        { toast('Mot de passe : minimum 8 caractères', 'warning'); return; }
+  if (!/[0-9]/.test(pass))    { toast('Mot de passe : ajoute au moins 1 chiffre', 'warning'); return; }
+  if (!/[A-Z]/.test(pass))    { toast('Mot de passe : ajoute au moins 1 majuscule', 'warning'); return; }
 
-  const nomSafe = nom.replace(/[<>"'`]/g, '').substring(0, 100);
-  if (!nomSafe) { toast('Nom invalide','warning'); return; }
+  const nomSafe = nom.replace(/[<>"'`]/g, '').trim().substring(0, 100);
 
   const btn = document.querySelector('#form-register .btn-primary');
-  if (btn) { btn.textContent = '⏳ Création…'; btn.disabled = true; }
+  if (btn) { btn.textContent = '⏳ Création du compte…'; btn.disabled = true; }
 
   try {
     const sb = getSupabaseClient();
+    if (!sb) throw new Error('Impossible de se connecter. Vérifiez votre internet.');
 
-    // Étape 1 : Créer le compte
-    const { data: signupData, error: signupErr } = await sb.auth.signUp({
-      email, password: pass,
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: pass,
       options: { data: { nom: nomSafe, metier } }
     });
 
-    if (signupErr) {
-      if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
-      if (signupErr.message.toLowerCase().includes('already registered')) {
-        toast('Email déjà utilisé — connecte-toi.', 'warning');
-        switchAuthTab('login');
-      } else {
-        toast(signupErr.message, 'error');
-      }
-      return;
-    }
-
-    // Étape 2 : Connexion immédiate
-    // (le trigger BEFORE INSERT a déjà confirmé l'email)
-    if (btn) { btn.textContent = '⏳ Connexion…'; }
-
-    // Attendre 500ms que le trigger et les fonctions SQL s'exécutent
-    await new Promise(r => setTimeout(r, 500));
-
-    const { data: loginData, error: loginErr } = await sb.auth.signInWithPassword({
-      email, password: pass
-    });
-
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
 
-    if (loginErr) {
-      // Si encore "Email not confirmed" → forcer la confirmation via SQL
-      if (loginErr.message.includes('not confirmed')) {
-        // Dernier recours : utiliser la session du signUp si disponible
-        if (signupData?.session) {
-          await _finalizeLogin(signupData.session, signupData.user, true, nomSafe, metier);
-          return;
-        }
-        toast('Compte créé. Tu peux maintenant te connecter.', 'success');
+    if (error) {
+      if (error.message.toLowerCase().includes('already registered')) {
+        toast('Cet email est déjà utilisé. Connectez-vous.', 'warning');
         switchAuthTab('login');
-        return;
+      } else {
+        toast(error.message, 'error');
       }
-      toast(loginErr.message, 'error');
       return;
     }
 
-    await _finalizeLogin(loginData.session, loginData.user, true, nomSafe, metier);
+    // ── CAS 1 : Supabase retourne une session immédiate ──
+    // (confirmation email désactivée OU déjà confirmé)
+    if (data.session && data.user) {
+      toast('Compte créé ! Bienvenue 🎉', 'success');
+      await _finalizeLogin(data.session, data.user, true, nomSafe, metier);
+      return;
+    }
+
+    // ── CAS 2 : Email de confirmation requis ──
+    // Supabase a envoyé l'email automatiquement
+    if (data.user && !data.session) {
+      _showConfirmationPending(email);
+      return;
+    }
 
   } catch(e) {
     if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
+    console.error('[doRegister]', e);
     toast('Erreur réseau. Réessayez.', 'error');
   }
 }
 
+// ── Écran d'attente de confirmation email ─────────────
+function _showConfirmationPending(email) {
+  // Remplacer le formulaire d'inscription par un message clair
+  const form = document.getElementById('form-register');
+  if (!form) { toast('Vérifiez votre email pour confirmer votre compte.', 'info', 8000); return; }
+
+  form.innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,#1e6fd9,#0891b2);
+        border-radius:50%;display:flex;align-items:center;justify-content:center;
+        margin:0 auto 20px;font-size:1.8rem">📧</div>
+      <h3 style="font-family:var(--font-title);font-size:1.3rem;margin:0 0 10px;color:#0f172a">
+        Vérifiez votre email
+      </h3>
+      <p style="color:#64748b;font-size:0.9rem;line-height:1.7;margin:0 0 6px">
+        Un email de confirmation a été envoyé à
+      </p>
+      <p style="color:#1e6fd9;font-weight:700;font-size:0.95rem;margin:0 0 24px">${email}</p>
+      <p style="color:#64748b;font-size:0.85rem;line-height:1.6;margin:0 0 24px">
+        Cliquez sur le lien dans l'email pour activer votre compte.<br>
+        <strong>Vérifiez aussi vos spams</strong> si vous ne le voyez pas.
+      </p>
+      <button onclick="_resendConfirmation('${email}')"
+        style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;
+        border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;
+        font-family:inherit">
+        📨 Renvoyer l'email de confirmation
+      </button>
+      <button onclick="switchAuthTab('login')"
+        style="width:100%;padding:12px;background:transparent;color:var(--text-muted);border:none;
+        font-size:0.85rem;cursor:pointer;font-family:inherit">
+        ← Retour à la connexion
+      </button>
+    </div>
+  `;
+}
+
+// Renvoyer l'email de confirmation
+async function _resendConfirmation(email) {
+  const sb = getSupabaseClient();
+  if (!sb) return;
+  const { error } = await sb.auth.resend({ type: 'signup', email });
+  if (error) {
+    toast('Erreur : ' + error.message, 'error');
+  } else {
+    toast('Email renvoyé ! Vérifiez votre boîte mail et vos spams.', 'success', 6000);
+  }
+}
 
 // ── CONNEXION ─────────────────────────────────────────
 async function doLogin() {
   if (!Network.check()) return;
+
   const email = document.getElementById('login-email')?.value.trim().toLowerCase();
   const pass  = (document.getElementById('login-password') || document.getElementById('login-pwd'))?.value;
-  if (!email || !pass) { toast('Email et mot de passe requis','warning'); return; }
+  if (!email || !pass) { toast('Email et mot de passe requis', 'warning'); return; }
 
   const btn = document.querySelector('#form-login .btn-primary');
   if (btn) { btn.textContent = '⏳ Connexion…'; btn.disabled = true; }
 
   try {
     const sb = getSupabaseClient();
+    if (!sb) throw new Error('Impossible de se connecter.');
+
     const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
     if (btn) { btn.textContent = 'Se connecter →'; btn.disabled = false; }
@@ -2758,6 +2808,13 @@ async function doLogin() {
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
         toast('Email ou mot de passe incorrect ❌', 'error');
+
+      } else if (error.message.includes('Email not confirmed')) {
+        // Renvoyer automatiquement l'email de confirmation
+        await sb.auth.resend({ type: 'signup', email }).catch(() => {});
+        // Afficher message clair
+        _showLoginConfirmPending(email);
+
       } else {
         toast(error.message, 'error');
       }
@@ -2772,6 +2829,41 @@ async function doLogin() {
   }
 }
 
+// Message si email non confirmé lors de la connexion
+function _showLoginConfirmPending(email) {
+  const form = document.getElementById('form-login');
+  if (!form) { toast('Confirmez votre email avant de vous connecter.', 'warning', 8000); return; }
+
+  form.innerHTML = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:2.5rem;margin-bottom:16px">⚠️</div>
+      <h3 style="font-family:var(--font-title);font-size:1.2rem;margin:0 0 10px;color:#0f172a">
+        Email non confirmé
+      </h3>
+      <p style="color:#64748b;font-size:0.88rem;line-height:1.7;margin:0 0 6px">
+        Vous devez d'abord confirmer votre email.
+      </p>
+      <p style="color:#1e6fd9;font-weight:700;font-size:0.92rem;margin:0 0 20px">${email}</p>
+      <div style="background:#fef3c7;border-radius:10px;padding:12px 16px;margin-bottom:20px;text-align:left">
+        <p style="margin:0;font-size:0.82rem;color:#92400e;line-height:1.6">
+          📨 Un nouvel email de confirmation vient d'être envoyé.<br>
+          <strong>Vérifiez vos spams</strong> si vous ne le voyez pas dans votre boîte principale.
+        </p>
+      </div>
+      <button onclick="_resendConfirmation('${email}')"
+        style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;
+        border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;font-family:inherit">
+        🔄 Renvoyer l'email
+      </button>
+      <button onclick="location.reload()"
+        style="width:100%;padding:10px;background:transparent;color:var(--text-muted);border:none;
+        font-size:0.85rem;cursor:pointer;font-family:inherit">
+        ← Retour
+      </button>
+    </div>
+  `;
+}
+
 // ── FINALISER LA CONNEXION ────────────────────────────
 async function _finalizeLogin(session, sbUser, isNewUser, nomOverride, metierOverride) {
   const sb = getSupabaseClient();
@@ -2779,10 +2871,11 @@ async function _finalizeLogin(session, sbUser, isNewUser, nomOverride, metierOve
   // Attendre le trigger SQL (workspace créé automatiquement)
   if (isNewUser) await new Promise(r => setTimeout(r, 2000));
 
-  // Récupérer le profil avec retry
+  // Récupérer le profil avec 4 tentatives max
   let profile = null;
   for (let i = 0; i < 4; i++) {
-    const { data: p } = await sb.from('user_profiles')
+    const { data: p } = await sb
+      .from('user_profiles')
       .select('nom, default_workspace_id')
       .eq('id', sbUser.id)
       .maybeSingle();
@@ -2791,7 +2884,7 @@ async function _finalizeLogin(session, sbUser, isNewUser, nomOverride, metierOve
   }
 
   if (!profile?.default_workspace_id) {
-    toast('Espace de travail en création. Reconnecte-toi dans 10 secondes.', 'warning');
+    toast('Espace de travail en création. Reconnectez-vous dans 10 secondes.', 'warning');
     Session.clear();
     renderAuth();
     return;
@@ -2823,7 +2916,6 @@ async function _finalizeLogin(session, sbUser, isNewUser, nomOverride, metierOve
     startApp();
   }
 }
-
 
 function doLogout() {
   Session.clear();
