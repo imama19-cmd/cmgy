@@ -1393,8 +1393,22 @@ table { border-collapse: collapse; }
 </style>
 
 <!-- ══ Supabase JS SDK — Auth + Realtime ══ -->
-<!-- Chargé immédiatement pour que la connexion fonctionne -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// Charger Supabase depuis unpkg (évite le blocage Tracking Prevention)
+// unpkg est considéré comme CDN de contenu, pas de tracking
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  s.crossOrigin = 'anonymous';
+  s.onerror = function() {
+    // Fallback jsdelivr si unpkg échoue
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+})();
+</script>
 
 </head>
 <body>
@@ -2084,7 +2098,17 @@ const Store = {
     if (!sb) { this._loadEmpty(wsId); return; }
 
     try {
-      // Charger en parallèle toutes les tables
+      // S'assurer que le JWT est bien actif dans le client Supabase
+      // Sans ça, RLS bloque toutes les requêtes (retourne 0 résultats)
+      const jwt = Session._jwt || sessionStorage.getItem('dp_jwt');
+      if (jwt) {
+        await sb.auth.setSession({
+          access_token:  jwt,
+          refresh_token: jwt  // Supabase JS en a besoin même si on ne refresh pas
+        }).catch(() => {});
+      }
+
+      // Charger toutes les tables en parallèle
       const tables = ['clients','factures','devis','produits','transactions','employes','chantiers','relances'];
       const results = await Promise.allSettled(
         tables.map(t =>
@@ -2097,24 +2121,29 @@ const Store = {
 
       tables.forEach((t, i) => {
         const r = results[i];
-        _memCache[`${wsId}_${t}`] = (r.status==='fulfilled' && !r.value.error)
-          ? (r.value.data || [])
-          : [];
+        if (r.status === 'fulfilled' && !r.value.error) {
+          _memCache[`${wsId}_${t}`] = r.value.data || [];
+        } else {
+          if (r.value?.error) console.warn(`[Store] ${t}:`, r.value.error.message);
+          _memCache[`${wsId}_${t}`] = _memCache[`${wsId}_${t}`] || [];
+        }
       });
 
       // Charger le workspace (company)
-      const {data: ws} = await sb.from('workspaces')
+      const { data: ws, error: wsErr } = await sb.from('workspaces')
         .select('*').eq('id', wsId).maybeSingle();
+
       if (ws) {
         _memCache[`${wsId}_company`] = {
-          nom: ws.nom, metier: ws.metier, telephone: ws.telephone,
-          adresse: ws.adresse, ninea: ws.ninea, devise: ws.devise || 'FCFA',
-          tvaDefaut: ws.tva_defaut || 18, logo: ws.logo_url,
-          pays: ws.pays || 'senegal', plan: ws.plan
+          nom:      ws.nom,       metier:    ws.metier,
+          telephone:ws.telephone, adresse:   ws.adresse,
+          ninea:    ws.ninea,     devise:    ws.devise || 'FCFA',
+          tvaDefaut:ws.tva_defaut || 18,     logo:   ws.logo_url,
+          pays:     ws.pays || 'senegal',    plan:   ws.plan
         };
       }
 
-      console.log('[Store] Données chargées depuis Supabase ✅');
+      console.log('[Store] ✅ Données chargées depuis Supabase:', wsId);
 
     } catch(e) {
       console.error('[Store] loadFromApi error:', e.message);
@@ -2711,7 +2740,6 @@ function selectMetier(el) {
 ════════════════════════════════════════════════════════ */
 
 // Client Supabase — UN SEUL dans toute l'application
-// Stocké sur window pour éviter les doublons
 function getSupabaseClient() {
   if (window._sb) return window._sb;
   if (typeof window.supabase === 'undefined') {
@@ -2723,9 +2751,10 @@ function getSupabaseClient() {
     API_CONFIG.SUPABASE_ANON_KEY,
     {
       auth: {
-        persistSession:   false,
+        persistSession:   true,           // ← garder la session entre reloads
         autoRefreshToken: true,
-        storageKey:       'dolipro-auth'
+        storageKey:       'dolipro-auth', // ← clé unique évite conflits
+        storage:          window.sessionStorage // ← sessionStorage pas localStorage
       }
     }
   );
@@ -3011,9 +3040,73 @@ function doLogout() {
 }
 
 function checkSession() {
-  if (!Network.check()) return; // Bloqué si hors ligne
+  if (!Network.check()) return;
   Prefs.load();
-  Session.restore(); // Tente de restaurer depuis sessionStorage
+
+  // Attendre que le SDK Supabase soit chargé
+  const tryRestore = async () => {
+    const sb = getSupabaseClient();
+    if (!sb) {
+      // SDK pas encore chargé → réessayer dans 300ms
+      setTimeout(tryRestore, 300);
+      return;
+    }
+
+    // Vérifier la session Supabase active
+    const { data: { session }, error } = await sb.auth.getSession();
+
+    if (session && session.user) {
+      // Session valide → restaurer
+      const wsId = session.user.user_metadata?.workspaceId
+        || sessionStorage.getItem('dp_wsid');
+
+      if (!wsId) {
+        // Récupérer le workspace depuis Supabase
+        const { data: profile } = await sb.from('user_profiles')
+          .select('nom, default_workspace_id')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (profile?.default_workspace_id) {
+          const user = {
+            id:          session.user.id,
+            nom:         profile.nom || session.user.email.split('@')[0],
+            email:       session.user.email,
+            role:        'admin',
+            workspaceId: profile.default_workspace_id,
+            plan:        'free',
+            metier:      session.user.user_metadata?.metier || 'boutique',
+          };
+          Session.save(session.access_token, user, profile.default_workspace_id);
+          patchStoreForWorkspace(profile.default_workspace_id);
+          App.user = user;
+          // Charger les données depuis Supabase
+          await Store.loadFromApi(profile.default_workspace_id);
+          startApp();
+          return;
+        }
+      } else {
+        // Workspace connu → charger les données
+        Session._jwt  = session.access_token;
+        Session._wsId = wsId;
+        const savedUser = JSON.parse(sessionStorage.getItem('dp_user') || 'null');
+        if (savedUser) {
+          App.user = savedUser;
+          Session._user = savedUser;
+          patchStoreForWorkspace(wsId);
+          // TOUJOURS recharger depuis Supabase pour avoir les données fraîches
+          await Store.loadFromApi(wsId);
+          startApp();
+          return;
+        }
+      }
+    }
+
+    // Pas de session → écran de connexion
+    renderAuth();
+  };
+
+  tryRestore();
 }
 
 function renderAuth() {
