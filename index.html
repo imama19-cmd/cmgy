@@ -2004,87 +2004,156 @@ const Session = {
 // Le Store n'est plus une couche de stockage locale.
 // C'est un cache mémoire de session qui reflète ce que l'API retourne.
 // AUCUNE donnée ne persiste entre les sessions (sécurité maximale).
-const _memCache = {};  // Cache mémoire intra-session
+const _memCache = {};
 
+/* ══════════════════════════════════════════════════════
+   STORE v14 SUPABASE DIRECT
+   Chaque Store.set() écrit dans Supabase immédiatement.
+   Chaque Store.get() lit depuis le cache local (chargé
+   au login depuis Supabase). Données synchronisées entre
+   tous les appareils en temps réel.
+════════════════════════════════════════════════════════ */
 const Store = {
   _wsId: null,
 
-  // Lecture depuis le cache mémoire (alimenté par les appels API)
-  get(key, def = []) {
+  // Mapping clé locale → table Supabase
+  _tables: {
+    clients:'clients', factures:'factures', devis:'devis',
+    produits:'produits', transactions:'transactions',
+    employes:'employes', chantiers:'chantiers',
+    relances:'relances', paie:'paie', presences:'presences',
+  },
+
+  // Lecture depuis le cache mémoire
+  get(key, def=[]) {
     const k = this._wsId ? `${this._wsId}_${key}` : key;
     return _memCache[k] !== undefined ? _memCache[k] : def;
   },
 
-  // Écriture dans le cache mémoire + envoi immédiat à l'API
+  getObj(key, def={}) {
+    const k = this._wsId ? `${this._wsId}_${key}` : key;
+    const v = _memCache[k];
+    return (v && typeof v==='object' && !Array.isArray(v)) ? v : def;
+  },
+
+  // Écriture : cache local + Supabase immédiatement
   set(key, val) {
     const k = this._wsId ? `${this._wsId}_${key}` : key;
     _memCache[k] = val;
-    // Sync backend asynchrone (non-bloquante)
-    if (API_CONFIG.BACKEND_ENABLED) {
-      Api._syncKey(key, val, this._wsId).catch(() => {});
-    }
+    this._push(key, val, this._wsId);
   },
 
-  getObj(key, def = {}) {
-    const k = this._wsId ? `${this._wsId}_${key}` : key;
-    const v = _memCache[k];
-    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : def;
-  },
+  // Push vers Supabase (non-bloquant)
+  _push(key, val, wsId) {
+    const table = this._tables[key];
+    if (!table || !wsId) return;
+    const sb = getSupabaseClient();
+    if (!sb) return;
 
-  // Charger toutes les données depuis l'API au login
-  async loadFromApi(wsId) {
-    if (!API_CONFIG.BACKEND_ENABLED) {
-      // Mode démo : données de démonstration en mémoire
-      this._loadDemoData(wsId);
+    if (key === 'company') {
+      // Mettre à jour le workspace
+      sb.from('workspaces')
+        .update({
+          nom: val.nom, metier: val.metier,
+          telephone: val.telephone, adresse: val.adresse,
+          ninea: val.ninea, devise: val.devise,
+          tva_defaut: val.tvaDefaut, logo_url: val.logo
+        })
+        .eq('id', wsId)
+        .then(({error}) => { if(error) console.error('[Store]',key,error.message); });
       return;
     }
-    const tables = ['clients','factures','devis','produits','transactions','employes','chantiers','company','settings'];
-    const results = await Promise.allSettled(
-      tables.map(t => Api.get(`/api/${t === 'company' ? 'workspaces/current' : t}`))
-    );
-    tables.forEach((t, i) => {
-      if (results[i].status === 'fulfilled' && results[i].value) {
-        const k = `${wsId}_${t}`;
-        _memCache[k] = results[i].value;
-      }
-    });
+
+    if (!Array.isArray(val) || val.length === 0) return;
+
+    // Upsert tous les éléments du tableau avec workspace_id
+    const rows = val.map(item => ({
+      ...item,
+      workspace_id: wsId,
+      id: item.id || undefined
+    }));
+
+    sb.from(table)
+      .upsert(rows, { onConflict: 'id', ignoreDuplicates: false })
+      .then(({error}) => { if(error) console.error('[Store]', key, error.message); });
   },
 
-  // Données démo en mémoire (backend non configuré)
-  _loadDemoData(wsId) {
-    const k = (key) => `${wsId}_${key}`;
-    _memCache[k('clients')]      = [];
-    _memCache[k('factures')]     = [];
-    _memCache[k('devis')]        = [];
-    _memCache[k('produits')]     = [];
-    _memCache[k('transactions')] = [];
-    _memCache[k('employes')]     = [];
-    _memCache[k('chantiers')]    = [];
-    _memCache[k('company')]      = { nom: 'DoliPro Démo', metier: 'boutique' };
-    _memCache[k('settings')]     = { pays: 'senegal', tvaDefaut: 18 };
-    _memCache[k('relances')]     = [];
+  // Charger toutes les données depuis Supabase au login
+  async loadFromApi(wsId) {
+    const sb = getSupabaseClient();
+    if (!sb) { this._loadEmpty(wsId); return; }
+
+    try {
+      // Charger en parallèle toutes les tables
+      const tables = ['clients','factures','devis','produits','transactions','employes','chantiers','relances'];
+      const results = await Promise.allSettled(
+        tables.map(t =>
+          sb.from(t)
+            .select('*')
+            .eq('workspace_id', wsId)
+            .order('created_at', { ascending: false })
+        )
+      );
+
+      tables.forEach((t, i) => {
+        const r = results[i];
+        _memCache[`${wsId}_${t}`] = (r.status==='fulfilled' && !r.value.error)
+          ? (r.value.data || [])
+          : [];
+      });
+
+      // Charger le workspace (company)
+      const {data: ws} = await sb.from('workspaces')
+        .select('*').eq('id', wsId).maybeSingle();
+      if (ws) {
+        _memCache[`${wsId}_company`] = {
+          nom: ws.nom, metier: ws.metier, telephone: ws.telephone,
+          adresse: ws.adresse, ninea: ws.ninea, devise: ws.devise || 'FCFA',
+          tvaDefaut: ws.tva_defaut || 18, logo: ws.logo_url,
+          pays: ws.pays || 'senegal', plan: ws.plan
+        };
+      }
+
+      console.log('[Store] Données chargées depuis Supabase ✅');
+
+    } catch(e) {
+      console.error('[Store] loadFromApi error:', e.message);
+      this._loadEmpty(wsId);
+    }
+  },
+
+  // Tables vides si erreur réseau
+  _loadEmpty(wsId) {
+    const k = key => `${wsId}_${key}`;
+    ['clients','factures','devis','produits','transactions',
+     'employes','chantiers','relances','paie','presences'].forEach(t => {
+      _memCache[k(t)] = [];
+    });
+    _memCache[k('company')] = { nom:'DoliPro', metier:'boutique', devise:'FCFA' };
   }
 };
 
 const WS = {
-  get: (wsId, key, def = []) => {
+  get: (wsId, key, def=[]) => {
     const k = `${wsId}_${key}`;
     return _memCache[k] !== undefined ? _memCache[k] : def;
   },
   set: (wsId, key, val) => {
     _memCache[`${wsId}_${key}`] = val;
-    if (API_CONFIG.BACKEND_ENABLED) Api._syncKey(key, val, wsId).catch(() => {});
+    Store._push(key, val, wsId);
   },
-  getObj: (wsId, key, def = {}) => {
+  getObj: (wsId, key, def={}) => {
     const v = _memCache[`${wsId}_${key}`];
-    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : def;
+    return (v && typeof v==='object' && !Array.isArray(v)) ? v : def;
   }
 };
 
 function patchStoreForWorkspace(wsId) {
-  Store._wsId = wsId;
+  Store._wsId   = wsId;
   Session._wsId = wsId;
 }
+
+
 
 /* ── 6. API REST HELPER ─────────────────────────────── */
 const Api = {
@@ -3003,6 +3072,39 @@ function startApp() {
   setTimeout(() => showPubModal(), 1200);
   // v14 : écoute Realtime pour confirmation paiement instantanée
   initPaymentRealtime();
+  // v14 : sync temps réel entre appareils
+  initRealtimeSync();
+}
+
+// ── Synchronisation Realtime entre appareils ──────────
+function initRealtimeSync() {
+  const sb   = getSupabaseClient();
+  const wsId = Session._wsId;
+  if (!sb || !wsId) return;
+
+  const tables = ['clients','factures','devis','produits','transactions','employes','chantiers'];
+
+  tables.forEach(table => {
+    sb.channel(`sync_${table}_${wsId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table,
+        filter: `workspace_id=eq.${wsId}`
+      }, () => {
+        // Recharger silencieusement la table modifiée
+        sb.from(table).select('*')
+          .eq('workspace_id', wsId)
+          .order('created_at', { ascending: false })
+          .then(({ data, error }) => {
+            if (!error && data) {
+              _memCache[`${wsId}_${table}`] = data;
+              if (typeof render === 'function') render();
+            }
+          });
+      })
+      .subscribe();
+  });
+
+  console.log('[Realtime] Sync multi-appareils activée ✅');
 }
 function updateUserNav() {
   const user = getCurrentUser() || App.user;
