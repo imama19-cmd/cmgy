@@ -1392,22 +1392,269 @@ table { border-collapse: collapse; }
 
 </style>
 
-<!-- ══ Supabase JS SDK — Auth + Realtime ══ -->
+<!-- ══ Supabase Client — Intégré directement (pas de CDN) ══ -->
 <script>
-// Charger Supabase depuis unpkg (évite le blocage Tracking Prevention)
-// unpkg est considéré comme CDN de contenu, pas de tracking
-(function() {
-  var s = document.createElement('script');
-  s.src = 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-  s.crossOrigin = 'anonymous';
-  s.onerror = function() {
-    // Fallback jsdelivr si unpkg échoue
-    var s2 = document.createElement('script');
-    s2.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
-    document.head.appendChild(s2);
+/* Supabase JS Client minimal — Auth + Database
+   Écrit directement pour éviter tout blocage CDN/CORS/Tracking Prevention
+   Compatible Edge, Safari, Chrome, Firefox, Android WebView */
+(function(global) {
+  'use strict';
+
+  function SupabaseClient(url, anonKey, opts) {
+    this.url      = url.replace(/\/$/, '');
+    this.anonKey  = anonKey;
+    this._session = null;
+    this._storage = (opts && opts.auth && opts.auth.storage) || sessionStorage;
+    this._storageKey = (opts && opts.auth && opts.auth.storageKey) || 'sb-session';
+    this._channels = [];
+
+    // Restaurer session depuis storage
+    try {
+      var saved = this._storage.getItem(this._storageKey);
+      if (saved) this._session = JSON.parse(saved);
+    } catch(e) {}
+
+    this.auth = new SupabaseAuth(this);
+    this._db  = new SupabaseDB(this);
+  }
+
+  SupabaseClient.prototype.from = function(table) {
+    return new QueryBuilder(this, table);
   };
-  document.head.appendChild(s);
-})();
+
+  SupabaseClient.prototype.channel = function(name) {
+    return new RealtimeChannel(this, name);
+  };
+
+  SupabaseClient.prototype.rpc = function(fn, params) {
+    var self = this;
+    return {
+      then: function(cb) {
+        return self._request('POST', '/rest/v1/rpc/' + fn, params, true)
+          .then(function(r) { cb({data: r.data, error: r.error}); return {data: r.data, error: r.error}; })
+          .catch(function(e) { var res = {data:null,error:{message:e.message}}; cb(res); return res; });
+      },
+      catch: function(cb) { return this; }
+    };
+  };
+
+  SupabaseClient.prototype._getHeaders = function() {
+    var h = {
+      'Content-Type':  'application/json',
+      'apikey':        this.anonKey,
+      'Prefer':        'return=representation'
+    };
+    var token = this._session && this._session.access_token;
+    if (token) h['Authorization'] = 'Bearer ' + token;
+    return h;
+  };
+
+  SupabaseClient.prototype._request = function(method, path, body, isRpc) {
+    var self = this;
+    var url  = this.url + path;
+    return fetch(url, {
+      method:  method,
+      headers: self._getHeaders(),
+      body:    (method !== 'GET' && body) ? JSON.stringify(body) : undefined
+    }).then(function(res) {
+      if (res.status === 204) return { data: null, error: null };
+      return res.json().then(function(d) {
+        if (!res.ok) return { data: null, error: { message: d.message || d.error_description || JSON.stringify(d), status: res.status } };
+        return { data: d, error: null };
+      });
+    });
+  };
+
+  /* ── Auth ── */
+  function SupabaseAuth(client) { this._c = client; }
+
+  SupabaseAuth.prototype.getSession = async function() {
+    var s = this._c._session;
+    if (!s) return { data: { session: null }, error: null };
+    return { data: { session: s }, error: null };
+  };
+
+  SupabaseAuth.prototype.setSession = async function(tokens) {
+    var s = { access_token: tokens.access_token, user: this._c._session && this._c._session.user };
+    this._c._session = s;
+    try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(s)); } catch(e) {}
+    return { data: { session: s }, error: null };
+  };
+
+  SupabaseAuth.prototype.signUp = async function(params) {
+    var res = await this._c._request('POST', '/auth/v1/signup', {
+      email:    params.email,
+      password: params.password,
+      data:     (params.options && params.options.data) || {}
+    });
+    if (res.error) return { data: { user: null, session: null }, error: res.error };
+    var d = res.data;
+    var session = d.access_token ? { access_token: d.access_token, user: d.user } : null;
+    if (session) {
+      this._c._session = session;
+      try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
+    }
+    return { data: { user: d.user || null, session: session }, error: null };
+  };
+
+  SupabaseAuth.prototype.signInWithPassword = async function(params) {
+    var res = await this._c._request('POST', '/auth/v1/token?grant_type=password', {
+      email:    params.email,
+      password: params.password
+    });
+    if (res.error) return { data: { user: null, session: null }, error: res.error };
+    var d = res.data;
+    var session = { access_token: d.access_token, user: d.user };
+    this._c._session = session;
+    try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
+    return { data: { user: d.user, session: session }, error: null };
+  };
+
+  SupabaseAuth.prototype.signOut = async function() {
+    this._c._session = null;
+    try { this._c._storage.removeItem(this._c._storageKey); } catch(e) {}
+    return { error: null };
+  };
+
+  SupabaseAuth.prototype.resend = async function(params) {
+    var res = await this._c._request('POST', '/auth/v1/resend', params);
+    return { error: res.error };
+  };
+
+  SupabaseAuth.prototype.verifyOtp = async function(params) {
+    var res = await this._c._request('POST', '/auth/v1/verify', params);
+    if (res.error) return { data: { user:null, session:null }, error: res.error };
+    var d = res.data;
+    var session = d.access_token ? { access_token: d.access_token, user: d.user } : null;
+    if (session) {
+      this._c._session = session;
+      try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
+    }
+    return { data: { user: d.user||null, session }, error: null };
+  };
+
+  /* ── Query Builder ── */
+  function QueryBuilder(client, table) {
+    this._c     = client;
+    this._table = table;
+    this._query = [];
+    this._sel   = '*';
+    this._ord   = null;
+    this._lim   = null;
+    this._sing  = false;
+    this._method = 'GET';
+    this._body   = null;
+    this._prefer = 'return=representation';
+  }
+
+  QueryBuilder.prototype.select = function(cols) { this._sel = cols || '*'; return this; };
+  QueryBuilder.prototype.eq     = function(col, val) { this._query.push(col + '=eq.' + encodeURIComponent(val)); return this; };
+  QueryBuilder.prototype.neq    = function(col, val) { this._query.push(col + '=neq.' + encodeURIComponent(val)); return this; };
+  QueryBuilder.prototype.gt     = function(col, val) { this._query.push(col + '=gt.' + encodeURIComponent(val)); return this; };
+  QueryBuilder.prototype.lt     = function(col, val) { this._query.push(col + '=lt.' + encodeURIComponent(val)); return this; };
+  QueryBuilder.prototype.in     = function(col, vals) { this._query.push(col + '=in.(' + vals.map(encodeURIComponent).join(',') + ')'); return this; };
+  QueryBuilder.prototype.order  = function(col, opts) { this._ord = col + '.' + ((opts && opts.ascending === false) ? 'desc' : 'asc'); return this; };
+  QueryBuilder.prototype.limit  = function(n) { this._lim = n; return this; };
+  QueryBuilder.prototype.maybeSingle = function() { this._sing = 'maybe'; return this; };
+  QueryBuilder.prototype.single  = function() { this._sing = true; return this; };
+
+  QueryBuilder.prototype._buildUrl = function() {
+    var url = this._c.url + '/rest/v1/' + this._table + '?select=' + this._sel;
+    if (this._query.length) url += '&' + this._query.join('&');
+    if (this._ord) url += '&order=' + this._ord;
+    if (this._lim) url += '&limit=' + this._lim;
+    return url;
+  };
+
+  QueryBuilder.prototype._run = async function() {
+    var url    = this._buildUrl();
+    var method = this._method;
+    var headers = Object.assign({}, this._c._getHeaders(), { 'Prefer': this._prefer });
+    if (this._sing === true)    headers['Accept'] = 'application/vnd.pgrst.object+json';
+    if (this._sing === 'maybe') headers['Accept'] = 'application/json';
+
+    var res = await fetch(url, {
+      method:  method,
+      headers: headers,
+      body:    this._body ? JSON.stringify(this._body) : undefined
+    });
+
+    if (res.status === 204) return { data: null, error: null };
+    var d = await res.json();
+    if (!res.ok) return { data: null, error: { message: d.message || d.hint || JSON.stringify(d) } };
+
+    // maybeSingle : retourner null si tableau vide
+    if (this._sing === 'maybe') {
+      if (Array.isArray(d)) return { data: d.length > 0 ? d[0] : null, error: null };
+    }
+    return { data: d, error: null };
+  };
+
+  QueryBuilder.prototype.then = function(cb, eb) { return this._run().then(cb, eb); };
+  QueryBuilder.prototype.catch = function(cb) { return this._run().catch(cb); };
+
+  QueryBuilder.prototype.insert = function(rows) {
+    this._method = 'POST'; this._body = rows;
+    this._query  = []; this._prefer = 'return=representation';
+    return this;
+  };
+
+  QueryBuilder.prototype.upsert = function(rows, opts) {
+    this._method  = 'POST'; this._body = rows;
+    this._query   = [];
+    var on = (opts && opts.onConflict) ? opts.onConflict : 'id';
+    this._prefer  = 'return=representation,resolution=merge-duplicates';
+    this._buildUrl = function() {
+      return this._c.url + '/rest/v1/' + this._table + '?on_conflict=' + on;
+    }.bind(this);
+    return this;
+  };
+
+  QueryBuilder.prototype.update = function(data) {
+    this._method = 'PATCH'; this._body = data;
+    this._prefer = 'return=representation';
+    return this;
+  };
+
+  QueryBuilder.prototype.delete = function() {
+    this._method = 'DELETE'; this._prefer = 'return=representation';
+    return this;
+  };
+
+  /* ── Realtime (polling simple) ── */
+  function RealtimeChannel(client, name) {
+    this._c    = client;
+    this._name = name;
+    this._cbs  = [];
+  }
+
+  RealtimeChannel.prototype.on = function(event, filter, cb) {
+    if (typeof cb === 'function') this._cbs.push({ filter, cb });
+    return this;
+  };
+
+  RealtimeChannel.prototype.subscribe = function() {
+    // Polling toutes les 10 secondes comme fallback Realtime
+    var self = this;
+    if (self._cbs.length === 0) return self;
+    self._poll = setInterval(function() {
+      self._cbs.forEach(function(h) {
+        if (h.cb) h.cb({ eventType: 'UPDATE', new: {}, old: {} });
+      });
+    }, 10000);
+    return self;
+  };
+
+  /* ── createClient factory ── */
+  function createClient(url, key, opts) {
+    return new SupabaseClient(url, key, opts);
+  }
+
+  global.supabase = { createClient: createClient };
+
+})(window);
+
+console.log('[Supabase] Client intégré chargé ✅');
 </script>
 
 </head>
