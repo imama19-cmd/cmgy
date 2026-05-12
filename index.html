@@ -1488,7 +1488,7 @@ table { border-collapse: collapse; }
     });
     if (res.error) return { data: { user: null, session: null }, error: res.error };
     var d = res.data;
-    var session = d.access_token ? { access_token: d.access_token, user: d.user } : null;
+    var session = d.access_token ? { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user } : null;
     if (session) {
       this._c._session = session;
       try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
@@ -1503,7 +1503,7 @@ table { border-collapse: collapse; }
     });
     if (res.error) return { data: { user: null, session: null }, error: res.error };
     var d = res.data;
-    var session = { access_token: d.access_token, user: d.user };
+    var session = { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user };
     this._c._session = session;
     try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
     return { data: { user: d.user, session: session }, error: null };
@@ -1515,6 +1515,31 @@ table { border-collapse: collapse; }
     return { error: null };
   };
 
+  SupabaseAuth.prototype.refreshSession = async function() {
+    var saved = null;
+    try { saved = JSON.parse(this._c._storage.getItem(this._c._storageKey)); } catch(e) {}
+    if (!saved || !saved.refresh_token) return { data: { session: null }, error: { message: 'No refresh token' } };
+
+    var res = await fetch(this._c.url + '/auth/v1/token?grant_type=refresh_token', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': this._c.anonKey },
+      body:    JSON.stringify({ refresh_token: saved.refresh_token })
+    });
+    var d = await res.json();
+    if (!res.ok) {
+      // Refresh échoué → effacer session
+      this._c._session = null;
+      try { this._c._storage.removeItem(this._c._storageKey); } catch(e) {}
+      return { data: { session: null }, error: { message: d.error_description || 'Refresh failed' } };
+    }
+    var session = { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user };
+    this._c._session = session;
+    try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
+    // Mettre à jour Session global
+    if (typeof Session !== 'undefined') Session._jwt = d.access_token;
+    return { data: { session }, error: null };
+  };
+
   SupabaseAuth.prototype.resend = async function(params) {
     var res = await this._c._request('POST', '/auth/v1/resend', params);
     return { error: res.error };
@@ -1524,7 +1549,7 @@ table { border-collapse: collapse; }
     var res = await this._c._request('POST', '/auth/v1/verify', params);
     if (res.error) return { data: { user:null, session:null }, error: res.error };
     var d = res.data;
-    var session = d.access_token ? { access_token: d.access_token, user: d.user } : null;
+    var session = d.access_token ? { access_token: d.access_token, refresh_token: d.refresh_token, user: d.user } : null;
     if (session) {
       this._c._session = session;
       try { this._c._storage.setItem(this._c._storageKey, JSON.stringify(session)); } catch(e) {}
@@ -1566,23 +1591,41 @@ table { border-collapse: collapse; }
   };
 
   QueryBuilder.prototype._run = async function() {
+    var self   = this;
     var url    = this._buildUrl();
     var method = this._method;
-    var headers = Object.assign({}, this._c._getHeaders(), { 'Prefer': this._prefer });
-    if (this._sing === true)    headers['Accept'] = 'application/vnd.pgrst.object+json';
-    if (this._sing === 'maybe') headers['Accept'] = 'application/json';
 
-    var res = await fetch(url, {
-      method:  method,
-      headers: headers,
-      body:    this._body ? JSON.stringify(this._body) : undefined
-    });
+    var doFetch = async function() {
+      var headers = Object.assign({}, self._c._getHeaders(), { 'Prefer': self._prefer });
+      if (self._sing === true)    headers['Accept'] = 'application/vnd.pgrst.object+json';
+      if (self._sing === 'maybe') headers['Accept'] = 'application/json';
+
+      return fetch(url, {
+        method:  method,
+        headers: headers,
+        body:    self._body ? JSON.stringify(self._body) : undefined
+      });
+    };
+
+    var res = await doFetch();
+
+    // 401 = JWT expiré → refresh et réessayer une fois
+    if (res.status === 401) {
+      console.log('[Supabase] JWT expiré — refresh automatique...');
+      var refreshResult = await self._c.auth.refreshSession();
+      if (refreshResult.data && refreshResult.data.session) {
+        res = await doFetch(); // Réessayer avec le nouveau token
+      } else {
+        // Refresh impossible → déconnecter
+        if (typeof doLogout === 'function') doLogout();
+        return { data: null, error: { message: 'Session expirée. Reconnectez-vous.' } };
+      }
+    }
 
     if (res.status === 204) return { data: null, error: null };
     var d = await res.json();
     if (!res.ok) return { data: null, error: { message: d.message || d.hint || JSON.stringify(d) } };
 
-    // maybeSingle : retourner null si tableau vide
     if (this._sing === 'maybe') {
       if (Array.isArray(d)) return { data: d.length > 0 ? d[0] : null, error: null };
     }
@@ -2182,16 +2225,22 @@ const Session = {
     this._jwt  = jwt;
     this._user = user;
     this._wsId = wsId;
-    // sessionStorage : persiste tant que l'onglet/app est ouvert
-    // C'est le seul endroit autorisé pour stocker le JWT
     try {
       sessionStorage.setItem('dp_jwt',  jwt);
       sessionStorage.setItem('dp_user', JSON.stringify(user));
       sessionStorage.setItem('dp_wsid', wsId);
     } catch(e) {}
-    // Notifier le bridge natif Android/iOS (stockage sécurisé natif)
+    // Synchroniser le JWT dans le client Supabase pour les requêtes REST
+    if (window._sb) {
+      var existing = window._sb._session || {};
+      window._sb._session = Object.assign({}, existing, { access_token: jwt, user });
+      try {
+        var stored = JSON.parse(sessionStorage.getItem('dolipro-auth') || '{}');
+        stored.access_token = jwt;
+        sessionStorage.setItem('dolipro-auth', JSON.stringify(stored));
+      } catch(e) {}
+    }
     Platform.call('SET_TOKEN', { token: jwt, user, wsId });
-    // Auto-refresh JWT avant expiration (50min)
     if (this._refreshTimer) clearTimeout(this._refreshTimer);
     this._refreshTimer = setTimeout(() => this._refreshJWT(), 50 * 60 * 1000);
   },
