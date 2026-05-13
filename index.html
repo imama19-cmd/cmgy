@@ -2353,6 +2353,28 @@ const Store = {
   },
 
   // Push vers Supabase (non-bloquant)
+  // Colonnes autorisées par table (évite "column not found")
+  _columns: {
+    clients:      ['id','workspace_id','nom','email','telephone','adresse','ville','pays','ninea','type_client','categorie','notes','solde_du','total_achats','nb_factures','is_active','created_by','canal_acquisition','segment','tags','photo_url'],
+    factures:     ['id','workspace_id','client_id','devis_id','numero','type_facture','statut','date_facture','date_echeance','lignes','sous_total_ht','total_tva','total_ttc','montant_paye','remise_pct','remise_montant','notes','conditions_paiement','created_by','devise','reference_externe'],
+    devis:        ['id','workspace_id','client_id','numero','statut','date_devis','date_validite','lignes','sous_total_ht','total_tva','total_ttc','remise_pct','remise_montant','acompte_pct','notes','conditions','facture_id','created_by','devise'],
+    produits:     ['id','workspace_id','nom','description','reference','categorie','type_produit','prix_vente_ht','prix_achat','tva_taux','stock_actuel','stock_minimum','stock_maximum','unite','code_barre','image_url','is_active','created_by','fournisseur','emplacement','notes'],
+    transactions: ['id','workspace_id','type_transaction','categorie','sous_categorie','montant','date_transaction','description','mode_paiement','reference','facture_id','client_id','is_validated','created_by','tags','projet'],
+    employes:     ['id','workspace_id','nom','prenom','email','telephone','poste','departement','type_contrat','date_embauche','date_fin_contrat','salaire_base','iban','numero_cnss','is_active','notes','created_by','photo_url','adresse','ville'],
+    chantiers:    ['id','workspace_id','client_id','nom','description','adresse','statut','date_debut','date_fin_prevue','date_fin_reelle','budget_prevu','budget_depense','avancement_pct','chef_chantier','notes','documents','created_by'],
+    relances:     ['id','workspace_id','facture_id','client_id','type_relance','niveau','statut','message','date_relance','prochaine_relance','created_by'],
+    paie:         ['id','workspace_id','employe_id','periode_mois','periode_annee','salaire_base','heures_sup','primes','avances','cotisation_css','cotisation_ipres','impot_ir','salaire_net','statut_paiement','date_paiement','notes','created_by'],
+    presences:    ['id','workspace_id','employe_id','date_presence','statut','heure_arrivee','heure_depart','notes','created_by'],
+  },
+
+  _filterColumns(table, obj) {
+    const allowed = this._columns[table];
+    if (!allowed) return obj;
+    const out = {};
+    allowed.forEach(c => { if (obj[c] !== undefined) out[c] = obj[c]; });
+    return out;
+  },
+
   _push(key, val, wsId) {
     const table = this._tables[key];
     if (!table || !wsId) return;
@@ -2360,26 +2382,20 @@ const Store = {
     if (!sb) return;
 
     if (key === 'company') {
-      // Mettre à jour le workspace
       sb.from('workspaces')
-        .update({
-          nom: val.nom, metier: val.metier,
-          telephone: val.telephone, adresse: val.adresse,
-          ninea: val.ninea, devise: val.devise,
-          tva_defaut: val.tvaDefaut, logo_url: val.logo
-        })
+        .update({ nom: val.nom, metier: val.metier, telephone: val.telephone,
+                  adresse: val.adresse, ninea: val.ninea, devise: val.devise,
+                  tva_defaut: val.tvaDefaut, logo_url: val.logo })
         .eq('id', wsId)
-        .then(({error}) => { if(error) console.error('[Store]',key,error.message); });
+        .then(({error}) => { if(error) console.error('[Store]', key, error.message); });
       return;
     }
 
     if (!Array.isArray(val) || val.length === 0) return;
 
-    // Upsert tous les éléments du tableau avec workspace_id
     const rows = val.map(item => ({
-      ...item,
-      workspace_id: wsId,
-      id: item.id || undefined
+      ...this._filterColumns(table, item),
+      workspace_id: wsId
     }));
 
     sb.from(table)
@@ -3619,144 +3635,226 @@ function updateBadges() {
    DASHBOARD
 ══════════════════════════════════════════════════════ */
 function renderDashboard() {
-  const factures = Store.get('factures');
-  const devis = Store.get('devis');
-  const clients = Store.get('clients');
-  const produits = Store.get('produits');
+  const factures    = Store.get('factures');
+  const devis       = Store.get('devis');
+  const clients     = Store.get('clients');
+  const produits    = Store.get('produits');
+  const transactions= Store.get('transactions');
   const now = new Date();
   const m = now.getMonth(), y = now.getFullYear();
-  const caMonth = factures.filter(f => { const d = new Date(f.date); return d.getMonth()===m && d.getFullYear()===y && (f.statut==='payee'||f.statut==='validee'); }).reduce((s,f) => s + (f.totalTTC||0), 0);
-  const pending = factures.filter(f => f.statut==='validee').length;
-  const devisEnCours = devis.filter(d => d.statut==='brouillon'||d.statut==='envoye').length;
-  const alertes = produits.filter(p => p.quantite !== undefined && p.quantite <= p.seuil).length;
 
-  // Activités récentes
-  const allDocs = [...factures.map(f => ({...f,type:'facture'})), ...devis.map(d => ({...d,type:'devis'}))];
-  allDocs.sort((a,b) => new Date(b.updatedAt||b.date) - new Date(a.updatedAt||a.date));
-  const recent = allDocs.slice(0,6);
+  // ── KPIs ──────────────────────────────────────────────
+  // CA mois en cours (factures payées + envoyées)
+  const caMonth = factures
+    .filter(f => {
+      const d = new Date(f.date_facture || f.date || f.createdAt);
+      return d.getMonth()===m && d.getFullYear()===y &&
+             ['payee','envoyee','partiellement_payee','validee'].includes(f.statut);
+    })
+    .reduce((s,f) => s + (f.total_ttc||f.totalTTC||0), 0);
+
+  // CA mois précédent (pour la tendance)
+  const prevM = m === 0 ? 11 : m-1;
+  const prevY = m === 0 ? y-1 : y;
+  const caPrev = factures
+    .filter(f => {
+      const d = new Date(f.date_facture || f.date || f.createdAt);
+      return d.getMonth()===prevM && d.getFullYear()===prevY &&
+             ['payee','envoyee','partiellement_payee','validee'].includes(f.statut);
+    })
+    .reduce((s,f) => s + (f.total_ttc||f.totalTTC||0), 0);
+
+  const tendance = caPrev > 0 ? Math.round(((caMonth - caPrev) / caPrev) * 100) : 0;
+
+  // Impayés
+  const impayes = factures
+    .filter(f => ['envoyee','partiellement_payee','en_retard','validee'].includes(f.statut))
+    .reduce((s,f) => s + (f.montant_restant || (f.total_ttc||f.totalTTC||0) - (f.montant_paye||f.montantPaye||0)), 0);
+
+  // Factures en retard
+  const retard = factures.filter(f =>
+    f.date_echeance && new Date(f.date_echeance) < now &&
+    !['payee','annulee'].includes(f.statut)
+  ).length;
+
+  const devisEnCours = devis.filter(d => ['brouillon','envoye'].includes(d.statut)).length;
+  const alertes      = produits.filter(p => (p.stock_actuel||p.quantite||0) <= (p.stock_minimum||p.seuil||0) && (p.stock_minimum||p.seuil||0) > 0).length;
+  const nbClients    = clients.filter(c => c.is_active !== false).length;
+
+  // Dépenses du mois
+  const depenses = transactions
+    .filter(t => {
+      const d = new Date(t.date_transaction || t.date);
+      return t.type_transaction === 'depense' && d.getMonth()===m && d.getFullYear()===y;
+    })
+    .reduce((s,t) => s + (t.montant||0), 0);
+
+  // ── Graphe CA sur 6 mois ──────────────────────────────
+  const moisLabels = [];
+  const moisCA     = [];
+  for (let i = 5; i >= 0; i--) {
+    const mi = new Date(y, m - i, 1);
+    moisLabels.push(mi.toLocaleDateString('fr-FR', { month: 'short' }));
+    const ca = factures
+      .filter(f => {
+        const d = new Date(f.date_facture || f.date || f.createdAt);
+        return d.getMonth() === mi.getMonth() && d.getFullYear() === mi.getFullYear() &&
+               ['payee','envoyee','partiellement_payee','validee'].includes(f.statut);
+      })
+      .reduce((s,f) => s + (f.total_ttc||f.totalTTC||0), 0);
+    moisCA.push(ca);
+  }
+  const maxBar = Math.max(...moisCA, 1);
 
   // Top 5 clients
   const clientCA = {};
-  factures.filter(f => f.statut==='payee'||f.statut==='validee').forEach(f => { clientCA[f.clientId] = (clientCA[f.clientId]||0) + (f.totalTTC||0); });
-  const topClients = Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,ca]) => {
-    const c = clients.find(c=>c.id===id);
-    return { name: c ? c.nom : 'Inconnu', ca };
+  factures.filter(f => ['payee','validee'].includes(f.statut)).forEach(f => {
+    const cid = f.client_id || f.clientId;
+    clientCA[cid] = (clientCA[cid]||0) + (f.total_ttc||f.totalTTC||0);
   });
-  const maxCA = topClients[0]?.ca || 1;
+  const topClients = Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,ca]) => {
+    const c = clients.find(c => c.id===id);
+    return { name: c?.nom || 'Client inconnu', ca };
+  });
 
-  const rankClass = (i) => i===0?'gold':i===1?'silver':i===2?'bronze':'';
+  // Activités récentes
+  const allDocs = [
+    ...factures.map(f => ({...f, _type:'facture', _date: f.date_facture||f.date||f.created_at})),
+    ...devis.map(d => ({...d, _type:'devis', _date: d.date_devis||d.date||d.created_at}))
+  ].sort((a,b) => new Date(b._date) - new Date(a._date)).slice(0, 5);
 
   return `
+  <!-- KPIs -->
   <div class="kpi-grid">
-    <div class="kpi-card blue">
-      <div class="kpi-icon blue"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+    <div class="kpi-card blue" style="cursor:pointer" onclick="navigate('factures')">
+      <div class="kpi-icon blue">💰</div>
       <div class="kpi-label">CA du mois</div>
       <div class="kpi-value">${fmt.fcfa(caMonth)}</div>
-      <div class="kpi-sub">Factures validées + payées</div>
+      <div class="kpi-sub" style="color:${tendance>=0?'#16a34a':'#dc2626'};font-weight:600">
+        ${tendance>=0?'▲':'▼'} ${Math.abs(tendance)}% vs mois dernier
+      </div>
     </div>
-    <div class="kpi-card green">
-      <div class="kpi-icon green"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
-      <div class="kpi-label">Factures en attente</div>
-      <div class="kpi-value">${pending}</div>
-      <div class="kpi-sub">En attente de paiement</div>
+    <div class="kpi-card red" onclick="navigate('factures')" style="cursor:pointer">
+      <div class="kpi-icon red">⏳</div>
+      <div class="kpi-label">Impayés</div>
+      <div class="kpi-value">${fmt.fcfa(impayes)}</div>
+      <div class="kpi-sub">${retard > 0 ? `<span style="color:#dc2626">${retard} en retard</span>` : 'Tout à jour ✅'}</div>
     </div>
-    <div class="kpi-card orange">
-      <div class="kpi-icon orange"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/></svg></div>
-      <div class="kpi-label">Devis en cours</div>
-      <div class="kpi-value">${devisEnCours}</div>
-      <div class="kpi-sub">Brouillons et envoyés</div>
+    <div class="kpi-card orange" onclick="navigate('depenses')" style="cursor:pointer">
+      <div class="kpi-icon orange">📤</div>
+      <div class="kpi-label">Dépenses mois</div>
+      <div class="kpi-value">${fmt.fcfa(depenses)}</div>
+      <div class="kpi-sub">Bénéfice net : <strong>${fmt.fcfa(caMonth - depenses)}</strong></div>
     </div>
-    <div class="kpi-card red">
-      <div class="kpi-icon red"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
-      <div class="kpi-label">Alertes stock</div>
-      <div class="kpi-value">${alertes}</div>
-      <div class="kpi-sub">Produits à réapprovisionner</div>
+    <div class="kpi-card green" onclick="navigate('clients')" style="cursor:pointer">
+      <div class="kpi-icon green">👥</div>
+      <div class="kpi-label">Clients actifs</div>
+      <div class="kpi-value">${nbClients}</div>
+      <div class="kpi-sub">${devisEnCours} devis en cours · ${alertes > 0 ? `<span style="color:#dc2626">${alertes} alertes stock</span>` : '0 alerte stock'}</div>
     </div>
   </div>
 
-  <div style="margin-bottom:20px">
-    <div class="card">
-      <div class="card-header"><div class="card-title">Actions rapides</div></div>
-      <div class="card-body">
-        <div class="quick-actions">
-          <div class="quick-action" onclick="openNewFacture()">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-            <span>Nouvelle facture</span>
-          </div>
-          <div class="quick-action" onclick="openNewDevis()">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-            <span>Nouveau devis</span>
-          </div>
-          <div class="quick-action" onclick="openNewClient()">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            <span>Nouveau client</span>
-          </div>
-          <div class="quick-action" onclick="openNewProduit()">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><line x1="12" y1="22.08" x2="12" y2="12"/><line x1="3.27" y1="6.96" x2="12" y2="12.01"/><polyline points="20.73,6.96 12,12.01"/></svg>
-            <span>Nouveau produit</span>
-          </div>
-          <div class="quick-action" onclick="navigate('stock')">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            <span>Voir les alertes</span>
-          </div>
-        </div>
+  <!-- Graphe CA 6 mois -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-header">
+      <div class="card-title">📊 Chiffre d'affaires — 6 derniers mois</div>
+    </div>
+    <div class="card-body">
+      <div style="display:flex;align-items:flex-end;gap:8px;height:120px;padding:8px 0">
+        ${moisCA.map((ca, i) => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="font-size:0.65rem;color:var(--text-muted);white-space:nowrap">${ca > 0 ? fmt.fcfa(ca).replace(' FCFA','') : ''}</div>
+            <div style="width:100%;background:${i === 5 ? 'var(--primary)' : 'var(--primary-light)'};
+              border-radius:6px 6px 0 0;transition:0.3s;min-height:4px;
+              height:${Math.max(4, Math.round((ca/maxBar)*90))}px"
+              title="${moisLabels[i]}: ${fmt.fcfa(ca)}"></div>
+            <div style="font-size:0.72rem;color:var(--text-muted);font-weight:${i===5?'700':'400'}">${moisLabels[i]}</div>
+          </div>`).join('')}
       </div>
     </div>
   </div>
 
-  <div class="dashboard-grid">
-    <div class="card">
-      <div class="card-header"><div class="card-title">Évolution du CA (12 mois)</div></div>
-      <div class="card-body">
-        <canvas id="chart-ca" height="200"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header"><div class="card-title">Top 5 clients</div></div>
-      <div class="card-body">
-        ${topClients.length === 0 ? '<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px">Aucune donnée</p>' : topClients.map((c,i) => `
-          <div class="top-client">
-            <div class="top-client-rank ${rankClass(i)}">${i+1}</div>
-            <div class="top-client-info">
-              <div class="top-client-name">${esc(c.name)}</div>
-              <div class="top-client-ca">${fmt.fcfa(c.ca)}</div>
-            </div>
-            <div class="top-client-bar"><div class="top-client-bar-fill" style="width:${Math.round((c.ca/maxCA)*100)}%"></div></div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
 
-  <div class="dashboard-grid" style="margin-top:20px">
+    <!-- Top clients -->
     <div class="card">
-      <div class="card-header"><div class="card-title">Activité récente</div></div>
+      <div class="card-header"><div class="card-title">🏆 Top clients</div></div>
       <div class="card-body">
-        <div class="activity-list">
-          ${recent.length === 0 ? '<p style="color:var(--text-muted);font-size:0.85rem">Aucune activité récente</p>' : recent.map(d => {
-            const cl = d.type==='facture' ? (d.statut==='payee'?'green':d.statut==='annulee'?'red':'blue') : (d.statut==='accepte'?'green':d.statut==='refuse'?'red':'orange');
-            const label = d.type==='facture' ? `Facture ${d.numero||''} — ${d.clientNom||''}` : `Devis ${d.numero||''} — ${d.clientNom||''}`;
-            return `<div class="activity-item">
-              <div class="activity-dot ${cl}"></div>
-              <div class="activity-info">
-                <div class="activity-text">${esc(label)}</div>
-                <div class="activity-time">${fmt.date(d.updatedAt||d.date)} · <span class="badge badge-${d.statut}">${statutLabel(d.statut)}</span></div>
+        ${topClients.length === 0
+          ? `<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0">Aucune facture payée</p>`
+          : topClients.map((c, i) => `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+              <div style="width:22px;height:22px;border-radius:50%;background:${['#f59e0b','#94a3b8','#cd7c2f','var(--primary)','var(--primary)'][i]};
+                display:flex;align-items:center;justify-content:center;color:#fff;font-size:0.7rem;font-weight:700;flex-shrink:0">${i+1}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:0.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+                <div style="height:4px;background:var(--bg);border-radius:2px;margin-top:3px">
+                  <div style="height:4px;background:var(--primary);border-radius:2px;width:${Math.round((c.ca/topClients[0].ca)*100)}%"></div>
+                </div>
               </div>
-            </div>`;
-          }).join('')}
-        </div>
+              <div style="font-size:0.82rem;font-weight:700;color:var(--primary);flex-shrink:0">${fmt.fcfa(c.ca)}</div>
+            </div>`).join('')}
       </div>
     </div>
+
+    <!-- Activités récentes -->
     <div class="card">
-      <div class="card-header"><div class="card-title">Répartition factures</div></div>
+      <div class="card-header"><div class="card-title">🕐 Activités récentes</div></div>
       <div class="card-body">
-        <canvas id="chart-statuts" height="200"></canvas>
-        <div class="chart-legend" id="chart-statuts-legend"></div>
+        ${allDocs.length === 0
+          ? `<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0">Aucune activité</p>`
+          : allDocs.map(doc => `
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer"
+              onclick="navigate('${doc._type === 'facture' ? 'factures' : 'devis'}')">
+              <div style="font-size:1.1rem">${doc._type === 'facture' ? '🧾' : '📋'}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:0.83rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  ${doc.numero || doc._type}
+                </div>
+                <div style="font-size:0.75rem;color:var(--text-muted)">${fmt.dateRelative ? fmt.dateRelative(doc._date) : fmt.date(doc._date)}</div>
+              </div>
+              <div style="font-size:0.78rem;padding:2px 8px;border-radius:20px;background:var(--bg);font-weight:600">
+                ${doc.statut || ''}
+              </div>
+            </div>`).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions rapides -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">⚡ Actions rapides</div></div>
+    <div class="card-body">
+      <div class="quick-actions">
+        <div class="quick-action" onclick="openNewFacture()">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+          <span>Nouvelle facture</span>
+        </div>
+        <div class="quick-action" onclick="openNewDevis()">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+          <span>Nouveau devis</span>
+        </div>
+        <div class="quick-action" onclick="openNewClient()">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          <span>Nouveau client</span>
+        </div>
+        <div class="quick-action" onclick="openNewProduit()">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          <span>Nouveau produit</span>
+        </div>
+        <div class="quick-action" onclick="navigate('transactions')">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <span>Dépense rapide</span>
+        </div>
+        <div class="quick-action ${alertes > 0 ? 'text-danger' : ''}" onclick="navigate('stock')">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>${alertes > 0 ? `⚠️ ${alertes} alertes stock` : 'Voir stock'}</span>
+        </div>
       </div>
     </div>
   </div>`;
-}
 
+  // Activités récentes
 function initCharts() {
   drawCAChart();
   drawStatutsChart();
@@ -8055,6 +8153,8 @@ function updateTvaFromPays(pays) {
   }
 }
 
+} // close renderDashboard
+
 </script>
 <!-- ══ MODAL PUB / SPLASH ══ -->
 <div id="pub-overlay" style="
@@ -8710,16 +8810,15 @@ async function activatePremiumFromPayment(paymentResult) {
 // Quand le webhook Wave/OM est reçu par Supabase Edge Function,
 // le frontend est notifié en temps réel sans polling
 function initPaymentRealtime() {
-  if (!API_CONFIG.BACKEND_ENABLED) return;
+  if (!API_CONFIG.BACKEND_ENABLED) return; // Pas actif sans Railway
   const wsId = Session._wsId;
   if (!wsId) return;
-
-  // Utiliser le client singleton
   const sb = getSupabaseClient();
   if (!sb) return;
 
   sb.channel(`payment:${wsId}`)
     .on('broadcast', { event: 'payment_completed' }, ({ payload }) => {
+      if (!payload || !payload.plan) return; // Ignorer les payloads vides (polling)
       console.log('[Realtime] Paiement confirmé:', payload);
       _selectedPlan = payload.plan;
       activatePremiumFromPayment({ plan: payload.plan, workspace: {
@@ -9062,6 +9161,7 @@ if (typeof getMentionsFiscales === 'undefined') {
     return mentions;
   }
 }
+
 
 
 
