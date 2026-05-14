@@ -3351,15 +3351,14 @@ function doLogout() {
 }
 
 function checkSession() {
-  if (!Network.check()) return;
+  // Network check skipped at init — renderAuth handles offline state
   Prefs.load();
 
   // Attendre que le SDK Supabase soit chargé
   const tryRestore = async () => {
     const sb = getSupabaseClient();
     if (!sb) {
-      // SDK pas encore chargé → réessayer dans 300ms
-      setTimeout(tryRestore, 300);
+      renderAuth();
       return;
     }
 
@@ -3417,7 +3416,7 @@ function checkSession() {
     renderAuth();
   };
 
-  tryRestore();
+  tryRestore().catch(() => renderAuth());
 }
 
 function renderAuth() {
@@ -8105,6 +8104,9 @@ const ModulePayroll = {
 /* ══════════════════════════════════════════════════════
    V11 — PARAMÈTRES ÉTENDUS
 ══════════════════════════════════════════════════════ */
+
+} // close renderDashboard
+
 function renderFiscalSettings() {
   const company = Store.get('company',{});
   const settings = Store.get('settings',{});
@@ -8153,7 +8155,6 @@ function updateTvaFromPays(pays) {
   }
 }
 
-} // close renderDashboard
 
 </script>
 <!-- ══ MODAL PUB / SPLASH ══ -->
