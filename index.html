@@ -4838,7 +4838,14 @@
       dateISO: () => new Date().toISOString().split('T')[0],
       month: (y, m) => new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })
     };
-    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const uid = () => {
+      // UUID v4 compatible avec Supabase (type uuid)
+      if (crypto?.randomUUID) return crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+      });
+    };
     const now = () => new Date().toISOString();
 
     /* ══════════════════════════════════════════════════════
