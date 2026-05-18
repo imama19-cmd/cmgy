@@ -5133,8 +5133,8 @@
       // Valeurs par défaut pour colonnes NOT NULL sans valeur fournie
       _defaults: {
         clients:      { solde_du: 0, total_achats: 0, nb_factures: 0, is_active: true, segment: 'regulier', canal_acquisition: 'bouche_oreille' },
-        factures:     { statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, montant_paye: 0, remise_pct: 0, remise_montant: 0, lignes: '[]' },
-        devis:        { statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, remise_pct: 0, remise_montant: 0, acompte_pct: 0, lignes: '[]' },
+        factures:     { statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, montant_paye: 0, remise_pct: 0, remise_montant: 0, lignes: [] },
+        devis:        { statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, remise_pct: 0, remise_montant: 0, acompte_pct: 0, lignes: [] },
         produits:     { prix_vente_ht: 0, prix_achat: 0, tva_taux: 18, stock_actuel: 0, stock_minimum: 0, stock_maximum: 0, is_active: true },
         transactions: { montant: 0, is_validated: false },
         employes:     { salaire_base: 0, is_active: true },
@@ -5163,8 +5163,6 @@
                   : snakeObj[c] !== undefined ? snakeObj[c]
                   : defaults[c] !== undefined ? defaults[c]
                   : null;
-          // Sérialiser les tableaux en JSON string pour Supabase (type jsonb/text)
-          if (Array.isArray(val)) val = JSON.stringify(val);
           out[c] = val;
         });
         return out;
