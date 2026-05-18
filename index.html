@@ -5130,11 +5130,24 @@
         presences: ['id', 'workspace_id', 'employe_id', 'date_presence', 'statut', 'heure_arrivee', 'heure_depart', 'notes', 'created_by'],
       },
 
+      // snake_case → camelCase pour lecture, camelCase → snake_case pour écriture
+      _toSnake(s) {
+        return s.replace(/([A-Z])/g, m => '_' + m.toLowerCase());
+      },
       _filterColumns(table, obj) {
         const allowed = this._columns[table];
         if (!allowed) return obj;
+        // Construire un index camelCase de l'objet source
+        const camelObj = {};
+        Object.keys(obj).forEach(k => { camelObj[this._toSnake(k)] = obj[k]; });
+        // Toujours inclure TOUTES les colonnes autorisées (null si absent)
+        // Supabase exige que tous les objets d'un upsert aient les mêmes clés
         const out = {};
-        allowed.forEach(c => { if (obj[c] !== undefined) out[c] = obj[c]; });
+        allowed.forEach(c => {
+          // chercher d'abord snake_case direct, puis conversion depuis camelCase
+          const val = obj[c] !== undefined ? obj[c] : camelObj[c];
+          out[c] = val !== undefined ? val : null;
+        });
         return out;
       },
 
