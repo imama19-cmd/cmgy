@@ -3270,15 +3270,29 @@
         width: 100% !important;
         max-width: 100% !important;
         border-radius: 20px 20px 0 0 !important;
-        max-height: 92vh !important;
-        overflow-y: auto !important;
+        max-height: 92dvh !important;
+        overflow-y: hidden !important;
         overflow-x: hidden !important;
-        -webkit-overflow-scrolling: touch;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+
+      .modal-body {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        flex: 1 !important;
+        min-height: 0 !important;
       }
 
       .modal-footer {
         flex-direction: column-reverse !important;
-        gap: 8px;
+        gap: 8px !important;
+        flex-shrink: 0 !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        background: var(--surface) !important;
+        padding-bottom: max(16px, env(safe-area-inset-bottom)) !important;
+        z-index: 2 !important;
       }
 
       .modal-footer .btn {
@@ -5775,9 +5789,20 @@
       const _mf = document.getElementById('modal-footer'); if (_mf) _mf.innerHTML = footer;
       box.className = 'modal' + (size ? ' modal-' + size : '');
       overlay.classList.add('open');
+      // Bloquer scroll body (iOS fix — empêche le fond de scroller)
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      // Focus premier input desktop seulement (évite que le clavier mobile s'ouvre immédiatement)
+      if (window.innerWidth > 767) {
+        setTimeout(() => { const f = box.querySelector('input,textarea,select'); if (f) f.focus(); }, 120);
+      }
     }
     function closeModal() {
       document.getElementById('modal-overlay')?.classList.remove('open');
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
     function confirmModal(msg, cb) {
       openModal('Confirmation', `
