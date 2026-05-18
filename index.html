@@ -5130,6 +5130,20 @@
         presences: ['id', 'workspace_id', 'employe_id', 'date_presence', 'statut', 'heure_arrivee', 'heure_depart', 'notes', 'created_by'],
       },
 
+      // Valeurs par défaut pour colonnes NOT NULL sans valeur fournie
+      _defaults: {
+        clients:      { solde_du: 0, total_achats: 0, nb_factures: 0, is_active: true, segment: 'regulier', canal_acquisition: 'bouche_oreille' },
+        factures:     { statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, montant_paye: 0, remise_pct: 0, remise_montant: 0, lignes: '[]' },
+        devis:        { statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, remise_pct: 0, remise_montant: 0, acompte_pct: 0, lignes: '[]' },
+        produits:     { prix_vente_ht: 0, prix_achat: 0, tva_taux: 18, stock_actuel: 0, stock_minimum: 0, stock_maximum: 0, is_active: true },
+        transactions: { montant: 0, is_validated: false },
+        employes:     { salaire_base: 0, is_active: true },
+        chantiers:    { budget_prevu: 0, budget_depense: 0, avancement_pct: 0, statut: 'planifie' },
+        relances:     { niveau: 1, statut: 'envoyee' },
+        paie:         { salaire_base: 0, heures_sup: 0, primes: 0, avances: 0, cotisation_css: 0, cotisation_ipres: 0, impot_ir: 0, salaire_net: 0, statut_paiement: 'en_attente' },
+        presences:    { statut: 'present' },
+      },
+
       // snake_case → camelCase pour lecture, camelCase → snake_case pour écriture
       _toSnake(s) {
         return s.replace(/([A-Z])/g, m => '_' + m.toLowerCase());
@@ -5137,16 +5151,21 @@
       _filterColumns(table, obj) {
         const allowed = this._columns[table];
         if (!allowed) return obj;
-        // Construire un index camelCase de l'objet source
-        const camelObj = {};
-        Object.keys(obj).forEach(k => { camelObj[this._toSnake(k)] = obj[k]; });
-        // Toujours inclure TOUTES les colonnes autorisées (null si absent)
-        // Supabase exige que tous les objets d'un upsert aient les mêmes clés
+        // Construire un index snake_case de l'objet source (convertit depuis camelCase)
+        const snakeObj = {};
+        Object.keys(obj).forEach(k => { snakeObj[this._toSnake(k)] = obj[k]; });
+        const defaults = this._defaults[table] || {};
+        // Toujours inclure TOUTES les colonnes — Supabase exige des objets homogènes
         const out = {};
         allowed.forEach(c => {
-          // chercher d'abord snake_case direct, puis conversion depuis camelCase
-          const val = obj[c] !== undefined ? obj[c] : camelObj[c];
-          out[c] = val !== undefined ? val : null;
+          // Priorité : snake_case direct > conversion camelCase > défaut NOT NULL > null
+          let val = obj[c] !== undefined ? obj[c]
+                  : snakeObj[c] !== undefined ? snakeObj[c]
+                  : defaults[c] !== undefined ? defaults[c]
+                  : null;
+          // Sérialiser les tableaux en JSON string pour Supabase (type jsonb/text)
+          if (Array.isArray(val)) val = JSON.stringify(val);
+          out[c] = val;
         });
         return out;
       },
