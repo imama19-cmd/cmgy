@@ -4004,7 +4004,8 @@
   <script>
     /* Supabase JS Client minimal — Auth + Database
        Écrit directement pour éviter tout blocage CDN/CORS/Tracking Prevention
-       Compatible Edge, Safari, Chrome, Firefox, Android WebView */
+       Compatible Edge, Safari, Chrome, Firefox, Android WebView
+       ⚠️ PROD : RLS activée sur toutes les tables — vérifier les policies avant chaque déploiement */
     (function (global) {
       'use strict';
 
@@ -4473,7 +4474,6 @@
             <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse
               email</label>
             <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com"
-              value="admin@dolipro.sn"
               onkeydown="if(event.key==='Enter')document.getElementById('login-password')?.focus()"
               style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
           </div>
@@ -4482,7 +4482,7 @@
             <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Mot de
               passe</label>
             <div style="position:relative">
-              <input id="login-password" type="password" class="form-control" placeholder="••••••••" value="admin123"
+              <input id="login-password" type="password" class="form-control" placeholder="••••••••"
                 onkeydown="if(event.key==='Enter')doLogin()"
                 style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
               <button onclick="togglePwdVisibility('login-password',this)" type="button"
@@ -4496,13 +4496,11 @@
             Se connecter →
           </button>
 
-          <div style="margin-top:20px;padding:14px 16px;background:var(--surface);border-radius:12px;
-          font-size:0.82rem;color:var(--text-muted);text-align:center;border:1px solid var(--border)">
-            💡 Démo : <strong style="color:var(--primary)">admin@dolipro.sn</strong> / <strong
-              style="color:var(--primary)">admin123</strong>
-          </div>
+          <p style="text-align:center;margin-top:14px;font-size:0.85rem">
+            <a href="#" onclick="switchAuthTab('forgot')" style="color:var(--text-muted)">Mot de passe oublié ?</a>
+          </p>
 
-          <p style="text-align:center;margin-top:20px;font-size:0.85rem;color:var(--text-muted)">
+          <p style="text-align:center;margin-top:8px;font-size:0.85rem;color:var(--text-muted)">
             Pas encore de compte ?
             <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:700">Créer
               gratuitement →</a>
@@ -4813,6 +4811,30 @@
       <div id="global-search-results"></div>
     </div>
   </div>
+
+
+        <!-- ── Formulaire Mot de passe oublié ── -->
+        <div id="form-forgot" style="display:none">
+          <h2 style="font-family:'Fraunces',serif;font-size:1.8rem;color:var(--text);font-weight:700;margin-bottom:6px">
+            Réinitialiser 🔑</h2>
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:28px">Entrez votre email — nous vous envoyons un lien de réinitialisation.</p>
+
+          <div class="form-group" style="margin-bottom:20px">
+            <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse email</label>
+            <input id="forgot-email" type="email" class="form-control" placeholder="vous@exemple.com"
+              onkeydown="if(event.key==='Enter')doForgotPassword()"
+              style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
+          </div>
+
+          <button onclick="doForgotPassword()" class="btn btn-primary"
+            style="width:100%;padding:15px;font-size:1rem;font-weight:700;border-radius:12px">
+            Envoyer le lien →
+          </button>
+
+          <p style="text-align:center;margin-top:20px;font-size:0.85rem;color:var(--text-muted)">
+            <a href="#" onclick="switchAuthTab('login')" style="color:var(--primary);font-weight:700">← Retour connexion</a>
+          </p>
+        </div>
 
   <!-- FAB (mobile) -->
   <button id="fab-btn" onclick="fabAction()" aria-label="Action rapide" title="Action rapide"
@@ -5862,21 +5884,37 @@
       const btnReg = document.getElementById('tab-register');
       const fLogin = document.getElementById('form-login');
       const fReg = document.getElementById('form-register');
+      const fForgot = document.getElementById('form-forgot');
       if (btnLogin) {
-        // Onglet Connexion
-        if (btnLogin) btnLogin.style.background = tab === 'login' ? '#fff' : 'transparent';
-        if (btnLogin) btnLogin.style.color = tab === 'login' ? '#0f172a' : '#64748b';
+        btnLogin.style.background = tab === 'login' ? '#fff' : 'transparent';
+        btnLogin.style.color = tab === 'login' ? '#0f172a' : '#64748b';
         btnLogin.style.boxShadow = tab === 'login' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
-        // Onglet Inscription
-        if (btnReg) btnReg.style.background = tab === 'register' ? '#fff' : 'transparent';
-        if (btnReg) btnReg.style.color = tab === 'register' ? '#0f172a' : '#64748b';
+        btnReg.style.background = tab === 'register' ? '#fff' : 'transparent';
+        btnReg.style.color = tab === 'register' ? '#0f172a' : '#64748b';
         btnReg.style.boxShadow = tab === 'register' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none';
       }
       if (fLogin) fLogin.style.display = tab === 'login' ? '' : 'none';
       if (fReg) fReg.style.display = tab === 'register' ? '' : 'none';
-      // Scroll vers le haut du panneau droit sur mobile
+      if (fForgot) fForgot.style.display = tab === 'forgot' ? '' : 'none';
       const right = document.getElementById('auth-right');
       if (right) right.scrollTop = 0;
+    }
+
+    async function doForgotPassword() {
+      const email = (document.getElementById('forgot-email') || {}).value?.trim() || '';
+      if (!email) { toast('Entrez votre adresse email', 'warning'); return; }
+      const sb = window.getSupabaseClient?.();
+      if (!sb) { toast('Service indisponible', 'error'); return; }
+      const btn = document.querySelector('#form-forgot .btn-primary');
+      if (btn) { btn.textContent = '⏳ Envoi…'; btn.disabled = true; }
+      try {
+        const { error } = await sb.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + window.location.pathname
+        });
+        if (error) { toast(error.message || "Erreur lors de l'envoi", 'error'); }
+        else { toast('📧 Lien envoyé ! Vérifie ta boîte mail.', 'success'); switchAuthTab('login'); }
+      } catch(e) { toast('Erreur: ' + (e.message || e), 'error'); }
+      finally { if (btn) { btn.textContent = 'Envoyer le lien →'; btn.disabled = false; } }
     }
 
     function selectMetier(el) {
@@ -5967,6 +6005,7 @@
         const { data, error } = await sb.auth.signUp({
           email,
           password: pass,
+          options: { emailRedirectTo: window.location.origin + window.location.pathname },
           options: { data: { nom: nomSafe, metier } }
         });
 
@@ -6004,7 +6043,7 @@
 
         // ── CAS 1 : Session disponible immédiatement ──
         if (data.session && data.user) {
-          toast('Compte créé ! Bienvenue 🎉', 'success');
+          toast('✅ Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.', 'success', 6000);
           await _finalizeLogin(data.session, data.user, true, nomSafe, metier);
           return;
         }
@@ -6015,10 +6054,10 @@
           const { data: d2, error: e2 } = await sb.auth.signInWithPassword({ email, password: pass });
           if (btn) { btn.textContent = 'Créer mon compte gratuit →'; btn.disabled = false; }
           if (!e2 && d2.session) {
-            toast('Compte créé ! Bienvenue 🎉', 'success');
+            toast('✅ Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.', 'success', 6000);
             await _finalizeLogin(d2.session, d2.user, true, nomSafe, metier);
           } else {
-            toast('Compte créé ✅ Connecte-toi maintenant.', 'success', 5000);
+            toast('✅ Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse.', 'success', 6000);
             switchAuthTab('login');
           }
         }
@@ -6396,6 +6435,46 @@
        NAVIGATION
     ══════════════════════════════════════════════════════ */
     const PAGE_NAMES = { dashboard: 'Tableau de bord', clients: 'Clients', factures: 'Factures', devis: 'Devis', stock: 'Stock & Catalogue', comptabilite: 'Comptabilité', relances: 'Relances client', rapports: 'Rapports & Exports', parametres: 'Paramètres', chantiers: 'Chantiers BTP', paie: 'Paie & Employés' };
+
+    // ── Onboarding premier démarrage ──
+    function checkOnboarding() {
+      if (sessionStorage.getItem('dolipro_onboarded')) return;
+      const clients = Store.get('clients', []);
+      const factures = Store.get('factures', []);
+      if (clients.length > 0 || factures.length > 0) {
+        sessionStorage.setItem('dolipro_onboarded', '1');
+        return;
+      }
+      sessionStorage.setItem('dolipro_onboarded', '1');
+      openModal('Bienvenue sur DoliPro 🎉', `
+        <div style="text-align:center;padding:8px 0 16px">
+          <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:24px">
+            Votre espace est prêt. Suivez ces 3 étapes pour démarrer :
+          </p>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <button onclick="closeModal();navigate('parametres')" class="btn btn-outline"
+              style="padding:14px;border-radius:12px;font-size:0.95rem;text-align:left;display:flex;align-items:center;gap:12px">
+              <span style="font-size:1.4rem">🏢</span>
+              <div><strong>Configurer mon entreprise</strong><br>
+              <small style="color:var(--text-muted)">Nom, logo, NINEA, adresse</small></div>
+            </button>
+            <button onclick="closeModal();navigate('clients')" class="btn btn-outline"
+              style="padding:14px;border-radius:12px;font-size:0.95rem;text-align:left;display:flex;align-items:center;gap:12px">
+              <span style="font-size:1.4rem">👥</span>
+              <div><strong>Ajouter mon premier client</strong><br>
+              <small style="color:var(--text-muted)">Nom, email, téléphone</small></div>
+            </button>
+            <button onclick="closeModal();navigate('factures')" class="btn btn-outline"
+              style="padding:14px;border-radius:12px;font-size:0.95rem;text-align:left;display:flex;align-items:center;gap:12px">
+              <span style="font-size:1.4rem">📄</span>
+              <div><strong>Créer ma première facture</strong><br>
+              <small style="color:var(--text-muted)">Produits, montants, TVA</small></div>
+            </button>
+          </div>
+        </div>
+      `, "<button onclick=\"closeModal()\" class=\"btn btn-primary\" style=\"width:100%\">C'est parti ! 🚀</button>");
+    }
+
     function navigate(page) {
       // Vérifier expiration sur chaque navigation
       if (isPlanExpired()) {
@@ -6501,6 +6580,8 @@
        DASHBOARD
     ══════════════════════════════════════════════════════ */
     function renderDashboard() {
+      // Onboarding au premier démarrage
+      setTimeout(checkOnboarding, 800);
       const factures = Store.get('factures');
       const devis = Store.get('devis');
       const clients = Store.get('clients');
