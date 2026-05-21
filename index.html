@@ -4009,12 +4009,20 @@
     (function (global) {
       'use strict';
 
+      // Storage avec fallback mémoire (Safari privé, WebView Android bloquent parfois le storage)
+      var _memStore = {};
+      var _safeStorage = {
+        getItem: function(k) { try { return localStorage.getItem(k); } catch(e) { return _memStore[k] || null; } },
+        setItem: function(k, v) { try { localStorage.setItem(k, v); } catch(e) {} _memStore[k] = v; },
+        removeItem: function(k) { try { localStorage.removeItem(k); } catch(e) {} delete _memStore[k]; }
+      };
+
       function SupabaseClient(url, anonKey, opts) {
         this.url = url.replace(/\/$/, '');
         this.anonKey = anonKey;
         this._session = null;
-        this._storage = (opts && opts.auth && opts.auth.storage) || sessionStorage;
-        this._storageKey = (opts && opts.auth && opts.auth.storageKey) || 'sb-session';
+        this._storage = (opts && opts.auth && opts.auth.storage) || _safeStorage;
+        this._storageKey = (opts && opts.auth && opts.auth.storageKey) || 'sb-dolipro-session';
         this._channels = [];
 
         // Restaurer session depuis storage
@@ -6126,8 +6134,8 @@
     async function doLogin() {
       if (!Network.check()) return;
 
-      const email = document.getElementById('login-email')?.value.trim().toLowerCase();
-      const pass = (document.getElementById('login-password') || document.getElementById('login-pwd'))?.value;
+      const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
+      const pass = (document.getElementById('login-password')?.value || document.getElementById('login-pwd')?.value || '').trim();
       if (!email || !pass) { toast('Email et mot de passe requis', 'warning'); return; }
 
       const btn = document.querySelector('#form-login .btn-primary');
@@ -6143,13 +6151,13 @@
 
         if (error) {
           console.error('[doLogin]', error.status, error.message);
-          if (error.status === 400 || error.message.includes('Invalid login credentials')) {
-            toast('Email ou mot de passe incorrect ❌', 'error');
-          } else if (error.message.includes('Email not confirmed')) {
+          if (error.message?.includes('Email not confirmed')) {
             await sb.auth.resend({ type: 'signup', email }).catch(() => { });
             _showLoginConfirmPending(email);
+          } else if (error.message?.includes('Invalid login') || error.status === 400) {
+            toast('Email ou mot de passe incorrect ❌\nEmail : ' + email, 'error', 6000);
           } else {
-            toast(error.message, 'error');
+            toast(error.message || 'Erreur connexion', 'error', 6000);
           }
           return;
         }
