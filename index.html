@@ -4478,39 +4478,42 @@
           <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:28px">Connectez-vous à votre espace DoliPro
           </p>
 
-          <div class="form-group" style="margin-bottom:18px">
-            <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse
-              email</label>
-            <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com"
-              autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"
-              onkeydown="if(event.key==='Enter')document.getElementById('login-password')?.focus()"
-              style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
-          </div>
-
-          <div class="form-group" style="margin-bottom:24px">
-            <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Mot de
-              passe</label>
-            <div style="position:relative">
-              <input id="login-password" type="password" class="form-control" placeholder="••••••••"
-                autocomplete="current-password" autocapitalize="none" autocorrect="off"
-                onkeydown="if(event.key==='Enter')doLogin()"
-                style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
-              <button onclick="togglePwdVisibility('login-password',this)" type="button"
-                aria-label="Afficher / masquer le mot de passe" title="Afficher / masquer le mot de passe"
-                style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">👁</button>
+          <!-- form réel pour que le gestionnaire de mots de passe mobile fonctionne -->
+          <form id="login-form" onsubmit="event.preventDefault();doLogin()" autocomplete="on">
+            <input type="text" name="username" style="display:none" autocomplete="username">
+            <div class="form-group" style="margin-bottom:18px">
+              <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse
+                email</label>
+              <input id="login-email" name="email" type="email" class="form-control" placeholder="vous@exemple.com"
+                autocomplete="username email" autocapitalize="none" autocorrect="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter')document.getElementById('login-password')?.focus()"
+                style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
             </div>
-          </div>
 
-          <button onclick="doLogin()" class="btn btn-primary"
-            style="width:100%;padding:15px;font-size:1rem;font-weight:700;border-radius:12px;letter-spacing:0.02em">
-            Se connecter →
-          </button>
+            <div class="form-group" style="margin-bottom:8px">
+              <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Mot de
+                passe</label>
+              <div style="position:relative">
+                <input id="login-password" name="password" type="password" class="form-control" placeholder="••••••••"
+                  autocomplete="current-password"
+                  style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
+                <button onclick="togglePwdVisibility('login-password',this)" type="button"
+                  aria-label="Afficher / masquer le mot de passe"
+                  style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:1.1rem">👁</button>
+              </div>
+            </div>
 
-          <p style="text-align:center;margin-top:14px;font-size:0.85rem">
-            <a href="#" onclick="switchAuthTab('forgot')" style="color:var(--text-muted)">Mot de passe oublié ?</a>
-          </p>
+            <p style="text-align:right;margin:0 0 20px;font-size:0.82rem">
+              <a href="#" onclick="event.preventDefault();switchAuthTab('forgot')" style="color:var(--text-muted)">Mot de passe oublié ?</a>
+            </p>
 
-          <p style="text-align:center;margin-top:8px;font-size:0.85rem;color:var(--text-muted)">
+            <button type="submit" class="btn btn-primary"
+              style="width:100%;padding:15px;font-size:1rem;font-weight:700;border-radius:12px;letter-spacing:0.02em">
+              Se connecter →
+            </button>
+          </form>
+
+          <p style="text-align:center;margin-top:14px;font-size:0.85rem;color:var(--text-muted)">
             Pas encore de compte ?
             <a href="#" onclick="switchAuthTab('register')" style="color:var(--primary);font-weight:700">Créer
               gratuitement →</a>
