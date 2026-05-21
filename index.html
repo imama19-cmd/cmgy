@@ -4330,8 +4330,8 @@
 
       window.doLogin = async function(){
         try {
-          const email = (document.getElementById('login-email')||{}).value || '';
-          const pass = (document.getElementById('login-password')||{}).value || '';
+          const email = ((document.getElementById('login-email')||{}).value || '').trim().toLowerCase();
+          const pass = ((document.getElementById('login-password')||{}).value || '').trim();
           if (!email || !pass) { if (typeof toast === 'function') toast('Email et mot de passe requis','warning'); return; }
           const sb = window.getSupabaseClient();
           if (!sb) { if (typeof toast === 'function') toast('SDK Supabase indisponible','error'); return; }
@@ -4474,6 +4474,7 @@
             <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse
               email</label>
             <input id="login-email" type="email" class="form-control" placeholder="vous@exemple.com"
+              autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"
               onkeydown="if(event.key==='Enter')document.getElementById('login-password')?.focus()"
               style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
           </div>
@@ -4483,6 +4484,7 @@
               passe</label>
             <div style="position:relative">
               <input id="login-password" type="password" class="form-control" placeholder="••••••••"
+                autocomplete="current-password" autocapitalize="none" autocorrect="off"
                 onkeydown="if(event.key==='Enter')doLogin()"
                 style="padding:14px 48px 14px 16px;font-size:0.95rem;border-radius:12px">
               <button onclick="togglePwdVisibility('login-password',this)" type="button"
@@ -4525,6 +4527,7 @@
             <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse
               email *</label>
             <input id="reg-email" type="email" class="form-control" placeholder="vous@exemple.com"
+              autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"
               style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
           </div>
 
@@ -4822,6 +4825,7 @@
           <div class="form-group" style="margin-bottom:20px">
             <label class="form-label" style="font-size:0.85rem;font-weight:600;margin-bottom:8px;display:block">Adresse email</label>
             <input id="forgot-email" type="email" class="form-control" placeholder="vous@exemple.com"
+              autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false"
               onkeydown="if(event.key==='Enter')doForgotPassword()"
               style="padding:14px 16px;font-size:0.95rem;border-radius:12px">
           </div>
@@ -5901,7 +5905,7 @@
     }
 
     async function doForgotPassword() {
-      const email = (document.getElementById('forgot-email') || {}).value?.trim() || '';
+      const email = ((document.getElementById('forgot-email') || {}).value || '').trim().toLowerCase();
       if (!email) { toast('Entrez votre adresse email', 'warning'); return; }
       const sb = window.getSupabaseClient?.();
       if (!sb) { toast('Service indisponible', 'error'); return; }
@@ -5982,7 +5986,7 @@
       if (!Network.check()) return;
 
       const nom = (document.getElementById('reg-nom') || document.getElementById('reg-name'))?.value.trim();
-      const email = document.getElementById('reg-email')?.value.trim().toLowerCase();
+      const email = (document.getElementById('reg-email')?.value || '').trim().toLowerCase();
       const pass = (document.getElementById('reg-password') || document.getElementById('reg-pwd'))?.value;
       const metier = document.getElementById('reg-metier')?.value || 'boutique';
 
