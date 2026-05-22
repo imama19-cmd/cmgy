@@ -5172,10 +5172,10 @@
       // Valeurs par défaut pour colonnes NOT NULL sans valeur fournie
       _defaults: {
         clients:      { solde_du: 0, total_achats: 0, nb_factures: 0, is_active: true, segment: 'regulier', canal_acquisition: 'bouche_oreille' },
-        factures:     { type_facture: 'facture', statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, montant_paye: 0, remise_pct: 0, remise_montant: 0, devise: 'XOF', lignes: [] },
-        devis:        { type_devis: 'devis', statut: 'brouillon', sous_total_ht: 0, total_tva: 0, total_ttc: 0, remise_pct: 0, remise_montant: 0, acompte_pct: 0, devise: 'XOF', lignes: [] },
+        factures:     { type_facture: 'facture', statut: 'brouillon', date_facture: new Date().toISOString().slice(0,10), date_echeance: new Date(Date.now()+30*864e5).toISOString().slice(0,10), sous_total_ht: 0, total_tva: 0, total_ttc: 0, montant_paye: 0, remise_pct: 0, remise_montant: 0, devise: 'XOF', lignes: [] },
+        devis:        { type_devis: 'devis', statut: 'brouillon', date_devis: new Date().toISOString().slice(0,10), date_validite: new Date(Date.now()+30*864e5).toISOString().slice(0,10), sous_total_ht: 0, total_tva: 0, total_ttc: 0, remise_pct: 0, remise_montant: 0, acompte_pct: 0, devise: 'XOF', lignes: [] },
         produits:     { prix_vente_ht: 0, prix_achat: 0, tva_taux: 18, stock_actuel: 0, stock_minimum: 0, stock_maximum: 0, is_active: true },
-        transactions: { montant: 0, type_transaction: 'depense', categorie: 'autre', is_validated: false },
+        transactions: { montant: 0, type_transaction: 'depense', categorie: 'autre', date_transaction: new Date().toISOString().slice(0,10), is_validated: false },
         employes:     { salaire_base: 0, is_active: true },
         chantiers:    { budget_prevu: 0, budget_depense: 0, avancement_pct: 0, statut: 'planifie' },
         relances:     { niveau: 1, statut: 'envoyee' },
@@ -5193,7 +5193,15 @@
         // Construire un index snake_case de l'objet source (convertit depuis camelCase)
         const snakeObj = {};
         Object.keys(obj).forEach(k => { snakeObj[this._toSnake(k)] = obj[k]; });
-        const defaults = this._defaults[table] || {};
+        const today = new Date().toISOString().slice(0, 10);
+        const in30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+        const defaults = Object.assign({}, this._defaults[table] || {});
+        // Remplacer les dates dynamiques
+        if (defaults.date_facture)    defaults.date_facture    = today;
+        if (defaults.date_echeance)   defaults.date_echeance   = in30;
+        if (defaults.date_devis)      defaults.date_devis      = today;
+        if (defaults.date_validite)   defaults.date_validite   = in30;
+        if (defaults.date_transaction) defaults.date_transaction = today;
         // Toujours inclure TOUTES les colonnes — Supabase exige des objets homogènes
         const out = {};
         allowed.forEach(c => {
