@@ -5225,6 +5225,16 @@
         return out;
       },
 
+      // Suppression Supabase (évite le re-sync realtime)
+      _delete(key, id, wsId) {
+        const table = this._tables[key];
+        if (!table || !wsId || !id) return;
+        const sb = getSupabaseClient();
+        if (!sb) return;
+        sb.from(table).delete().eq('id', id).eq('workspace_id', wsId)
+          .then(({ error }) => { if (error) console.error('[Store.delete]', key, error.message); });
+      },
+
       _push(key, val, wsId) {
         const table = this._tables[key];
         if (!table || !wsId) return;
@@ -7219,7 +7229,7 @@
   </div>
   <div class="table-container">
     <table>
-      <thead><tr><th>N°</th><th>${termClient}</th><th>Date</th><th>Échéance</th><th>Statut</th><th class="text-right">Total TTC</th><th class="text-right">Actions</th></tr></thead>
+      <thead><tr><th>N°</th><th>${termClient}</th><th>Date</th><th>Échéance</th><th>Statut</th><th class="text-right">Total HT</th><th class="text-right">Total TTC</th><th class="text-right">Actions</th></tr></thead>
       <tbody>
         ${slice.length === 0 ? `<tr><td colspan="7">${renderEmptyState('📄', 'Aucun résultat', 'Modifiez vos filtres.', '', '')}</td></tr>` :
             slice.map(f => `
@@ -7229,7 +7239,8 @@
             <td>${fmt.date(f.date)}</td>
             <td>${f.echeance ? fmt.date(f.echeance) : '—'}</td>
             <td><span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span></td>
-            <td class="text-right fw-bold">${fmt.fcfa(f.totalTTC)}</td>
+            <td class="text-right">${fmt.fcfa(f.totalHT || f.sous_total_ht || 0)}</td>
+            <td class="text-right fw-bold">${fmt.fcfa(f.totalTTC || f.total_ttc || 0)}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="printDoc('facture','${f.id}')">PDF</button>
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('facture','${f.id}')">Modifier</button>` : ''}
@@ -7537,7 +7548,12 @@
         const key = type === 'facture' ? 'factures' : 'devis';
         const doc = Store.get(key, []).find(d => d.id === id);
         if (!confirm(`Supprimer le document ${doc?.numero || ''} ?\n\nCette action est irréversible.`)) return;
-        Store.set(key, Store.get(key, []).filter(d => d.id !== id));
+        // Supprimer dans Supabase AVANT de mettre à jour le cache
+        Store._delete(key, id, Store._wsId);
+        // Mettre à jour le cache local
+        const remaining = Store.get(key, []).filter(d => d.id !== id);
+        const cacheKey = Store._wsId ? `${Store._wsId}_${key}` : key;
+        _memCache[cacheKey] = remaining;  // mise à jour directe du cache sans re-push
         updateBadges(); toast('Document supprimé', 'success'); render();
       }
       function convertDevisToFacture(devisId) {
@@ -8735,8 +8751,10 @@
       ══════════════════════════════════════════════════════ */
 
       function getMontantRestant(facture) {
-        const paiements = (facture.paiements || []).reduce((s, p) => s + p.montant, 0);
-        return Math.max(0, (facture.totalTTC || 0) - paiements);
+        const ttc = facture.totalTTC || facture.total_ttc || 0;
+        const dejaPaye = facture.montant_paye || facture.montantPaye || 0;
+        const paiements = (facture.paiements || []).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+        return Math.max(0, ttc - Math.max(dejaPaye, paiements));
       }
 
       function getStatutPaiement(facture) {
@@ -8769,7 +8787,12 @@
     <div class="form-group">
       <label class="form-label">Mode de paiement</label>
       <select id="pay-mode" class="form-control">
-        ${['Espèces', 'Wave', 'Orange Money', 'Free Money', 'Virement', 'Chèque'].map(m => `<option>${m}</option>`).join('')}
+        <option value="especes">Espèces</option>
+        <option value="wave">Wave</option>
+        <option value="orange_money">Orange Money</option>
+        <option value="virement">Virement</option>
+        <option value="cheque">Chèque</option>
+        <option value="autre">Autre</option>
       </select>
     </div>
     <div class="form-group">
@@ -8797,11 +8820,19 @@
         if (!factures[idx].paiements) factures[idx].paiements = [];
         factures[idx].paiements.push({ id: 'pay_' + uid(), montant, mode, date, notes, createdAt: now() });
         const restant = getMontantRestant(factures[idx]);
-        if (restant <= 0) factures[idx].statut = 'payee';
+        const ttc = factures[idx].totalTTC || factures[idx].total_ttc || 0;
+        const totalPaye = ttc - restant;
+        factures[idx].montant_paye = totalPaye;
+        factures[idx].montantPaye = totalPaye;
+        if (restant <= 0) {
+          factures[idx].statut = 'payee';
+        } else if (totalPaye > 0) {
+          factures[idx].statut = 'partiellement_payee'; // acompte partiel
+        }
         factures[idx].updatedAt = now();
         Store.set('factures', factures);
         closeModal();
-        toast(restant <= 0 ? 'Facture entièrement payée ! 🎉' : `Paiement enregistré — Reste ${formatMontant(restant)}`, 'success');
+        toast(restant <= 0 ? 'Facture entièrement payée ! 🎉' : `Acompte enregistré — Reste dû : ${fmt.fcfa(restant)}`, 'success');
         navigate('factures');
       }
 
