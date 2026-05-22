@@ -5196,6 +5196,12 @@
         const today = new Date().toISOString().slice(0, 10);
         const in30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
         const defaults = Object.assign({}, this._defaults[table] || {});
+        // Mapping statuts internes JS → valeurs Supabase CHECK constraints
+        const _statutMap = {
+          factures: { validee: 'envoyee', 'en retard': 'en_retard', paye: 'payee', annule: 'annulee', 'partiellement paye': 'partiellement_payee' },
+          devis:    { accepté: 'accepte', refusé: 'refuse', expiré: 'expire', envoye: 'envoye', converti: 'converti' },
+          clients:  { particulier: 'particulier', entreprise: 'entreprise', admin: 'administration' }
+        };
         // Remplacer les dates dynamiques
         if (defaults.date_facture)    defaults.date_facture    = today;
         if (defaults.date_echeance)   defaults.date_echeance   = in30;
@@ -5210,6 +5216,10 @@
                   : snakeObj[c] !== undefined ? snakeObj[c]
                   : defaults[c] !== undefined ? defaults[c]
                   : null;
+          // Appliquer mapping statut si nécessaire
+          if (c === 'statut' && val && _statutMap[table] && _statutMap[table][val]) {
+            val = _statutMap[table][val];
+          }
           out[c] = val;
         });
         return out;
@@ -7201,7 +7211,7 @@
     <select class="filter-input" onchange="factureStatut=this.value;facturePage=1;render()">
       <option value="">Tous statuts</option>
       <option value="brouillon" ${factureStatut === 'brouillon' ? 'selected' : ''}>Brouillon</option>
-      <option value="validee" ${factureStatut === 'validee' ? 'selected' : ''}>Validée</option>
+      <option value="envoyee" ${factureStatut === 'validee' ? 'selected' : ''}>Validée</option>
       <option value="payee" ${factureStatut === 'payee' ? 'selected' : ''}>Payée</option>
       <option value="annulee" ${factureStatut === 'annulee' ? 'selected' : ''}>Annulée</option>
       <option value="retard" ${factureStatut === 'retard' ? 'selected' : ''}>⚠️ En retard</option>
