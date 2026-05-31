@@ -5292,10 +5292,45 @@
             )
           );
 
+          // Normalisation snake_case → camelCase au chargement
+          function _normRow(t, row) {
+            if (!row) return row;
+            const r = { ...row };
+            // Clés communes
+            if (r.client_id !== undefined)   { r.clientId   = r.client_id; }
+            if (r.client_nom !== undefined)  { r.clientNom  = r.client_nom; }
+            // Factures
+            if (t === 'factures') {
+              r.totalHT  = r.sous_total_ht  ?? r.totalHT  ?? 0;
+              r.totalTVA = r.total_tva      ?? r.totalTVA ?? 0;
+              r.totalTTC = r.total_ttc      ?? r.totalTTC ?? 0;
+              r.montantPaye = r.montant_paye ?? r.montantPaye ?? 0;
+              r.date     = r.date_facture   || r.date     || '';
+              r.echeance = r.date_echeance  || r.echeance || '';
+              // Supabase stocke 'envoyee' pour ce qu'on appelle 'validee' en interne
+              if (r.statut === 'envoyee') r.statut = 'validee';
+              if (r.statut === 'partiellement_payee') r.statut = 'partiellement_payee'; // garder
+              // Lignes : parser si string JSON
+              if (typeof r.lignes === 'string') { try { r.lignes = JSON.parse(r.lignes); } catch(e) { r.lignes = []; } }
+              if (!Array.isArray(r.lignes)) r.lignes = [];
+            }
+            // Devis
+            if (t === 'devis') {
+              r.totalHT  = r.sous_total_ht  ?? r.totalHT  ?? 0;
+              r.totalTVA = r.total_tva      ?? r.totalTVA ?? 0;
+              r.totalTTC = r.total_ttc      ?? r.totalTTC ?? 0;
+              r.date     = r.date_devis     || r.date     || '';
+              r.validite = r.date_validite  || r.validite || '';
+              if (typeof r.lignes === 'string') { try { r.lignes = JSON.parse(r.lignes); } catch(e) { r.lignes = []; } }
+              if (!Array.isArray(r.lignes)) r.lignes = [];
+            }
+            return r;
+          }
+
           tables.forEach((t, i) => {
             const r = results[i];
             if (r.status === 'fulfilled' && !r.value.error) {
-              _memCache[`${wsId}_${t}`] = r.value.data || [];
+              _memCache[`${wsId}_${t}`] = (r.value.data || []).map(row => _normRow(t, row));
             } else {
               if (r.value?.error) console.warn(`[Store] ${t}:`, r.value.error.message);
               _memCache[`${wsId}_${t}`] = _memCache[`${wsId}_${t}`] || [];
@@ -7503,7 +7538,14 @@
           clientId, clientNom: client?.nom || '', date, echeance: echeance || null,
           validite: echeance || null, notes, tvaActive,
           lignes: JSON.parse(JSON.stringify(docLines)),
+          // camelCase (usage interne JS)
           totalHT: totals.ht, totalTVA: totals.tva, totalTTC: totals.ttc,
+          // snake_case (Supabase)
+          sous_total_ht: totals.ht, total_tva: totals.tva, total_ttc: totals.ttc,
+          date_facture: type === 'facture' ? date : undefined,
+          date_echeance: type === 'facture' ? (echeance || null) : undefined,
+          date_devis: type === 'devis' ? date : undefined,
+          date_validite: type === 'devis' ? (echeance || null) : undefined,
           updatedAt: now()
         };
         if (id) {
@@ -8244,19 +8286,32 @@
           <table style="width:100%;font-size:13px">
             <tr>
               <td style="padding:6px 0;color:#64748b">Total HT</td>
-              <td style="padding:6px 0;text-align:right;font-weight:600">${fmt.fcfa(doc.totalHT || 0)}</td>
+              <td style="padding:6px 0;text-align:right;font-weight:600">${fmt.fcfa(doc.totalHT || doc.sous_total_ht || 0)}</td>
             </tr>
             ${doc.tvaActive !== false ? `<tr>
               <td style="padding:6px 0;color:#64748b">TVA</td>
-              <td style="padding:6px 0;text-align:right;font-weight:600">${fmt.fcfa(doc.totalTVA || 0)}</td>
+              <td style="padding:6px 0;text-align:right;font-weight:600">${fmt.fcfa(doc.totalTVA || doc.total_tva || 0)}</td>
             </tr>` : ''}
             <tr>
               <td colspan="2"><div style="height:1px;background:#e2e8f0;margin:6px 0"></div></td>
             </tr>
             <tr>
               <td style="padding:10px 14px;background:${primaryColor};color:#fff;border-radius:8px 0 0 8px;font-weight:700;font-size:14px">Total TTC</td>
-              <td style="padding:10px 14px;background:${primaryColor};color:#fff;border-radius:0 8px 8px 0;text-align:right;font-weight:800;font-size:16px">${fmt.fcfa(doc.totalTTC || 0)}</td>
+              <td style="padding:10px 14px;background:${primaryColor};color:#fff;border-radius:0 8px 8px 0;text-align:right;font-weight:800;font-size:16px">${fmt.fcfa(doc.totalTTC || doc.total_ttc || 0)}</td>
             </tr>
+${(function(){
+              var _ttc = doc.totalTTC || doc.total_ttc || 0;
+              var _paye = parseFloat(doc.montant_paye || doc.montantPaye || 0);
+              var _paiements = (doc.paiements || []).reduce(function(s,p){return s+(parseFloat(p.montant)||0);},0);
+              var _encaisse = Math.max(_paye, _paiements);
+              var _restant = Math.max(0, _ttc - _encaisse);
+              if (_encaisse <= 0 || _restant <= 0) return '';
+              return '<tr><td colspan="2"><div style="height:1px;background:#e2e8f0;margin:6px 0"></div></td></tr>'
+                + '<tr><td style="padding:6px 0;color:#64748b">Acompte versé</td>'
+                + '<td style="padding:6px 0;text-align:right;font-weight:600;color:#16a34a">- ' + fmt.fcfa(_encaisse) + '</td></tr>'
+                + '<tr><td style="padding:10px 14px;background:#f59e0b;color:#fff;border-radius:8px 0 0 8px;font-weight:700;font-size:14px">Reste à payer</td>'
+                + '<td style="padding:10px 14px;background:#f59e0b;color:#fff;border-radius:0 8px 8px 0;text-align:right;font-weight:800;font-size:16px">' + fmt.fcfa(_restant) + '</td></tr>';
+            })()}
           </table>
         </td>
       </tr>
@@ -8752,16 +8807,20 @@
 
       function getMontantRestant(facture) {
         const ttc = facture.totalTTC || facture.total_ttc || 0;
-        const dejaPaye = facture.montant_paye || facture.montantPaye || 0;
+        const dejaPaye = parseFloat(facture.montant_paye || facture.montantPaye || 0);
         const paiements = (facture.paiements || []).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-        return Math.max(0, ttc - Math.max(dejaPaye, paiements));
+        const totalEncaisse = Math.max(dejaPaye, paiements);
+        return Math.max(0, ttc - totalEncaisse);
       }
 
       function getStatutPaiement(facture) {
-        if (facture.statut !== 'validee') return facture.statut;
+        const ttc = facture.totalTTC || facture.total_ttc || 0;
+        if (facture.statut === 'payee') return 'payee';
+        if (facture.statut === 'partiellement_payee') return 'partiellement_payee';
+        if (facture.statut !== 'validee' && facture.statut !== 'envoyee') return facture.statut;
         const restant = getMontantRestant(facture);
-        if (restant <= 0) return 'payee_complete';
-        if (restant < facture.totalTTC) return 'partielle';
+        if (restant <= 0 && ttc > 0) return 'payee';
+        if (restant < ttc && ttc > 0) return 'partiellement_payee';
         return 'validee';
       }
 
