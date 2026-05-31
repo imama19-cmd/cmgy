@@ -6568,7 +6568,34 @@
               .order('created_at', { ascending: false })
               .then(({ data, error }) => {
                 if (!error && data) {
-                  _memCache[`${wsId}_${table}`] = data;
+                  // Normaliser snake_case → camelCase comme dans loadFromApi
+                  _memCache[`${wsId}_${table}`] = data.map(row => {
+                    const r = { ...row };
+                    if (table === 'factures') {
+                      r.totalHT    = r.sous_total_ht  ?? 0;
+                      r.totalTVA   = r.total_tva      ?? 0;
+                      r.totalTTC   = r.total_ttc      ?? 0;
+                      r.montantPaye = r.montant_paye  ?? 0;
+                      r.date       = r.date_facture   || '';
+                      r.echeance   = r.date_echeance  || '';
+                      r.clientId   = r.client_id      || '';
+                      if (r.statut === 'envoyee') r.statut = 'validee';
+                      if (typeof r.lignes === 'string') { try { r.lignes = JSON.parse(r.lignes); } catch(e) { r.lignes = []; } }
+                      if (!Array.isArray(r.lignes)) r.lignes = [];
+                    }
+                    if (table === 'devis') {
+                      r.totalHT  = r.sous_total_ht ?? 0;
+                      r.totalTVA = r.total_tva     ?? 0;
+                      r.totalTTC = r.total_ttc     ?? 0;
+                      r.date     = r.date_devis    || '';
+                      r.validite = r.date_validite || '';
+                      r.clientId = r.client_id     || '';
+                      if (typeof r.lignes === 'string') { try { r.lignes = JSON.parse(r.lignes); } catch(e) { r.lignes = []; } }
+                      if (!Array.isArray(r.lignes)) r.lignes = [];
+                    }
+                    if (r.client_id !== undefined) r.clientId = r.client_id;
+                    return r;
+                  });
                   if (typeof render === 'function') render();
                 }
               });
