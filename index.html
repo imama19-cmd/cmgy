@@ -5300,10 +5300,15 @@
             if (r.client_id !== undefined)   { r.clientId   = r.client_id; }
             if (r.client_nom !== undefined)  { r.clientNom  = r.client_nom; }
             // Produits
-            if (t === 'produits') {
-              r.prix     = r.prix_vente_ht ?? r.prix     ?? 0;
-              r.quantite = r.stock_actuel  ?? r.quantite ?? 0;
-              r.seuil    = r.stock_minimum ?? r.seuil    ?? 0;
+            if (table === 'produits') {
+              r.prix     = parseFloat(r.prix_vente_ht ?? r.prix ?? 0);
+              r.quantite = parseFloat(r.stock_actuel  ?? r.quantite ?? 0);
+              r.seuil    = parseFloat(r.stock_minimum ?? r.seuil ?? 0);
+            }
+            if (table === 'transactions') {
+              r.type     = r.type_transaction || r.type || 'depense';
+              r.date     = r.date_transaction || r.date || '';
+              r.montant  = parseFloat(r.montant || 0);
             }
             // Factures
             if (t === 'factures') {
@@ -6602,9 +6607,14 @@
                     if (r.client_id !== undefined) r.clientId = r.client_id;
                     // Produits
                     if (t === 'produits') {
-                      r.prix = r.prix_vente_ht ?? r.prix ?? 0;
-                      r.quantite = r.stock_actuel ?? r.quantite ?? 0;
-                      r.seuil = r.stock_minimum ?? r.seuil ?? 0;
+                      r.prix     = parseFloat(r.prix_vente_ht ?? r.prix ?? 0);
+                      r.quantite = parseFloat(r.stock_actuel  ?? r.quantite ?? 0);
+                      r.seuil    = parseFloat(r.stock_minimum ?? r.seuil ?? 0);
+                    }
+                    if (t === 'transactions') {
+                      r.type    = r.type_transaction || r.type || 'depense';
+                      r.date    = r.date_transaction || r.date || '';
+                      r.montant = parseFloat(r.montant || 0);
                     }
                     return r;
                   });
@@ -7709,7 +7719,7 @@
             produits.map(p => {
               const qty = p.stock_actuel !== undefined ? parseFloat(p.stock_actuel) : (p.quantite !== undefined ? p.quantite : null);
               const seuil = parseFloat(p.stock_minimum || p.seuil || 0);
-              const isService = p.type_produit === 'service' || (qty === null && p.type_produit !== 'produit');
+              const isService = p.type_produit === 'service';
               const stockStatus = isService ? 'service' : qty <= 0 ? 'out' : qty <= seuil ? 'low' : 'ok';
               const stockPct = isService ? 0 : Math.min(100, seuil > 0 ? Math.round((qty / Math.max(qty, seuil * 2)) * 100) : 100);
               return `<tr>
@@ -9123,11 +9133,17 @@ ${(function(){
         const description = document.getElementById('txn-desc')?.value.trim();
         if (!montant || montant <= 0 || !date) { toast('Montant et date obligatoires', 'warning'); return; }
         const txns = Store.get('transactions', []);
+        const txnData = {
+          type, montant, categorie, date, description,
+          type_transaction: type,
+          date_transaction: date,
+          updatedAt: now()
+        };
         if (id) {
           const i = txns.findIndex(t => t.id === id);
-          if (i >= 0) txns[i] = { ...txns[i], type, montant, categorie, date, description, updatedAt: now() };
+          if (i >= 0) txns[i] = { ...txns[i], ...txnData };
         } else {
-          txns.push({ id: 'txn_' + uid(), type, montant, categorie, date, description, createdAt: now() });
+          txns.push({ id: uid(), ...txnData, createdAt: now() });
         }
         Store.set('transactions', txns);
         closeModal();
@@ -9138,7 +9154,9 @@ ${(function(){
       function deleteTransaction(id) {
         const txn = Store.get('transactions', []).find(t => t.id === id);
         if (!confirm(`Supprimer la transaction "${txn?.description || ''}" ?\n\nCette action est irréversible.`)) return;
-        Store.set('transactions', Store.get('transactions', []).filter(t => t.id !== id));
+        Store._delete('transactions', id, Store._wsId);
+        const cacheKey = Store._wsId ? `${Store._wsId}_transactions` : 'transactions';
+        _memCache[cacheKey] = Store.get('transactions', []).filter(t => t.id !== id);
         toast('Transaction supprimée', 'info');
         navigate('comptabilite');
       }
