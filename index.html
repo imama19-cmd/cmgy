@@ -6605,13 +6605,12 @@
                       if (!Array.isArray(r.lignes)) r.lignes = [];
                     }
                     if (r.client_id !== undefined) r.clientId = r.client_id;
-                    // Produits
-                    if (t === 'produits') {
+                    if (table === 'produits') {
                       r.prix     = parseFloat(r.prix_vente_ht ?? r.prix ?? 0);
                       r.quantite = parseFloat(r.stock_actuel  ?? r.quantite ?? 0);
                       r.seuil    = parseFloat(r.stock_minimum ?? r.seuil ?? 0);
                     }
-                    if (t === 'transactions') {
+                    if (table === 'transactions') {
                       r.type    = r.type_transaction || r.type || 'depense';
                       r.date    = r.date_transaction || r.date || '';
                       r.montant = parseFloat(r.montant || 0);
