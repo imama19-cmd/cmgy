@@ -5300,12 +5300,12 @@
             if (r.client_id !== undefined)   { r.clientId   = r.client_id; }
             if (r.client_nom !== undefined)  { r.clientNom  = r.client_nom; }
             // Produits
-            if (table === 'produits') {
+            if (t === 'produits') {
               r.prix     = parseFloat(r.prix_vente_ht ?? r.prix ?? 0);
               r.quantite = parseFloat(r.stock_actuel  ?? r.quantite ?? 0);
               r.seuil    = parseFloat(r.stock_minimum ?? r.seuil ?? 0);
             }
-            if (table === 'transactions') {
+            if (t === 'transactions') {
               r.type     = r.type_transaction || r.type || 'depense';
               r.date     = r.date_transaction || r.date || '';
               r.montant  = parseFloat(r.montant || 0);
