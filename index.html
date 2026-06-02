@@ -5299,6 +5299,12 @@
             // Clés communes
             if (r.client_id !== undefined)   { r.clientId   = r.client_id; }
             if (r.client_nom !== undefined)  { r.clientNom  = r.client_nom; }
+            // Produits
+            if (t === 'produits') {
+              r.prix     = r.prix_vente_ht ?? r.prix     ?? 0;
+              r.quantite = r.stock_actuel  ?? r.quantite ?? 0;
+              r.seuil    = r.stock_minimum ?? r.seuil    ?? 0;
+            }
             // Factures
             if (t === 'factures') {
               r.totalHT  = r.sous_total_ht  ?? r.totalHT  ?? 0;
@@ -6594,6 +6600,12 @@
                       if (!Array.isArray(r.lignes)) r.lignes = [];
                     }
                     if (r.client_id !== undefined) r.clientId = r.client_id;
+                    // Produits
+                    if (t === 'produits') {
+                      r.prix = r.prix_vente_ht ?? r.prix ?? 0;
+                      r.quantite = r.stock_actuel ?? r.quantite ?? 0;
+                      r.seuil = r.stock_minimum ?? r.seuil ?? 0;
+                    }
                     return r;
                   });
                   if (typeof render === 'function') render();
@@ -7307,10 +7319,10 @@
               <button class="btn btn-sm btn-outline" onclick="printDoc('facture','${f.id}')">PDF</button>
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('facture','${f.id}')">Modifier</button>` : ''}
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-primary" onclick="changeDocStatut('facture','${f.id}','validee')">Valider</button>` : ''}
-              ${f.statut === 'validee' ? `<button class="btn btn-sm btn-success" onclick="changeDocStatut('facture','${f.id}','payee')">Payée</button>` : ''}
-              ${f.statut === 'validee' ? `<button class="btn btn-sm btn-outline" onclick="openPaiementModal('${f.id}')">Acompte</button>` : ''}
+              ${(f.statut === 'validee' || f.statut === 'partiellement_payee') ? `<button class="btn btn-sm btn-outline" onclick="openPaiementModal('${f.id}')">Acompte</button>` : ''}
+              ${(f.statut === 'validee' || f.statut === 'partiellement_payee') ? `<button class="btn btn-sm btn-success" onclick="changeDocStatut('facture','${f.id}','payee')">Payée ✓</button>` : ''}
               ${(f.statut === 'brouillon' || f.statut === 'validee') ? `<button class="btn btn-sm btn-outline" onclick="changeDocStatut('facture','${f.id}','annulee')">Annuler</button>` : ''}
-              <button class="btn btn-sm btn-danger" onclick="deleteDoc('facture','${f.id}')">Suppr.</button>
+              ${f.statut !== 'payee' ? `<button class="btn btn-sm btn-danger" onclick="deleteDoc('facture','${f.id}')">Suppr.</button>` : ''}
             </div></td>
           </tr>
         `).join('')}
@@ -7695,23 +7707,24 @@
       <tbody>
         ${produits.length === 0 ? `<tr><td colspan="7">${renderEmptyState('📦', `Catalogue vide`, `Ajoutez vos ${termProduit.toLowerCase()}s ou services pour les utiliser dans vos documents.`, `+ Nouveau ${termProduit.toLowerCase()}`, 'openNewProduit()')}</td></tr>` :
             produits.map(p => {
-              const qty = p.quantite !== undefined ? p.quantite : null;
-              const seuil = p.seuil || 0;
-              const stockStatus = qty === null ? 'service' : qty <= 0 ? 'out' : qty <= seuil ? 'low' : 'ok';
-              const stockPct = qty === null ? 0 : Math.min(100, seuil > 0 ? Math.round((qty / Math.max(qty, seuil * 2)) * 100) : 100);
+              const qty = p.stock_actuel !== undefined ? parseFloat(p.stock_actuel) : (p.quantite !== undefined ? p.quantite : null);
+              const seuil = parseFloat(p.stock_minimum || p.seuil || 0);
+              const isService = p.type_produit === 'service' || (qty === null && p.type_produit !== 'produit');
+              const stockStatus = isService ? 'service' : qty <= 0 ? 'out' : qty <= seuil ? 'low' : 'ok';
+              const stockPct = isService ? 0 : Math.min(100, seuil > 0 ? Math.round((qty / Math.max(qty, seuil * 2)) * 100) : 100);
               return `<tr>
             <td><code style="font-size:0.8rem;background:var(--bg);padding:2px 6px;border-radius:5px">${_esc(p.reference || '—')}</code></td>
             <td><strong>${_esc(p.nom)}</strong>${p.description ? `<br><span style="font-size:0.78rem;color:var(--text-muted)">${_esc(p.description.slice(0, 60))}</span>` : ''}</td>
             <td>${_esc(p.unite || 'pièce')}</td>
-            <td class="fw-bold fc-primary">${fmt.fcfa(p.prix)}</td>
+            <td class="fw-bold fc-primary">${fmt.fcfa(p.prix_vente_ht || p.prix || 0)}</td>
             <td>
-              ${qty === null ? '<span class="badge badge-ok">Service</span>' : `
+              ${isService ? '<span class="badge badge-ok">Service</span>' : `
               <div class="stock-bar-wrap stock-${stockStatus}">
                 <span style="font-size:0.85rem;font-weight:700;min-width:28px">${qty}</span>
                 <div class="stock-bar"><div class="stock-bar-inner" style="width:${stockPct}%"></div></div>
               </div>`}
             </td>
-            <td>${qty !== null ? `<span class="badge badge-${stockStatus === 'ok' ? 'ok' : stockStatus === 'low' ? 'low' : 'out'}">${stockStatus === 'ok' ? 'OK' : stockStatus === 'low' ? 'Faible' : 'Épuisé'}</span>` : '—'}</td>
+            <td>${!isService ? `<span class="badge badge-${stockStatus === 'ok' ? 'ok' : stockStatus === 'low' ? 'low' : 'out'}">${stockStatus === 'ok' ? 'OK' : stockStatus === 'low' ? 'Faible' : 'Épuisé'}</span>` : '—'}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="editProduit('${p.id}')">Modifier</button>
               <button class="btn btn-sm btn-danger" onclick="deleteProduit('${p.id}')">Suppr.</button>
