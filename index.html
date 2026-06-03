@@ -7729,7 +7729,7 @@
             <td>
               ${isService ? '<span class="badge badge-ok">Service</span>' : `
               <div class="stock-bar-wrap stock-${stockStatus}">
-                <span style="font-size:0.85rem;font-weight:700;min-width:28px">${qty}</span>
+                <span style="font-size:0.85rem;font-weight:700;min-width:28px">${parseFloat(p.stock_actuel ?? p.quantite ?? 0)}</span>
                 <div class="stock-bar"><div class="stock-bar-inner" style="width:${stockPct}%"></div></div>
               </div>`}
             </td>
@@ -7809,12 +7809,25 @@
         if (!nom) { toast('Le nom est obligatoire', 'warning'); return; }
         const hasStock = document.getElementById('p-hasstock')?.checked;
         const produits = Store.get('produits');
+        const _qty   = hasStock ? (parseInt(document.getElementById('p-qty')?.value)   || 0) : 0;
+        const _seuil = hasStock ? (parseInt(document.getElementById('p-seuil')?.value) || 5) : 0;
+        const _categorie = document.getElementById('p-categorie')?.value || '';
+        const _tva = parseFloat(document.getElementById('p-tva')?.value) || 18;
         const data = {
-          nom, reference: document.getElementById('p-ref')?.value.trim(),
-          prix, unite: document.getElementById('p-unite')?.value.trim() || 'pièce',
-          description: document.getElementById('p-desc')?.value.trim(),
-          quantite: hasStock ? (parseInt(document.getElementById('p-qty')?.value) || 0) : undefined,
-          seuil: hasStock ? (parseInt(document.getElementById('p-seuil')?.value) || 5) : undefined,
+          nom,
+          reference:    document.getElementById('p-ref')?.value.trim() || '',
+          description:  document.getElementById('p-desc')?.value.trim() || '',
+          unite:        document.getElementById('p-unite')?.value.trim() || 'pièce',
+          categorie:    _categorie,
+          type_produit: hasStock ? 'produit' : 'service',
+          // camelCase interne
+          prix, quantite: _qty, seuil: _seuil,
+          // snake_case Supabase
+          prix_vente_ht: prix,
+          stock_actuel:  _qty,
+          stock_minimum: _seuil,
+          tva_taux:      _tva,
+          is_active:     true,
           updatedAt: now()
         };
         if (id) {
@@ -7829,11 +7842,13 @@
       function deleteProduit(id) {
         const produit = Store.get('produits', []).find(p => p.id === id);
         if (!confirm(`Supprimer "${produit?.nom || 'ce produit'}" du catalogue ?\n\nCette action est irréversible.`)) return;
-        Store.set('produits', Store.get('produits', []).filter(p => p.id !== id));
+        Store._delete('produits', id, Store._wsId);
+        const _ck = Store._wsId ? `${Store._wsId}_produits` : 'produits';
+        _memCache[_ck] = Store.get('produits', []).filter(p => p.id !== id);
         updateBadges(); toast('Produit supprimé', 'success'); render();
       }
       function openMouvement() {
-        const produits = Store.get('produits').filter(p => p.quantite !== undefined);
+        const produits = Store.get('produits').filter(p => p.type_produit !== 'service');
         openModal('Mouvement de stock', `
     <div class="form-group">
       <label class="form-label">Produit *</label>
@@ -7871,8 +7886,11 @@
         const produits = Store.get('produits');
         const pi = produits.findIndex(p => p.id === produitId);
         if (pi < 0) return;
-        if (type === 'sortie' && produits[pi].quantite < qty) { toast('Stock insuffisant', 'error'); return; }
-        produits[pi].quantite = (produits[pi].quantite || 0) + (type === 'entree' ? qty : -qty);
+        const _curStock = parseFloat(produits[pi].stock_actuel ?? produits[pi].quantite ?? 0);
+        if (type === 'sortie' && _curStock < qty) { toast('Stock insuffisant', 'error'); return; }
+        const _newStock = Math.max(0, _curStock + (type === 'entree' ? qty : -qty));
+        produits[pi].quantite    = _newStock;
+        produits[pi].stock_actuel = _newStock;
         produits[pi].updatedAt = now();
         Store.set('produits', produits);
         const mvts = Store.get('mouvements');
@@ -7891,7 +7909,7 @@
         <div class="product-select-item" onclick="addProduitToDoc('${p.id}')">
           <div>
             <div class="prod-name">${_esc(p.nom)}</div>
-            <div class="prod-stock">${p.quantite !== undefined ? `Stock: ${p.quantite}` : _esc(p.unite || 'service')}</div>
+            <div class="prod-stock">${p.type_produit !== 'service' ? `Stock: ${parseFloat(p.stock_actuel ?? p.quantite ?? 0)}` : _esc(p.unite || 'service')}</div>
           </div>
           <div class="prod-price">${fmt.fcfa(p.prix)}</div>
         </div>
