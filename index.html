@@ -6691,8 +6691,85 @@
       `, "<button onclick=\"closeModal()\" class=\"btn btn-primary\" style=\"width:100%\">C'est parti ! 🚀</button>");
     }
 
+    function shareDocWhatsApp(type, id) {
+      const docs = Store.get(type === 'facture' ? 'factures' : 'devis', []);
+      const doc = docs.find(d => d.id === id);
+      if (!doc) return;
+      const clients = Store.get('clients', []);
+      const client = clients.find(c => c.id === (doc.clientId || doc.client_id));
+
+      // Construire le numéro WhatsApp du client
+      let phone = (client?.telephone || client?.whatsapp || '').replace(/\s+/g, '').replace(/[^+\d]/g, '');
+      // Ajouter +221 si numéro local sénégalais
+      if (phone && !phone.startsWith('+') && !phone.startsWith('00')) {
+        if (phone.startsWith('7') || phone.startsWith('3')) phone = '+221' + phone;
+        else phone = '+221' + phone;
+      }
+
+      const typeLabel = type === 'facture' ? 'Facture' : 'Devis';
+      const ttc = doc.totalTTC || doc.total_ttc || 0;
+      const restant = getMontantRestant(doc);
+      const co = Store.getObj('company', {});
+
+      const msg = [
+        `📄 *${typeLabel} N° ${doc.numero || ''}*`,
+        ``,
+        `🏢 *${co.nom || 'DoliPro'}*`,
+        `👤 Client : ${client?.nom || doc.clientNom || '—'}`,
+        `📅 Date : ${fmt.date(doc.date || doc.date_facture || '')}`,
+        type === 'facture' && doc.echeance ? `⏰ Échéance : ${fmt.date(doc.echeance)}` : '',
+        ``,
+        `💰 *Total TTC : ${fmt.fcfa(ttc)}*`,
+        type === 'facture' && restant > 0 && restant < ttc ? `✅ Payé : ${fmt.fcfa(ttc - restant)}
+⚠️ *Reste à payer : ${fmt.fcfa(restant)}*` : '',
+        type === 'facture' && doc.statut === 'payee' ? '✅ *Facture entièrement réglée*' : '',
+        ``,
+        co.telephone ? `📞 ${co.telephone}` : '',
+        co.email ? `📧 ${co.email}` : '',
+        ``,
+        '_Envoyé via DoliPro Manager_'
+      ].filter(Boolean).join('\n');
+
+      const encodedMsg = encodeURIComponent(msg);
+
+      // Si numéro disponible → ouvrir directement
+      if (phone && phone.length >= 8) {
+        window.open(`https://wa.me/${phone.replace('+', '')}?text=${encodedMsg}`, '_blank');
+      } else {
+        // Pas de numéro → demander ou ouvrir WhatsApp Web sans numéro
+        openModal('📱 Envoyer sur WhatsApp', `
+          <p style="margin-bottom:16px;color:var(--text-muted);font-size:0.9rem">
+            Numéro WhatsApp du client non renseigné. Entrez-le manuellement :
+          </p>
+          <div class="form-group">
+            <label class="form-label">Numéro WhatsApp</label>
+            <input type="tel" class="form-control" id="wa-phone" placeholder="+221 77 000 00 00"
+              style="font-size:1.1rem;padding:14px;letter-spacing:0.05em"
+              autocomplete="tel">
+          </div>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
+            Format : +221 suivi du numéro · Aussi enregistré sur le profil client
+          </p>
+        `, `
+          <button class="btn btn-outline" onclick="closeModal()">Annuler</button>
+          <button class="btn btn-success" onclick="
+            var ph=(document.getElementById('wa-phone')?.value||'').replace(/\s+/g,'').replace(/[^+\d]/g,'');
+            if(ph.length<8){toast('Numéro invalide','error');return;}
+            if(!ph.startsWith('+')&&!ph.startsWith('00'))ph='+221'+ph;
+            // Sauvegarder sur le client
+            var cls=Store.get('clients',[]);
+            var ci=cls.findIndex(c=>c.id==='${doc.clientId||doc.client_id}');
+            if(ci>=0){cls[ci].telephone=ph;Store.set('clients',cls);}
+            window.open('https://wa.me/'+ph.replace('+','')+encodeURIComponent('?text=${encodedMsg.slice(0,100)}'),'_blank');
+            window.open('https://wa.me/'+ph.replace('+','')+'?text=${encodedMsg}','_blank');
+            closeModal();
+          ">💬 Envoyer</button>
+        `);
+      }
+    }
+
     function fabAction() {
-      const page = App.currentPage || 'dashboard';
+      const _curPage = App.currentPage || 'dashboard';
       const actions = {
         clients:      () => openNewClient(),
         factures:     () => openNewFacture(),
@@ -6704,7 +6781,7 @@
         chantiers:    () => ModuleBTP.openForm(null),
         paie:         () => ModulePayroll.ouvrirPresences(new Date().toISOString().slice(0,7)),
       };
-      const action = actions[page];
+      const action = actions[_curPage];
       if (action) action();
       else navigate('factures');
     }
@@ -7351,6 +7428,7 @@
             <td class="text-right fw-bold">${fmt.fcfa((f.totalTTC||f.total_ttc||0) || f.total_ttc || 0)}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="printDoc('facture','${f.id}')">PDF</button>
+              ${(f.statut === 'validee' || f.statut === 'partiellement_payee' || f.statut === 'payee') ? `<button class="btn btn-sm" onclick="shareDocWhatsApp('facture','${f.id}')" style="background:#25d366;color:#fff;border:none;border-radius:var(--radius)">💬 WA</button>` : ''}
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('facture','${f.id}')">Modifier</button>` : ''}
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-primary" onclick="changeDocStatut('facture','${f.id}','validee')">Valider</button>` : ''}
               ${(f.statut === 'validee' || f.statut === 'partiellement_payee') ? `<button class="btn btn-sm btn-outline" onclick="openPaiementModal('${f.id}')">Acompte</button>` : ''}
@@ -7425,6 +7503,7 @@
             <td class="text-right fw-bold">${fmt.fcfa(d.totalTTC)}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="printDoc('devis','${d.id}')">PDF</button>
+              ${(d.statut === 'envoye' || d.statut === 'accepte') ? `<button class="btn btn-sm" onclick="shareDocWhatsApp('devis','${d.id}')" style="background:#25d366;color:#fff;border:none;border-radius:var(--radius)">💬 WA</button>` : ''}
               ${d.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('devis','${d.id}')">Modifier</button>` : ''}
               ${d.statut === 'brouillon' ? `<button class="btn btn-sm btn-primary" onclick="changeDocStatut('devis','${d.id}','envoye')">Envoyer</button>` : ''}
               ${d.statut === 'envoye' ? `<button class="btn btn-sm btn-success" onclick="changeDocStatut('devis','${d.id}','accepte')">Accepté</button>` : ''}
@@ -7483,12 +7562,23 @@
         <button class="btn btn-sm btn-outline" onclick="addDocLine()">+ Ligne</button>
         <button class="btn btn-sm btn-outline" onclick="addLigneMainOeuvre()">👷 + Main d'œuvre</button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:var(--bg);border-radius:var(--radius)">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;font-weight:600">
-          <input type="checkbox" id="doc-tva-active" ${(doc?.tvaActive !== false) ? 'checked' : ''} onchange="toggleTVA(this.checked)" style="width:16px;height:16px;accent-color:var(--primary)">
-          Facturer la TVA
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:12px 16px;background:var(--bg);border-radius:var(--radius);border:2px solid var(--border);gap:12px">
+        <div>
+          <div style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:2px">💰 TVA (Taxe sur la Valeur Ajoutée)</div>
+          <div style="font-size:0.78rem;color:var(--text-muted)">
+            ${(doc?.tvaActive !== false) ? '✅ TVA incluse dans les prix — taux 18% par défaut' : '⛔ Sans TVA — non assujetti ou client exonéré'}
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
+          <span style="font-size:0.85rem;font-weight:600;color:${(doc?.tvaActive !== false) ? 'var(--primary)' : 'var(--text-muted)'}">
+            ${(doc?.tvaActive !== false) ? 'Activée' : 'Désactivée'}
+          </span>
+          <div style="position:relative;width:44px;height:24px" onclick="toggleTVA(document.getElementById('doc-tva-active').checked=!document.getElementById('doc-tva-active').checked,document.getElementById('doc-tva-active').checked)">
+            <input type="checkbox" id="doc-tva-active" ${(doc?.tvaActive !== false) ? 'checked' : ''} onchange="toggleTVA(this.checked)" style="opacity:0;width:0;height:0;position:absolute">
+            <div id="tva-toggle-track" style="position:absolute;inset:0;border-radius:12px;background:${(doc?.tvaActive !== false) ? 'var(--primary)' : '#cbd5e1'};transition:background .2s;cursor:pointer"></div>
+            <div id="tva-toggle-thumb" style="position:absolute;top:3px;left:${(doc?.tvaActive !== false) ? '23px' : '3px'};width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s"></div>
+          </div>
         </label>
-        <span style="font-size:0.8rem;color:var(--text-muted)">Décochez si vous n'êtes pas assujetti à la TVA</span>
       </div>
       <div class="doc-lines-header">
         <span>Description</span><span>Qté</span><span>P.U. HT</span><span>TVA %</span><span></span>
@@ -7551,6 +7641,14 @@
       }
 
       function toggleTVA(active) {
+        // Animer le toggle switch
+        const track = document.getElementById('tva-toggle-track');
+        const thumb = document.getElementById('tva-toggle-thumb');
+        if (track) track.style.background = active ? 'var(--primary)' : '#cbd5e1';
+        if (thumb) thumb.style.left = active ? '23px' : '3px';
+        // Mettre à jour le label
+        const label = track?.previousElementSibling;
+        if (label) { label.textContent = active ? 'Activée' : 'Désactivée'; label.style.color = active ? 'var(--primary)' : 'var(--text-muted)'; }
         docLines = docLines.map(l => ({ ...l, tva: active ? (l.tva || 18) : 0 }));
         renderDocLines();
         updateDocTotaux();
