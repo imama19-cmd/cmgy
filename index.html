@@ -5240,6 +5240,11 @@
         if (!table || !wsId) return;
         const sb = getSupabaseClient();
         if (!sb) return;
+        // Injecter workspace_id automatiquement sur chaque row
+        val = (Array.isArray(val) ? val : [val]).map(row => ({
+          ...row,
+          workspace_id: row.workspace_id || wsId
+        }));
 
         if (key === 'company') {
           sb.from('workspaces')
@@ -6565,7 +6570,7 @@
       const wsId = Session._wsId;
       if (!sb || !wsId) return;
 
-      const tables = ['clients', 'factures', 'devis', 'produits', 'transactions', 'employes', 'chantiers'];
+      const tables = ['clients', 'factures', 'devis', 'produits', 'transactions', 'employes', 'chantiers', 'relances', 'paie', 'presences'];
 
       tables.forEach(table => {
         sb.channel(`sync_${table}_${wsId}`)
@@ -6686,6 +6691,24 @@
       `, "<button onclick=\"closeModal()\" class=\"btn btn-primary\" style=\"width:100%\">C'est parti ! 🚀</button>");
     }
 
+    function fabAction() {
+      const page = App.currentPage || 'dashboard';
+      const actions = {
+        clients:      () => openNewClient(),
+        factures:     () => openNewFacture(),
+        devis:        () => openNewDevis(),
+        produits:     () => openNewProduit(),
+        stock:        () => openNewProduit(),
+        comptabilite: () => openTransactionModal(),
+        transactions: () => openTransactionModal(),
+        chantiers:    () => ModuleBTP.openForm(null),
+        paie:         () => ModulePayroll.ouvrirPresences(new Date().toISOString().slice(0,7)),
+      };
+      const action = actions[page];
+      if (action) action();
+      else navigate('factures');
+    }
+
     function navigate(page) {
       // Vérifier expiration sur chaque navigation
       if (isPlanExpired()) {
@@ -6753,6 +6776,8 @@
         case 'stock': c.innerHTML = renderStock(); break;
         case 'parametres': c.innerHTML = renderParametres(); break;
         case 'comptabilite': c.innerHTML = renderComptabilite(); initComptaChart(); break;
+        case 'depenses': navigate('comptabilite'); return;
+        case 'transactions': navigate('comptabilite'); return;
         case 'relances': c.innerHTML = renderRelances(); break;
         case 'rapports': c.innerHTML = renderRapports(); break;
         case 'chantiers': c.innerHTML = ModuleBTP.renderListe(); break;
@@ -6809,7 +6834,7 @@
           return d.getMonth() === m && d.getFullYear() === y &&
             ['payee', 'envoyee', 'partiellement_payee', 'validee'].includes(f.statut);
         })
-        .reduce((s, f) => s + (f.total_ttc || f.totalTTC || 0), 0);
+        .reduce((s, f) => s + (f.total_ttc || (f.totalTTC||f.total_ttc||0) || 0), 0);
 
       // CA mois précédent (pour la tendance)
       const prevM = m === 0 ? 11 : m - 1;
@@ -6820,14 +6845,14 @@
           return d.getMonth() === prevM && d.getFullYear() === prevY &&
             ['payee', 'envoyee', 'partiellement_payee', 'validee'].includes(f.statut);
         })
-        .reduce((s, f) => s + (f.total_ttc || f.totalTTC || 0), 0);
+        .reduce((s, f) => s + (f.total_ttc || (f.totalTTC||f.total_ttc||0) || 0), 0);
 
       const tendance = caPrev > 0 ? Math.round(((caMonth - caPrev) / caPrev) * 100) : 0;
 
       // Impayés
       const impayes = factures
         .filter(f => ['envoyee', 'partiellement_payee', 'en_retard', 'validee'].includes(f.statut))
-        .reduce((s, f) => s + (f.montant_restant || (f.total_ttc || f.totalTTC || 0) - (f.montant_paye || f.montantPaye || 0)), 0);
+        .reduce((s, f) => s + (f.montant_restant || (f.total_ttc || (f.totalTTC||f.total_ttc||0) || 0) - (f.montant_paye || f.montantPaye || 0)), 0);
 
       // Factures en retard
       const retard = factures.filter(f =>
@@ -6859,7 +6884,7 @@
             return d.getMonth() === mi.getMonth() && d.getFullYear() === mi.getFullYear() &&
               ['payee', 'envoyee', 'partiellement_payee', 'validee'].includes(f.statut);
           })
-          .reduce((s, f) => s + (f.total_ttc || f.totalTTC || 0), 0);
+          .reduce((s, f) => s + (f.total_ttc || (f.totalTTC||f.total_ttc||0) || 0), 0);
         moisCA.push(ca);
       }
       const maxBar = Math.max(...moisCA, 1);
@@ -6868,7 +6893,7 @@
       const clientCA = {};
       factures.filter(f => ['payee', 'validee'].includes(f.statut)).forEach(f => {
         const cid = f.client_id || f.clientId;
-        clientCA[cid] = (clientCA[cid] || 0) + (f.total_ttc || f.totalTTC || 0);
+        clientCA[cid] = (clientCA[cid] || 0) + (f.total_ttc || (f.totalTTC||f.total_ttc||0) || 0);
       });
       const topClients = Object.entries(clientCA).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, ca]) => {
         const c = clients.find(c => c.id === id);
@@ -7032,7 +7057,7 @@
         for (let i = 11; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           labels.push(d.toLocaleDateString('fr-FR', { month: 'short' }));
-          const ca = factures.filter(f => { const fd = new Date(f.date); return fd.getMonth() === d.getMonth() && fd.getFullYear() === d.getFullYear() && (f.statut === 'payee' || f.statut === 'validee'); }).reduce((s, f) => s + (f.totalTTC || 0), 0);
+          const ca = factures.filter(f => { const fd = new Date(f.date); return fd.getMonth() === d.getMonth() && fd.getFullYear() === d.getFullYear() && (f.statut === 'payee' || f.statut === 'validee'); }).reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
           data.push(ca);
         }
         const max = Math.max(...data, 1);
@@ -7232,7 +7257,7 @@
         if (!c) return;
         const factures = Store.get('factures').filter(f => f.clientId === id);
         const devis = Store.get('devis').filter(d => d.clientId === id);
-        const totalCA = factures.filter(f => f.statut === 'payee' || f.statut === 'validee').reduce((s, f) => s + (f.totalTTC || 0), 0);
+        const totalCA = factures.filter(f => f.statut === 'payee' || f.statut === 'validee').reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
         openModal(`Client — ${c.nom}`, `
     <div class="d-flex gap-12" style="margin-bottom:20px">
       <div class="stat-badge"><div class="stat-val">${fmt.fcfa(totalCA)}</div><div class="stat-lbl">CA Total</div></div>
@@ -7254,7 +7279,7 @@
         <span style="font-size:0.85rem;flex:1;font-weight:600">${_esc(f.numero || '')}</span>
         <span style="font-size:0.82rem;color:var(--text-muted)">${fmt.date(f.date)}</span>
         <span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span>
-        <span style="font-size:0.85rem;font-weight:700;color:var(--primary)">${fmt.fcfa(f.totalTTC)}</span>
+        <span style="font-size:0.85rem;font-weight:700;color:var(--primary)">${fmt.fcfa((f.totalTTC||f.total_ttc||0))}</span>
       </div>`).join('') || '<p style="color:var(--text-muted);font-size:0.85rem">Aucune facture</p>'}
   ${ModuleSuiviClient.renderJournal(id)}
   `, `<button class="btn btn-outline" onclick="closeModal()">Fermer</button>
@@ -7273,7 +7298,7 @@
         const termFacture = profil.terminologie?.facture || 'Facture';
         const termClient = profil.terminologie?.client || 'Client';
         const filtered = factures.filter(f => {
-          const matchSearch = !factureSearch || f.numero?.toLowerCase().includes(factureSearch) || f.clientNom?.toLowerCase().includes(factureSearch) || String(f.totalTTC || 0).includes(factureSearch);
+          const matchSearch = !factureSearch || f.numero?.toLowerCase().includes(factureSearch) || f.clientNom?.toLowerCase().includes(factureSearch) || String((f.totalTTC||f.total_ttc||0) || 0).includes(factureSearch);
           if (factureStatut === 'retard') {
             return matchSearch && f.statut === 'validee' && f.echeance && new Date(f.echeance) < new Date();
           }
@@ -7322,8 +7347,8 @@
             <td>${fmt.date(f.date)}</td>
             <td>${f.echeance ? fmt.date(f.echeance) : '—'}</td>
             <td><span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span></td>
-            <td class="text-right">${fmt.fcfa(f.totalHT || f.sous_total_ht || 0)}</td>
-            <td class="text-right fw-bold">${fmt.fcfa(f.totalTTC || f.total_ttc || 0)}</td>
+            <td class="text-right">${fmt.fcfa((f.totalHT||f.sous_total_ht||0) || f.sous_total_ht || 0)}</td>
+            <td class="text-right fw-bold">${fmt.fcfa((f.totalTTC||f.total_ttc||0) || f.total_ttc || 0)}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="printDoc('facture','${f.id}')">PDF</button>
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('facture','${f.id}')">Modifier</button>` : ''}
@@ -7848,7 +7873,7 @@
         updateBadges(); toast('Produit supprimé', 'success'); render();
       }
       function openMouvement() {
-        const produits = Store.get('produits').filter(p => p.type_produit !== 'service');
+        const produits = Store.get('produits').filter(p => p.type_produit !== 'service' && p.type_produit !== null || (p.stock_actuel !== undefined || p.quantite !== undefined));
         openModal('Mouvement de stock', `
     <div class="form-group">
       <label class="form-label">Produit *</label>
@@ -8109,6 +8134,12 @@
           logo: Store.getObj('company', {}).logo
         };
         Store.set('company', co);
+        // Sync nom workspace vers Supabase
+        const _wsId = Store._wsId || Session._wsId;
+        if (_wsId && co.nom) {
+          const sb = getSupabaseClient();
+          if (sb) sb.from('workspaces').update({ nom: co.nom }).eq('id', _wsId).then(() => {});
+        }
         toast('Paramètres enregistrés', 'success');
       }
 
@@ -9298,13 +9329,13 @@ ${(function(){
           const d = new Date(f.date);
           return d.getFullYear() === annee && (d.getMonth() + 1) === mois;
         });
-        const ca = factures.filter(f => f.statut !== 'annulee').reduce((s, f) => s + f.totalTTC, 0);
+        const ca = factures.filter(f => f.statut !== 'annulee').reduce((s, f) => s + (f.totalTTC||f.total_ttc||0), 0);
         const payees = factures.filter(f => f.statut === 'payee').length;
         const total = factures.filter(f => f.statut !== 'brouillon').length;
         const taux = total > 0 ? Math.round((payees / total) * 100) : 0;
         const clients = Store.get('clients', []);
         const topClients = Object.entries(
-          factures.reduce((acc, f) => { acc[f.clientId] = (acc[f.clientId] || 0) + f.totalTTC; return acc; }, {})
+          factures.reduce((acc, f) => { acc[f.clientId] = (acc[f.clientId] || 0) + (f.totalTTC||f.total_ttc||0); return acc; }, {})
         ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id, ca]) => ({
           nom: clients.find(c => c.id === id)?.nom || '—', ca
         }));
@@ -9333,9 +9364,9 @@ ${(function(){
         const factures = Store.get('factures', []);
         const tvaLines = factures.filter(f => f.statut !== 'annulee' && f.statut !== 'brouillon')
           .filter(f => { const d = new Date(f.date); return d.getFullYear() === annee; });
-        const totalHT = tvaLines.reduce((s, f) => s + (f.totalHT || 0), 0);
+        const totalHT = tvaLines.reduce((s, f) => s + ((f.totalHT||f.sous_total_ht||0) || 0), 0);
         const totalTVA = tvaLines.reduce((s, f) => s + (f.totalTVA || 0), 0);
-        const totalTTC = tvaLines.reduce((s, f) => s + (f.totalTTC || 0), 0);
+        const totalTTC = tvaLines.reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
         return `
     <div class="page-header">
       <h1 class="page-title" style="font-family:var(--font-title)">Rapports & Exports</h1>
@@ -10097,11 +10128,11 @@ ${(function(){
         const transactions = Store.get('transactions', []);
         const now30 = new Date(); now30.setDate(now30.getDate() - 30);
 
-        const caTotal = factures.filter(f => f.statut === 'payee').reduce((s, f) => s + (f.totalTTC || 0), 0);
+        const caTotal = factures.filter(f => f.statut === 'payee').reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
         const caMois = factures.filter(f => f.statut === 'payee' && new Date(f.date) >= now30)
-          .reduce((s, f) => s + (f.totalTTC || 0), 0);
+          .reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
         const enAttente = factures.filter(f => ['validee', 'envoye'].includes(f.statut))
-          .reduce((s, f) => s + (f.totalTTC || 0), 0);
+          .reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
         const depMois = transactions.filter(t => t.type === 'depense' && new Date(t.date) >= now30)
           .reduce((s, t) => s + (t.montant || 0), 0);
         const benefice = caMois - depMois;
@@ -10228,6 +10259,23 @@ ${(function(){
       /* ══════════════════════════════════════════════════════
          V11 — CHANTIER 2 — EXPORT CSV / PDF
       ══════════════════════════════════════════════════════ */
+      function exportExcel(type) {
+        const data = exportCSV(type, true); // retourner les données sans télécharger
+        if (!data || !data.length) { toast('Aucune donnée à exporter', 'warning'); return; }
+        try {
+          const XLSX = window.XLSX;
+          if (!XLSX) { toast('SheetJS non disponible — utiliser le CSV', 'warning'); return; }
+          const ws = XLSX.utils.json_to_sheet(data);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, type);
+          XLSX.writeFile(wb, `${type}_${new Date().toISOString().slice(0,10)}.xlsx`);
+          toast('Export Excel téléchargé ✅', 'success');
+        } catch(e) {
+          console.error('[exportExcel]', e);
+          toast('Erreur export Excel — essayez le CSV', 'error');
+        }
+      }
+
       function exportCSV(type) {
         const data = Store.get(type, []);
         if (!data.length) { toast('Aucune donnée à exporter', 'warning'); return; }
@@ -10237,7 +10285,7 @@ ${(function(){
           rows = data.map(c => [c.nom || '', c.email || '', c.telephone || '', c.adresse || '', c.ville || '', c.segment || '']);
         } else if (type === 'factures') {
           headers = ['Numéro', 'Client', 'Date', 'Échéance', 'Statut', 'Total HT', 'TVA', 'Total TTC'];
-          rows = data.map(f => [f.numero || '', f.clientNom || '', f.date || '', f.echeance || '', f.statut || '', f.totalHT || 0, f.totalTVA || 0, f.totalTTC || 0]);
+          rows = data.map(f => [f.numero || '', f.clientNom || '', f.date || '', f.echeance || '', f.statut || '', (f.totalHT||f.sous_total_ht||0) || 0, f.totalTVA || 0, (f.totalTTC||f.total_ttc||0) || 0]);
         } else if (type === 'devis') {
           headers = ['Numéro', 'Client', 'Date', 'Validité', 'Statut', 'Total TTC'];
           rows = data.map(d => [d.numero || '', d.clientNom || '', d.date || '', d.validite || '', d.statut || '', d.totalTTC || 0]);
@@ -10638,7 +10686,7 @@ ${(function(){
           if (!c) return;
           const avancement = c.phases?.length ? Math.round(c.phases.reduce((s, p) => s + (p.avancement_pct || 0), 0) / c.phases.length) : 0;
           const factures = Store.get('factures', []).filter(f => f.chantierLie === id);
-          const totalFacture = factures.reduce((s, f) => s + (f.totalTTC || 0), 0);
+          const totalFacture = factures.reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
           openModal(`🏗️ ${c.nom}`, `
       <div class="form-grid" style="margin-bottom:16px">
         <div><label class="form-label">Client</label><p>${_esc(c.client || '—')}</p></div>
@@ -10665,7 +10713,7 @@ ${(function(){
       <div style="margin-bottom:12px">
         <div style="font-weight:700;margin-bottom:4px">Documents liés</div>
         <div style="font-size:0.85rem;color:var(--text-muted)">Total facturé : <strong>${fmt.fcfa(totalFacture)}</strong> / Budget : ${fmt.fcfa(c.budget_total || 0)}</div>
-        ${factures.slice(0, 3).map(f => `<div style="font-size:0.82rem;padding:4px 0">${f.numero} — ${fmt.fcfa(f.totalTTC)} — <span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span></div>`).join('')}
+        ${factures.slice(0, 3).map(f => `<div style="font-size:0.82rem;padding:4px 0">${f.numero} — ${fmt.fcfa((f.totalTTC||f.total_ttc||0))} — <span class="badge badge-${f.statut}">${statutLabel(f.statut)}</span></div>`).join('')}
       </div>
       <div style="text-align:right">
         <button class="btn btn-outline btn-sm" onclick="closeModal();ModuleBTP.openRapportJournalier('${id}')">📊 Rapport journalier</button>
@@ -10846,7 +10894,7 @@ ${(function(){
     </div>
     <h2>Factures du jour</h2>
     ${facDuJour.length ? `<table><thead><tr><th>N°</th><th>Client</th><th>Statut</th><th>Montant TTC</th></tr></thead><tbody>
-      ${facDuJour.map(f => `<tr><td><strong>${_esc(f.numero || '')}</strong></td><td>${_esc(f.clientNom || '')}</td><td>${statutLabel(f.statut)}</td><td><strong>${fmt.fcfa(f.totalTTC)}</strong></td></tr>`).join('')}
+      ${facDuJour.map(f => `<tr><td><strong>${_esc(f.numero || '')}</strong></td><td>${_esc(f.clientNom || '')}</td><td>${statutLabel(f.statut)}</td><td><strong>${fmt.fcfa((f.totalTTC||f.total_ttc||0))}</strong></td></tr>`).join('')}
     </tbody></table>` : '<p style="color:#94a3b8;font-size:0.85rem">Aucune facture</p>'}
   <\/body><\/html>`;
         const w = window.open('', '_blank');
@@ -10863,13 +10911,13 @@ ${(function(){
         for (let i = 11; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
           const mois = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-          const ca = factures.filter(f => { const fd = new Date(f.date); return fd.getMonth() === d.getMonth() && fd.getFullYear() === d.getFullYear() && (f.statut === 'payee' || f.statut === 'validee'); }).reduce((s, f) => s + (f.totalTTC || 0), 0);
+          const ca = factures.filter(f => { const fd = new Date(f.date); return fd.getMonth() === d.getMonth() && fd.getFullYear() === d.getFullYear() && (f.statut === 'payee' || f.statut === 'validee'); }).reduce((s, f) => s + ((f.totalTTC||f.total_ttc||0) || 0), 0);
           moisData.push({ mois, ca });
         }
         const totalCA = moisData.reduce((s, m) => s + m.ca, 0);
         const topClients = (() => {
           const map = {};
-          factures.filter(f => f.statut === 'payee' || f.statut === 'validee').forEach(f => { map[f.clientNom || '—'] = (map[f.clientNom || '—'] || 0) + (f.totalTTC || 0); });
+          factures.filter(f => f.statut === 'payee' || f.statut === 'validee').forEach(f => { map[f.clientNom || '—'] = (map[f.clientNom || '—'] || 0) + ((f.totalTTC||f.total_ttc||0) || 0); });
           return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10);
         })();
         const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
@@ -10944,7 +10992,7 @@ ${(function(){
         if (!f) return;
         const client = clients.find(c => c.id === f.clientId);
         const email = client?.email || '';
-        const fillTemplate = (tpl) => tpl.replace(/{{client_nom}}/g, client?.nom || 'Client').replace(/{{numero_facture}}/g, f.numero || '').replace(/{{montant}}/g, fmt.fcfa(f.totalTTC)).replace(/{{date_echeance}}/g, fmt.date(f.echeance || f.date));
+        const fillTemplate = (tpl) => tpl.replace(/{{client_nom}}/g, client?.nom || 'Client').replace(/{{numero_facture}}/g, f.numero || '').replace(/{{montant}}/g, fmt.fcfa((f.totalTTC||f.total_ttc||0))).replace(/{{date_echeance}}/g, fmt.date(f.echeance || f.date));
         App._relanceFactureId = factureId;
         openModal(`📧 Relancer — ${f.numero}`, `
     <div class="form-group">
@@ -11000,7 +11048,29 @@ ${(function(){
         // Enregistrer dans l'historique client
         const f = Store.get('factures', []).find(x => x.id === App._relanceFactureId);
         if (f) {
-          ModuleSuiviClient.addNote(f.clientId, { type: 'relance', resume: `Relance facture ${f.numero}`, montant: f.totalTTC });
+          ModuleSuiviClient.addNote(f.clientId, { type: 'relance', resume: `Relance facture ${f.numero}`, montant: (f.totalTTC||f.total_ttc||0) });
+        }
+        // Enregistrer la relance dans Supabase
+        const _f2 = Store.get('factures', []).find(x => x.id === App._relanceFactureId);
+        if (_f2) {
+          const relances = Store.get('relances', []);
+          relances.push({
+            id: uid(),
+            facture_id: _f2.id,
+            client_id: _f2.clientId || _f2.client_id,
+            type_relance: 'email',
+            statut: 'envoyee',
+            sujet: document.getElementById('relance-sujet')?.value || '',
+            email_destinataire: email,
+            date_envoi: new Date().toISOString().slice(0,10),
+            niveau: 1,
+            createdAt: now()
+          });
+          Store.set('relances', relances);
+          // Marquer facture en retard
+          const factures = Store.get('factures', []);
+          const fi = factures.findIndex(x => x.id === _f2.id);
+          if (fi >= 0) { factures[fi].statut = 'en_retard'; Store.set('factures', factures); }
         }
         window.location.href = `mailto:${email}?subject=${sujet}&body=${corps}`;
         closeModal();
@@ -11013,7 +11083,7 @@ ${(function(){
         if (!corps) { toast('Message vide', 'error'); return; }
         // Enregistrer dans l'historique client
         if (f) {
-          ModuleSuiviClient.addNote(f.clientId, { type: 'relance', resume: `Relance WhatsApp ${f.numero}`, montant: f.totalTTC });
+          ModuleSuiviClient.addNote(f.clientId, { type: 'relance', resume: `Relance WhatsApp ${f.numero}`, montant: (f.totalTTC||f.total_ttc||0) });
         }
         const msg = encodeURIComponent(corps);
         // wa.me fonctionne sur mobile ET desktop
@@ -11050,7 +11120,7 @@ ${(function(){
         const produits = Store.get('produits', []).filter(p => p.nom?.toLowerCase().includes(q));
         const results = [
           ...clients.slice(0, 3).map(c => ({ type: 'client', icon: '👤', label: c.nom, sub: c.email || '', action: `navigate('clients')` })),
-          ...factures.slice(0, 3).map(f => ({ type: 'facture', icon: '📄', label: f.numero + ' — ' + f.clientNom, sub: fmt.fcfa(f.totalTTC), action: `navigate('factures')` })),
+          ...factures.slice(0, 3).map(f => ({ type: 'facture', icon: '📄', label: f.numero + ' — ' + f.clientNom, sub: fmt.fcfa((f.totalTTC||f.total_ttc||0)), action: `navigate('factures')` })),
           ...devis.slice(0, 3).map(d => ({ type: 'devis', icon: '📋', label: d.numero + ' — ' + d.clientNom, sub: fmt.fcfa(d.totalTTC), action: `navigate('devis')` })),
           ...produits.slice(0, 3).map(p => ({ type: 'produit', icon: '📦', label: p.nom, sub: fmt.fcfa(p.prixHT), action: `navigate('stock')` })),
         ];
