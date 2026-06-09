@@ -5376,17 +5376,32 @@
             if (saved) _memCache[_ck] = JSON.parse(saved);
           } catch(e) {}
 
-          // Charger company depuis Supabase workspaces.settings si disponible
+          // Charger company depuis Supabase workspaces (colonnes réelles)
           const _sbCo = getSupabaseClient();
           if (_sbCo) {
-            _sbCo.from('workspaces').select('settings, nom').eq('id', wsId).single()
+            _sbCo.from('workspaces')
+              .select('nom, telephone, adresse, ville, ninea, rc, rccm, pays, devise, tva_defaut, logo_url, email, website, tva_num, conditions')
+              .eq('id', wsId).single()
               .then(({ data }) => {
-                if (data) {
-                  const co = { ...(data.settings || {}), nom: data.nom || data.settings?.nom || '' };
-                  if (co.nom) {
-                    _memCache[`${wsId}_company`] = co;
-                    try { localStorage.setItem(`${wsId}_company`, JSON.stringify(co)); } catch(e) {}
-                  }
+                if (data && data.nom) {
+                  const co = {
+                    nom:        data.nom        || '',
+                    telephone:  data.telephone  || '',
+                    adresse:    data.adresse    || '',
+                    ville:      data.ville      || '',
+                    ninea:      data.ninea      || '',
+                    rccm:       data.rccm || data.rc || '',
+                    pays:       data.pays       || 'Sénégal',
+                    devise:     data.devise     || 'XOF',
+                    logo:       data.logo_url   || '',
+                    email:      data.email      || '',
+                    website:    data.website    || '',
+                    tvaNum:     data.tva_num    || '',
+                    conditions: data.conditions || '',
+                    ...(_memCache[`${wsId}_company`] || {}) // localStorage a priorité
+                  };
+                  _memCache[`${wsId}_company`] = co;
+                  try { localStorage.setItem(`${wsId}_company`, JSON.stringify(co)); } catch(e) {}
                 }
               }).catch(() => {});
           }
@@ -8264,15 +8279,28 @@
           const _ck = (Store._wsId || 'local') + '_company';
           localStorage.setItem(_ck, JSON.stringify(co));
         } catch(e) {}
-        // 3. Sync vers Supabase workspaces.settings
+        // 3. Sync vers Supabase workspaces (colonnes réelles)
         const _wsId = Store._wsId || Session._wsId;
         if (_wsId) {
           const sb = getSupabaseClient();
           if (sb) sb.from('workspaces')
-            .update({ nom: co.nom || '', settings: co })
+            .update({
+              nom:        co.nom        || '',
+              telephone:  co.telephone  || '',
+              adresse:    co.adresse    || '',
+              ville:      co.ville      || '',
+              ninea:      co.ninea      || '',
+              rc:         co.rccm       || '',
+              rccm:       co.rccm       || '',
+              pays:       co.pays       || 'Sénégal',
+              email:      co.email      || '',
+              website:    co.website    || '',
+              tva_num:    co.tvaNum     || '',
+              conditions: co.conditions || '',
+            })
             .eq('id', _wsId)
             .then(({ error }) => {
-              if (error) console.warn('[saveCompany]', error.message);
+              if (error) console.warn('[saveCompany Supabase]', error.message);
             });
         }
         toast('Paramètres enregistrés ✅', 'success');
