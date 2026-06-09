@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>DoliPro Manager v14 — Backend Only</title>
   <meta name="theme-color" content="#1e6fd9">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231e6fd9'/><text y='22' x='16' text-anchor='middle' font-size='18' font-family='sans-serif' fill='white'>D</text></svg>" type="image/svg+xml">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -4921,8 +4922,8 @@
       SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhqb2hyY2twYnpxeWFiZnVzZGZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MTAwNzcsImV4cCI6MjA5MzI4NjA3N30.Rs5cvFiRK_IJKrAatXMSMEr06iIwMbZ5_H4ZqTMfcXk',
       // URL du backend Hono (Railway) — optionnel pour l'instant
       API_BASE: 'https://api.dolipro.com',
-      // true = auth Supabase réelle | false = mode démo local
-      BACKEND_ENABLED: true,
+      // false tant que api.dolipro.com n'est pas déployé
+      BACKEND_ENABLED: false,
       SCHEMA_VERSION: 14
     };
 
@@ -4955,6 +4956,7 @@
         if (!navigator.onLine) { this._showOffline(); return false; }
         this._hideOffline(); return true;
       },
+      _retry() { window.location.reload(); },
       _showOffline() {
         if (this._blocked) return;
         this._blocked = true;
@@ -5365,6 +5367,28 @@
               tvaDefaut: ws.tva_defaut || 18, logo: ws.logo_url,
               pays: ws.pays || 'senegal', plan: ws.plan
             };
+          }
+
+          // Restaurer company depuis localStorage (survit au rechargement)
+          try {
+            const _ck = wsId + '_company';
+            const saved = localStorage.getItem(_ck);
+            if (saved) _memCache[_ck] = JSON.parse(saved);
+          } catch(e) {}
+
+          // Charger company depuis Supabase workspaces.settings si disponible
+          const _sbCo = getSupabaseClient();
+          if (_sbCo) {
+            _sbCo.from('workspaces').select('settings, nom').eq('id', wsId).single()
+              .then(({ data }) => {
+                if (data) {
+                  const co = { ...(data.settings || {}), nom: data.nom || data.settings?.nom || '' };
+                  if (co.nom) {
+                    _memCache[`${wsId}_company`] = co;
+                    try { localStorage.setItem(`${wsId}_company`, JSON.stringify(co)); } catch(e) {}
+                  }
+                }
+              }).catch(() => {});
           }
 
           console.log('[Store] ✅ Données chargées depuis Supabase:', wsId);
@@ -5995,6 +6019,8 @@
       const right = document.getElementById('auth-right');
       if (right) right.scrollTop = 0;
     }
+
+    window.switchAuthTab = switchAuthTab; // accessible depuis le HTML statique
 
     async function doForgotPassword() {
       const email = ((document.getElementById('forgot-email') || {}).value || '').trim().toLowerCase();
@@ -8231,14 +8257,26 @@
           conditions: document.getElementById('co-cond')?.value.trim(),
           logo: Store.getObj('company', {}).logo
         };
+        // 1. Écrire en mémoire
         Store.set('company', co);
-        // Sync nom workspace vers Supabase
+        // 2. Persister en localStorage (survit au rechargement)
+        try {
+          const _ck = (Store._wsId || 'local') + '_company';
+          localStorage.setItem(_ck, JSON.stringify(co));
+        } catch(e) {}
+        // 3. Sync vers Supabase workspaces.settings
         const _wsId = Store._wsId || Session._wsId;
-        if (_wsId && co.nom) {
+        if (_wsId) {
           const sb = getSupabaseClient();
-          if (sb) sb.from('workspaces').update({ nom: co.nom }).eq('id', _wsId).then(() => {});
+          if (sb) sb.from('workspaces')
+            .update({ nom: co.nom || '', settings: co })
+            .eq('id', _wsId)
+            .then(({ error }) => {
+              if (error) console.warn('[saveCompany]', error.message);
+            });
         }
-        toast('Paramètres enregistrés', 'success');
+        toast('Paramètres enregistrés ✅', 'success');
+        render(); // Rafraîchir l'affichage (header, PDF, etc.)
       }
 
       // ── CGU ───────────────────────────────────────────────
@@ -12339,18 +12377,6 @@ ${(function(){
         return depasse
           ? `style="color:#dc2626;font-weight:700"`
           : `style="color:inherit"`;
-      }
-
-      // Mentions fiscales sur PDF — déjà définie dans v11, on s'assure qu'elle existe
-      if (typeof getMentionsFiscales === 'undefined') {
-        function getMentionsFiscales() {
-          const company = Store.get('company', {});
-          const mentions = [];
-          if (company.ninea) mentions.push(`NINEA : ${company.ninea}`);
-          if (company.rccm) mentions.push(`RCCM : ${company.rccm}`);
-          if (company.regimeFiscal === 'forfaitaire') mentions.push('Non assujetti à la TVA — Art. 369 CGI');
-          return mentions;
-        }
       }
 
 
