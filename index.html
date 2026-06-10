@@ -6892,7 +6892,15 @@
         case 'factures': c.innerHTML = renderFactures(); break;
         case 'devis': c.innerHTML = renderDevis(); break;
         case 'stock': c.innerHTML = renderStock(); break;
-        case 'parametres': c.innerHTML = renderParametres(); break;
+        case 'parametres':
+          // Ne pas re-render si l'utilisateur est en train d'éditer un champ
+          const _activeEl = document.activeElement;
+          const _isEditing = _activeEl && _activeEl.closest && _activeEl.closest('#page-content') && 
+            ['INPUT','TEXTAREA','SELECT'].includes(_activeEl.tagName);
+          if (!_isEditing) {
+            c.innerHTML = renderParametres();
+          }
+          break;
         case 'comptabilite': c.innerHTML = renderComptabilite(); initComptaChart(); break;
         case 'depenses': navigate('comptabilite'); return;
         case 'transactions': navigate('comptabilite'); return;
@@ -8304,7 +8312,9 @@
             });
         }
         toast('Paramètres enregistrés ✅', 'success');
-        render(); // Rafraîchir l'affichage (header, PDF, etc.)
+        // blur l'input actif avant render pour éviter l'écrasement
+        if (document.activeElement) document.activeElement.blur();
+        render();
       }
 
       // ── CGU ───────────────────────────────────────────────
