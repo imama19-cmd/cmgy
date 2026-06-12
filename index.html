@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>DoliPro Manager v14 — Backend Only</title>
   <meta name="theme-color" content="#1e6fd9">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231e6fd9'/><text y='22' x='16' text-anchor='middle' font-size='18' font-family='sans-serif' fill='white'>D</text></svg>" type="image/svg+xml">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -5317,6 +5319,26 @@
               r.date     = r.date_transaction || r.date || '';
               r.montant  = parseFloat(r.montant || 0);
             }
+            if (t === 'employes') {
+              r.salaireBase = parseFloat(r.salaire_base || r.salaireBase || 0);
+              r.nom = r.nom || r.prenom || '';
+            }
+            if (t === 'chantiers') {
+              r.budgetPrevu   = parseFloat(r.budget_prevu   || r.budgetPrevu   || 0);
+              r.budgetDepense = parseFloat(r.budget_depense || r.budgetDepense || 0);
+              r.avancement    = parseFloat(r.avancement_pct || r.avancement    || 0);
+            }
+            if (t === 'relances') {
+              r.date = r.date_envoi || r.date || '';
+            }
+            if (t === 'paie') {
+              r.salaireNet  = parseFloat(r.salaire_net  || r.salaireNet  || 0);
+              r.salaireBase = parseFloat(r.salaire_base || r.salaireBase || 0);
+              r.mois = r.mois || r.periode || '';
+            }
+            if (t === 'presences') {
+              r.date = r.date_presence || r.date || '';
+            }
             // Factures
             if (t === 'factures') {
               r.totalHT  = r.sous_total_ht  ?? r.totalHT  ?? 0;
@@ -6827,6 +6849,17 @@
       else navigate('factures');
     }
 
+    function getStatutLabel(statut) {
+      const map = {
+        brouillon: 'Brouillon', envoyee: 'Validée', validee: 'Validée',
+        payee: 'Payée', partiellement_payee: 'Acompte versé',
+        annulee: 'Annulée', en_retard: 'En retard',
+        envoye: 'Envoyé', accepte: 'Accepté', refuse: 'Refusé',
+        expire: 'Expiré', converti: 'Converti en facture'
+      };
+      return map[statut] || statut || '—';
+    }
+
     function navigate(page) {
       // Vérifier expiration sur chaque navigation
       if (isPlanExpired()) {
@@ -7374,7 +7407,9 @@
       function deleteClient(id) {
         const client = Store.get('clients', []).find(c => c.id === id);
         if (!confirm(`Supprimer "${client?.nom || 'ce client'}" ?\n\nCette action est irréversible.`)) return;
-        Store.set('clients', Store.get('clients', []).filter(c => c.id !== id));
+        Store._delete('clients', id, Store._wsId);
+        const _ckCl = Store._wsId ? `${Store._wsId}_clients` : 'clients';
+        _memCache[_ckCl] = Store.get('clients', []).filter(c => c.id !== id);
         toast('Client supprimé', 'success'); render();
       }
       function viewClient(id) {
@@ -7477,6 +7512,7 @@
             <td class="text-right fw-bold">${fmt.fcfa((f.totalTTC||f.total_ttc||0) || f.total_ttc || 0)}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="printDoc('facture','${f.id}')">PDF</button>
+              <button class="btn btn-sm btn-outline" onclick="downloadDocPDF('facture','${f.id}')" title="Télécharger en PDF">⬇</button>
               ${(f.statut === 'validee' || f.statut === 'partiellement_payee' || f.statut === 'payee') ? `<button class="btn btn-sm" onclick="shareDocWhatsApp('facture','${f.id}')" style="background:#25d366;color:#fff;border:none;border-radius:var(--radius)">💬 WA</button>` : ''}
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('facture','${f.id}')">Modifier</button>` : ''}
               ${f.statut === 'brouillon' ? `<button class="btn btn-sm btn-primary" onclick="changeDocStatut('facture','${f.id}','validee')">Valider</button>` : ''}
@@ -7549,9 +7585,10 @@
             <td>${fmt.date(d.date)}</td>
             <td>${d.validite ? fmt.date(d.validite) : '—'}</td>
             <td><span class="badge badge-${d.statut}">${statutLabel(d.statut)}</span></td>
-            <td class="text-right fw-bold">${fmt.fcfa(d.totalTTC)}</td>
+            <td class="text-right fw-bold">${fmt.fcfa((d.totalTTC||d.total_ttc||0))}</td>
             <td class="text-right"><div class="td-actions">
               <button class="btn btn-sm btn-outline" onclick="printDoc('devis','${d.id}')">PDF</button>
+              <button class="btn btn-sm btn-outline" onclick="downloadDocPDF('devis','${d.id}')" title="Télécharger en PDF">⬇</button>
               ${(d.statut === 'envoye' || d.statut === 'accepte') ? `<button class="btn btn-sm" onclick="shareDocWhatsApp('devis','${d.id}')" style="background:#25d366;color:#fff;border:none;border-radius:var(--radius)">💬 WA</button>` : ''}
               ${d.statut === 'brouillon' ? `<button class="btn btn-sm btn-outline" onclick="editDoc('devis','${d.id}')">Modifier</button>` : ''}
               ${d.statut === 'brouillon' ? `<button class="btn btn-sm btn-primary" onclick="changeDocStatut('devis','${d.id}','envoye')">Envoyer</button>` : ''}
@@ -7830,7 +7867,7 @@
           id: uid(), numero: num, statut: 'brouillon', createdAt: now(), updatedAt: now(),
           clientId: d.clientId, clientNom: d.clientNom, date: fmt.dateISO(),
           lignes: JSON.parse(JSON.stringify(d.lignes || [])),
-          totalHT: d.totalHT, totalTVA: d.totalTVA, totalTTC: d.totalTTC,
+          totalHT: (d.totalHT||d.sous_total_ht||0), totalTVA: (d.totalTVA||d.total_tva||0), totalTTC: (d.totalTTC||d.total_ttc||0),
           notes: d.notes, fromDevis: d.numero
         });
         Store.set('factures', factures);
@@ -8083,7 +8120,7 @@
             <div class="prod-name">${_esc(p.nom)}</div>
             <div class="prod-stock">${p.type_produit !== 'service' ? `Stock: ${parseFloat(p.stock_actuel ?? p.quantite ?? 0)}` : _esc(p.unite || 'service')}</div>
           </div>
-          <div class="prod-price">${fmt.fcfa(p.prix)}</div>
+          <div class="prod-price">${fmt.fcfa(p.prix_vente_ht||p.prix||0)}</div>
         </div>
       `).join('') || '<p style="color:var(--text-muted);text-align:center;padding:20px">Aucun produit dans le catalogue</p>'}
     </div>
@@ -8097,7 +8134,7 @@
         <div class="prod-name">${_esc(p.nom)}</div>
         <div class="prod-stock">${p.quantite !== undefined ? `Stock: ${p.quantite}` : _esc(p.unite || 'service')}</div>
       </div>
-      <div class="prod-price">${fmt.fcfa(p.prix)}</div>
+      <div class="prod-price">${fmt.fcfa(p.prix_vente_ht||p.prix||0)}</div>
     </div>
   `).join('') || '<p style="color:var(--text-muted);text-align:center;padding:20px">Aucun résultat</p>';
       }
@@ -8458,10 +8495,10 @@
       /* ══════════════════════════════════════════════════════
          GÉNÉRATION PDF
       ══════════════════════════════════════════════════════ */
-      function printDoc(type, id) {
+      function buildDocHtml(type, id) {
         const docs = Store.get(type === 'facture' ? 'factures' : 'devis');
         const doc = docs.find(d => d.id === id);
-        if (!doc) return;
+        if (!doc) return null;
         const co = Store.getObj('company', {});
         const primaryColor = getCurrentProfil().couleur || (type === 'facture' ? '#1e6fd9' : '#d97706');
         const _pu = getCurrentUser() || App.user;
@@ -8601,12 +8638,60 @@ ${(function(){
       </div>
     </div>
   </div>
-  <script>window.onload=()=>setTimeout(()=>window.print(),500)<\/script>
   <\/body><\/html>`;
+        return { html, doc };
+      }
 
+      function printDoc(type, id) {
+        const result = buildDocHtml(type, id);
+        if (!result) return;
+        const printHtml = result.html.replace(
+          '<\/body><\/html>',
+          '<script>window.onload=()=>setTimeout(()=>window.print(),500)<\/script><\/body><\/html>'
+        );
         const w = window.open('', '_blank');
-        w.document.write(html);
+        w.document.write(printHtml);
         w.document.close();
+      }
+
+      function downloadDocPDF(type, id) {
+        const result = buildDocHtml(type, id);
+        if (!result) return;
+        const { html, doc } = result;
+
+        if (typeof html2pdf === 'undefined') {
+          toast('Génération PDF indisponible — utilisez Imprimer', 'warning');
+          printDoc(type, id);
+          return;
+        }
+
+        // Conteneur invisible pour le rendu
+        const container = document.createElement('div');
+        container.style.position = 'fixed';
+        container.style.left = '-9999px';
+        container.style.top = '0';
+        container.style.width = '800px';
+        container.innerHTML = html.replace(/<!DOCTYPE[^>]*>|<html[^>]*>|<\/html>|<head>[\s\S]*?<\/head>|<body[^>]*>|<\/body>/gi, '');
+        document.body.appendChild(container);
+
+        const filename = `${type === 'facture' ? 'Facture' : 'Devis'}_${doc.numero || doc.id}.pdf`;
+
+        toast('⏳ Génération du PDF…', 'info');
+
+        html2pdf().set({
+          margin: 10,
+          filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(container).save().then(() => {
+          document.body.removeChild(container);
+          toast('✅ PDF téléchargé', 'success');
+        }).catch(err => {
+          document.body.removeChild(container);
+          console.error('[downloadDocPDF]', err);
+          toast('Erreur génération PDF', 'error');
+        });
       }
 
       /* ══════════════════════════════════════════════════════
@@ -9192,7 +9277,7 @@ ${(function(){
 
       function getSoldeActuel() {
         const txns = Store.get('transactions', []);
-        return txns.reduce((s, t) => t.type === 'recette' ? s + t.montant : s - t.montant, 0);
+        return txns.reduce((s, t) => (t.type||t.type_transaction) === 'recette' ? s + (t.montant||0) : s - (t.montant||0), 0);
       }
 
       function getRecapMensuel(annee, mois) {
@@ -9202,7 +9287,7 @@ ${(function(){
           return d.getFullYear() === annee && (d.getMonth() + 1) === mois;
         });
         const recettes = filtered.filter(t => t.type === 'recette').reduce((s, t) => s + t.montant, 0);
-        const depenses = filtered.filter(t => t.type === 'depense').reduce((s, t) => s + t.montant, 0);
+        const depenses = filtered.filter(t => (t.type||t.type_transaction) === 'depense').reduce((s, t) => s + (t.montant||0), 0);
         return { recettes, depenses, benefice: recettes - depenses };
       }
 
@@ -9278,7 +9363,7 @@ ${(function(){
         const cat = document.getElementById('txn-filter-cat')?.value || '';
         const month = document.getElementById('txn-filter-month')?.value || '';
         let txns = Store.get('transactions', []);
-        if (type) txns = txns.filter(t => t.type === type);
+        if (type) txns = txns.filter(t => (t.type||t.type_transaction) === type);
         if (cat) txns = txns.filter(t => t.categorie === cat);
         if (month) txns = txns.filter(t => t.date?.startsWith(month));
         txns.sort((a, b) => b.date.localeCompare(a.date));
@@ -9300,7 +9385,7 @@ ${(function(){
           <td>${_esc(t.categorie)}</td>
           <td>${_esc(t.description)}</td>
           <td style="font-weight:700;color:${t.type === 'recette' ? 'var(--success)' : 'var(--danger)'}">
-            ${t.type === 'recette' ? '+' : '-'}${formatMontant(t.montant)}
+            ${(t.type||t.type_transaction) === 'recette' ? '+' : '-'}${formatMontant(t.montant||0)}
           </td>
           <td>
             <button class="btn-icon" data-tooltip="Modifier" onclick="openTransactionModal('${t.id}')" aria-label="Modifier" title="Modifier">✏️</button>
@@ -11295,7 +11380,7 @@ ${(function(){
         const results = [
           ...clients.slice(0, 3).map(c => ({ type: 'client', icon: '👤', label: c.nom, sub: c.email || '', action: `navigate('clients')` })),
           ...factures.slice(0, 3).map(f => ({ type: 'facture', icon: '📄', label: f.numero + ' — ' + f.clientNom, sub: fmt.fcfa((f.totalTTC||f.total_ttc||0)), action: `navigate('factures')` })),
-          ...devis.slice(0, 3).map(d => ({ type: 'devis', icon: '📋', label: d.numero + ' — ' + d.clientNom, sub: fmt.fcfa(d.totalTTC), action: `navigate('devis')` })),
+          ...devis.slice(0, 3).map(d => ({ type: 'devis', icon: '📋', label: d.numero + ' — ' + d.clientNom, sub: fmt.fcfa((d.totalTTC||d.total_ttc||0)), action: `navigate('devis')` })),
           ...produits.slice(0, 3).map(p => ({ type: 'produit', icon: '📦', label: p.nom, sub: fmt.fcfa(p.prixHT), action: `navigate('stock')` })),
         ];
         if (!results.length) { resultsEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.88rem">Aucun résultat pour "' + _esc(q) + '"</div>'; return; }
