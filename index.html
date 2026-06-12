@@ -8659,57 +8659,64 @@ ${(function(){
         if (!result) return;
         const { html, doc } = result;
 
-        if (typeof html2pdf === 'undefined') {
-          toast('Génération PDF indisponible — utilisez Imprimer', 'warning');
-          printDoc(type, id);
-          return;
-        }
-
-        // Extraire le <style> et le contenu du <body> séparément
-        const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/i);
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        const styleContent = styleMatch ? styleMatch[1] : '';
-        const bodyContent = bodyMatch ? bodyMatch[1] : html;
-
-        // Injecter le style dans le document principal (scoped via id)
-        let styleTag = document.getElementById('_pdf_export_style');
-        if (!styleTag) {
-          styleTag = document.createElement('style');
-          styleTag.id = '_pdf_export_style';
-          document.head.appendChild(styleTag);
-        }
-        styleTag.textContent = styleContent;
-
-        // Conteneur invisible pour le rendu
-        const container = document.createElement('div');
-        container.style.position = 'fixed';
-        container.style.left = '-9999px';
-        container.style.top = '0';
-        container.style.width = '800px';
-        container.style.background = '#ffffff';
-        container.innerHTML = bodyContent;
-        document.body.appendChild(container);
-
         const filename = `${type === 'facture' ? 'Facture' : 'Devis'}_${doc.numero || doc.id}.pdf`;
 
-        toast('⏳ Génération du PDF…', 'info');
+        // Attendre que html2pdf soit chargé (script defer)
+        const tryGenerate = (attempts = 0) => {
+          if (typeof html2pdf === 'undefined') {
+            if (attempts < 20) { setTimeout(() => tryGenerate(attempts + 1), 150); return; }
+            toast('Génération PDF indisponible — utilisez Imprimer', 'warning');
+            printDoc(type, id);
+            return;
+          }
 
-        html2pdf().set({
-          margin: 10,
-          filename,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(container).save().then(() => {
-          document.body.removeChild(container);
-          styleTag.remove();
-          toast('✅ PDF téléchargé', 'success');
-        }).catch(err => {
-          document.body.removeChild(container);
-          styleTag.remove();
-          console.error('[downloadDocPDF]', err);
-          toast('Erreur génération PDF', 'error');
-        });
+          // Extraire le <style> et le contenu du <body>
+          const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/i);
+          const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+          const styleContent = styleMatch ? styleMatch[1] : '';
+          const bodyContent = bodyMatch ? bodyMatch[1] : html;
+
+          // iframe isolé — évite tout conflit CSS avec la page principale
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'fixed';
+          iframe.style.left = '0';
+          iframe.style.top = '0';
+          iframe.style.width = '850px';
+          iframe.style.height = '1200px';
+          iframe.style.opacity = '0';
+          iframe.style.pointerEvents = 'none';
+          iframe.style.zIndex = '-1';
+          document.body.appendChild(iframe);
+
+          const idoc = iframe.contentDocument;
+          idoc.open();
+          idoc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>${styleContent}</style></head><body>${bodyContent}</body></html>`);
+          idoc.close();
+
+          toast('⏳ Génération du PDF…', 'info');
+
+          const cleanup = () => { if (iframe.parentNode) document.body.removeChild(iframe); };
+
+          setTimeout(() => {
+            const target = idoc.body;
+            html2pdf().set({
+              margin: 10,
+              filename,
+              image: { type: 'jpeg', quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+              jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(target).save().then(() => {
+              cleanup();
+              toast('✅ PDF téléchargé', 'success');
+            }).catch(err => {
+              cleanup();
+              console.error('[downloadDocPDF]', err);
+              toast('Erreur génération PDF', 'error');
+            });
+          }, 300); // laisser le temps aux polices/styles de charger dans l'iframe
+        };
+
+        tryGenerate();
       }
 
       /* ══════════════════════════════════════════════════════
