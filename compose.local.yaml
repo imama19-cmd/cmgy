@@ -1,0 +1,67 @@
+name: carnet-v2-local
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: carnet
+      POSTGRES_USER: carnet
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?Lancez start-docker.ps1 pour créer la configuration locale}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U carnet -d carnet"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_KEY: ${LOCAL_APP_KEY:?Lancez start-docker.ps1 pour créer la configuration locale}
+      APP_URL: http://localhost:8081
+      FRONTEND_URL: http://localhost:8080
+      TENANCY_DEFAULT_SCHOOL: demo-docker
+      DB_CONNECTION: pgsql
+      DB_URL: postgresql://carnet:${LOCAL_DB_PASSWORD}@db:5432/carnet
+      SESSION_DRIVER: file
+      CACHE_STORE: file
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      SMS_ENABLED: "false"
+      WHATSAPP_ENABLED: "false"
+      SETUP_ENABLED: "true"
+      DEMO_ENABLED: "true"
+      SUBSCRIPTIONS_ENABLED: "false"
+      PORT: "10000"
+    ports:
+      - "127.0.0.1:8081:10000"
+    volumes:
+      - backend_storage:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, php, -r, "exit(@file_get_contents('http://127.0.0.1:10000/up') === false ? 1 : 0);"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 20
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8081/api
+        VITE_SCHOOL_SLUG: demo-docker
+    ports:
+      - "127.0.0.1:8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  backend_storage:
